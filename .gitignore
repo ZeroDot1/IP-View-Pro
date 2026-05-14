@@ -1,0 +1,60 @@
+# ── Build directories ───────────────────────────────────────
+build/
+cmake-build-*/
+out/
+cmake-*/
+bld/
+
+# ── IDE / Editor ──────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.autosave
+CMakeLists.txt.user*
+*.creator*
+*.files*
+*.includes*
+*.config*
+
+# ── Compiled objects ──────────────────────────────────────
+*.o
+*.obj
+*.exe
+*.out
+*.app
+*.dylib
+*.dll
+*.lib
+*.a
+*.so
+*.so.*
+
+# ── CMake generated ───────────────────────────────────────
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+CPackConfig.cmake
+CPackSourceConfig.cmake
+CTestTestfile.cmake
+compile_commands.json
+
+# ── Qt generated ──────────────────────────────────────────
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+*.moc
+
+# ── SVGs (source assets, not generated) ───────────────────
+# svgs/ ist ein Quellverzeichnis, wird versioniert
+# Nur SVGs von Drittanbietern hier ausschließen falls nötig
+
+# ── Arch Linux package ────────────────────────────────────
+*.pkg.tar.zst
+*.pkg.tar.zst.sig
+pkg/
+src/

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <defs>
+    <linearGradient id="cam-body" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4A4A54"/>
+      <stop offset="100%" stop-color="#2A2A34"/>
+    </linearGradient>
+    <radialGradient id="cam-lens" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#66AAFF"/>
+      <stop offset="50%" stop-color="#3A7AD9"/>
+      <stop offset="100%" stop-color="#1A4A8E"/>
+    </radialGradient>
+    <radialGradient id="cam-flash" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E8E8E8"/>
+    </radialGradient>
+    <filter id="cam-shadow">
+      <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.4)"/>
+    </filter>
+  </defs>
+  <!-- Kamerakörper -->
+  <rect x="10" y="32" width="80" height="54" rx="12" fill="url(#cam-body)" filter="url(#cam-shadow)"/>
+  <!-- Oberer Aufsatz -->
+  <rect x="26" y="22" width="48" height="14" rx="4" fill="url(#cam-body)"/>
+  <!-- Blitz -->
+  <rect x="66" y="36" width="16" height="12" rx="3" fill="url(#cam-flash)"/>
+  <!-- Linse - Außenring -->
+  <circle cx="42" cy="58" r="18" fill="#1A1A24"/>
+  <!-- Linse -->
+  <circle cx="42" cy="58" r="14" fill="url(#cam-lens)"/>
+  <!-- Linsen-Reflexion -->
+  <ellipse cx="38" cy="52" rx="6" ry="4" fill="rgba(255,255,255,0.3)" transform="rotate(-20,38,52)"/>
+  <circle cx="46" cy="62" r="2" fill="rgba(255,255,255,0.15)"/>
+  <!-- Highlight -->
+  <rect x="14" y="36" width="20" height="6" rx="3" fill="rgba(255,255,255,0.12)"/>
+</svg>

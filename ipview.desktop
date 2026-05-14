@@ -1,0 +1,16 @@
+[Desktop Entry]
+Name=IPView Pro
+Name[de]=IPView Pro
+Comment=Professional IP monitoring & network analysis tool
+Comment[de]=Professionelle IP-Überwachung und Netzwerkanalyse
+GenericName=IP Monitor
+GenericName[de]=IP-Überwachung
+Exec=ipview-pro
+Icon=ipview-pro
+Type=Application
+Categories=Network;Monitor;Utility;
+Terminal=false
+StartupNotify=true
+StartupWMClass=IPView
+Keywords=ip;network;speedtest;whois;ping;traceroute;iperf3;
+MimeType=

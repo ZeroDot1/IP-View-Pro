@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Hintergrund-Gradient: Dark Tech -->
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#1a1a3e"/>
+      <stop offset="60%" stop-color="#0f0f2a"/>
+      <stop offset="100%" stop-color="#060612"/>
+    </radialGradient>
+    <!-- Netzwerkkabel-Gradient -->
+    <linearGradient id="cableGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4A4A5A"/>
+      <stop offset="50%" stop-color="#6E6E7E"/>
+      <stop offset="100%" stop-color="#3A3A4A"/>
+    </linearGradient>
+    <!-- RJ45-Stecker-Gradient -->
+    <linearGradient id="rj45Grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="50%" stop-color="#DAA520"/>
+      <stop offset="100%" stop-color="#B8860B"/>
+    </linearGradient>
+    <!-- Glasfaser-Licht Gradient -->
+    <linearGradient id="fiberGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#0099CC" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#005577" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="fiberGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e94560" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#CC3355" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#881133" stop-opacity="0"/>
+    </linearGradient>
+    <!-- IP-Globe Gradient -->
+    <radialGradient id="globeGrad" cx="50%" cy="45%" r="50%">
+      <stop offset="0%" stop-color="#00d4ff"/>
+      <stop offset="60%" stop-color="#0077AA"/>
+      <stop offset="100%" stop-color="#003355"/>
+    </radialGradient>
+    <!-- Leuchteffekt -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glowStrong">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="rgba(0,0,0,0.5)"/>
+    </filter>
+    <!-- Kabel-Textur -->
+    <pattern id="cablePattern" x="0" y="0" width="12" height="12" patternUnits="userSpaceOnUse">
+      <rect width="12" height="12" fill="#3A3A4A"/>
+      <line x1="0" y1="6" x2="12" y2="6" stroke="#555566" stroke-width="1.5"/>
+    </pattern>
+  </defs>
+
+  <!-- ─── Abgerundeter Hintergrund ─── -->
+  <rect width="512" height="512" rx="100" fill="url(#bgGrad)"/>
+
+  <!-- ─── Glasfaser-Lichtwellen (hinten) ─── -->
+  <path d="M120 160 Q200 120 280 180 Q360 240 440 200" fill="none" stroke="url(#fiberGrad1)" stroke-width="6" stroke-linecap="round" filter="url(#glow)" opacity="0.7"/>
+  <path d="M100 200 Q180 160 260 220 Q340 280 420 240" fill="none" stroke="url(#fiberGrad2)" stroke-width="4" stroke-linecap="round" filter="url(#glow)" opacity="0.5"/>
+  <path d="M130 240 Q210 200 290 260 Q370 320 450 280" fill="none" stroke="url(#fiberGrad1)" stroke-width="5" stroke-linecap="round" filter="url(#glow)" opacity="0.6"/>
+
+  <!-- ─── Netzwerkknoten (hinten) ─── -->
+  <circle cx="180" cy="170" r="6" fill="#00d4ff" filter="url(#glow)" opacity="0.6"/>
+  <circle cx="280" cy="230" r="4" fill="#e94560" filter="url(#glow)" opacity="0.5"/>
+  <circle cx="360" cy="200" r="5" fill="#00d4ff" filter="url(#glow)" opacity="0.6"/>
+  <circle cx="420" cy="250" r="6" fill="#e94560" filter="url(#glow)" opacity="0.5"/>
+
+  <!-- Verbindungslinien zwischen Knoten -->
+  <line x1="180" y1="170" x2="280" y2="230" stroke="#00d4ff" stroke-width="2" opacity="0.3"/>
+  <line x1="280" y1="230" x2="360" y2="200" stroke="#e94560" stroke-width="2" opacity="0.3"/>
+  <line x1="360" y1="200" x2="420" y2="250" stroke="#00d4ff" stroke-width="2" opacity="0.3"/>
+
+  <!-- ─── RJ45-Ethernet-Stecker ─── -->
+  <g filter="url(#shadow)">
+    <!-- Stecker-Gehäuse -->
+    <rect x="100" y="310" width="140" height="90" rx="8" fill="url(#rj45Grad)"/>
+    <rect x="100" y="310" width="140" height="12" rx="4" fill="rgba(255,255,255,0.15)"/>
+    <!-- Riegel -->
+    <rect x="230" y="330" width="16" height="40" rx="3" fill="#B8860B"/>
+    <!-- Kontaktpins -->
+    <rect x="110" y="370" width="10" height="4" rx="1" fill="#FFD700"/>
+    <rect x="126" y="370" width="10" height="4" rx="1" fill="#FFD700"/>
+    <rect x="142" y="370" width="10" height="4" rx="1" fill="#FFD700"/>
+    <rect x="158" y="370" width="10" height="4" rx="1" fill="#FFD700"/>
+    <rect x="174" y="370" width="10" height="4" rx="1" fill="#FFD700"/>
+    <rect x="190" y="370" width="10" height="4" rx="1" fill="#FFD700"/>
+    <rect x="206" y="370" width="10" height="4" rx="1" fill="#FFD700"/>
+    <rect x="222" y="370" width="10" height="4" rx="1" fill="#FFD700"/>
+  </g>
+
+  <!-- ─── Netzwerkkabel (vom Stecker weg) ─── -->
+  <g filter="url(#shadow)">
+    <path d="M240 355 Q300 355 350 330 Q380 318 400 320" fill="none" stroke="url(#cableGrad)" stroke-width="32" stroke-linecap="round"/>
+    <!-- Kabel-Textur-Linien -->
+    <path d="M240 355 Q300 355 350 330 Q380 318 400 320" fill="none" stroke="none"/>
+    <path d="M248 345 Q305 346 350 322" fill="none" stroke="#555566" stroke-width="1.5" opacity="0.5"/>
+    <path d="M248 365 Q305 364 350 338" fill="none" stroke="#555566" stroke-width="1.5" opacity="0.5"/>
+    <!-- Knickschutz -->
+    <path d="M240 340 Q250 340 255 345 L255 365 Q250 370 240 370 Z" fill="#2A2A3A"/>
+  </g>
+
+  <!-- ─── IP-Globe / Erde (Mitte-rechts) ─── -->
+  <g filter="url(#shadow)">
+    <!-- Globus -->
+    <circle cx="360" cy="180" r="60" fill="url(#globeGrad)"/>
+    <!-- Kontinente (abstrakt) -->
+    <ellipse cx="350" cy="170" rx="20" ry="12" fill="rgba(0,212,255,0.3)" transform="rotate(-10,350,170)"/>
+    <ellipse cx="370" cy="190" rx="15" ry="8" fill="rgba(0,212,255,0.25)" transform="rotate(5,370,190)"/>
+    <path d="M340 155 Q345 165 335 175" fill="none" stroke="rgba(0,212,255,0.3)" stroke-width="3" stroke-linecap="round"/>
+    <!-- Längen-/Breitengrade -->
+    <ellipse cx="360" cy="180" rx="40" ry="40" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+    <ellipse cx="360" cy="180" rx="40" ry="20" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+    <ellipse cx="360" cy="180" rx="20" ry="40" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+    <line x1="360" y1="140" x2="360" y2="220" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+    <line x1="320" y1="180" x2="400" y2="180" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+    <!-- Highlight -->
+    <ellipse cx="348" cy="162" rx="16" ry="10" fill="rgba(255,255,255,0.15)" transform="rotate(-15,348,162)"/>
+  </g>
+
+  <!-- ─── IP-Adress-Anzeige ─── -->
+  <g>
+    <rect x="180" y="420" width="200" height="52" rx="26" fill="rgba(0,212,255,0.08)" stroke="#00d4ff" stroke-width="2" filter="url(#shadow)"/>
+    <rect x="182" y="422" width="196" height="48" rx="24" fill="rgba(0,212,255,0.05)"/>
+    <text x="280" y="454" font-family="'Courier New', monospace" font-size="24" fill="#00d4ff" text-anchor="middle" font-weight="bold" filter="url(#glow)">192.168.1.1</text>
+  </g>
+
+  <!-- ─── Akzent: IP-Pulse ─── -->
+  <circle cx="160" cy="180" r="3" fill="#e94560" filter="url(#glowStrong)"/>
+  <circle cx="200" cy="150" r="2" fill="#00d4ff" filter="url(#glowStrong)"/>
+
+  <!-- ─── Glasfaser-Lichtkern (vorne, leuchtend) ─── -->
+  <path d="M130 180 Q200 140 270 200" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" filter="url(#glowStrong)" opacity="0.8"/>
+</svg>

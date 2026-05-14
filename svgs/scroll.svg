@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <defs>
+    <linearGradient id="scroll-body" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F5E6C8"/>
+      <stop offset="50%" stop-color="#E8D5A8"/>
+      <stop offset="100%" stop-color="#D4B87A"/>
+    </linearGradient>
+    <linearGradient id="scroll-roll" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C49A5C"/>
+      <stop offset="100%" stop-color="#A67B44"/>
+    </linearGradient>
+    <filter id="scroll-shadow">
+      <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.35)"/>
+    </filter>
+  </defs>
+  <!-- Obere Rolle -->
+  <rect x="18" y="8" width="64" height="12" rx="6" fill="url(#scroll-roll)" filter="url(#scroll-shadow)"/>
+  <rect x="22" y="10" width="20" height="4" rx="2" fill="rgba(255,255,255,0.3)"/>
+  <!-- Untere Rolle -->
+  <rect x="18" y="80" width="64" height="12" rx="6" fill="url(#scroll-roll)" filter="url(#scroll-shadow)"/>
+  <rect x="22" y="82" width="20" height="4" rx="2" fill="rgba(255,255,255,0.3)"/>
+  <!-- Pergament -->
+  <rect x="16" y="18" width="68" height="64" rx="4" fill="url(#scroll-body)" filter="url(#scroll-shadow)"/>
+  <!-- Text-Linien -->
+  <line x1="28" y1="34" x2="72" y2="34" stroke="#B8965C" stroke-width="2" stroke-linecap="round"/>
+  <line x1="28" y1="44" x2="68" y2="44" stroke="#B8965C" stroke-width="2" stroke-linecap="round"/>
+  <line x1="28" y1="54" x2="70" y2="54" stroke="#B8965C" stroke-width="2" stroke-linecap="round"/>
+  <line x1="28" y1="64" x2="60" y2="64" stroke="#B8965C" stroke-width="2" stroke-linecap="round"/>
+  <!-- Highlight -->
+  <rect x="20" y="22" width="30" height="6" rx="3" fill="rgba(255,255,255,0.25)"/>
+</svg>

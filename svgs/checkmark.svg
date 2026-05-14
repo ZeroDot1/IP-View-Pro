@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <defs>
+    <radialGradient id="check-bg" cx="35%" cy="28%" r="70%">
+      <stop offset="0%" stop-color="#7FE89A"/>
+      <stop offset="50%" stop-color="#34C759"/>
+      <stop offset="100%" stop-color="#219A46"/>
+    </radialGradient>
+    <filter id="check-shadow">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="rgba(33,154,70,0.45)"/>
+    </filter>
+  </defs>
+  <!-- Kreis -->
+  <circle cx="50" cy="52" r="44" fill="url(#check-bg)" filter="url(#check-shadow)"/>
+  <!-- Haken -->
+  <path d="M24 52 L42 70 L76 34"
+        fill="none" stroke="white" stroke-width="9"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Glanz -->
+  <ellipse cx="36" cy="30" rx="14" ry="9" fill="rgba(255,255,255,0.4)"
+           transform="rotate(-20,36,30)"/>
+</svg>

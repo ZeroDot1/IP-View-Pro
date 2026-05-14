@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <defs>
+    <linearGradient id="fd-body" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4A90D9"/>
+      <stop offset="100%" stop-color="#2A5A8E"/>
+    </linearGradient>
+    <linearGradient id="fd-label" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F5F5FA"/>
+      <stop offset="100%" stop-color="#D0D0D8"/>
+    </linearGradient>
+    <linearGradient id="fd-metal" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C0C0C8"/>
+      <stop offset="50%" stop-color="#E8E8EE"/>
+      <stop offset="100%" stop-color="#A0A0A8"/>
+    </linearGradient>
+    <filter id="fd-shadow">
+      <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.35)"/>
+    </filter>
+  </defs>
+  <!-- Diskette -->
+  <rect x="16" y="14" width="68" height="72" rx="8" fill="url(#fd-body)" filter="url(#fd-shadow)"/>
+  <!-- Metall-Schieber -->
+  <rect x="44" y="14" width="28" height="34" rx="0" fill="url(#fd-metal)"/>
+  <rect x="44" y="14" width="28" height="6" rx="0" fill="rgba(255,255,255,0.3)"/>
+  <circle cx="66" cy="24" r="3" fill="#4A4A54"/>
+  <!-- Etikett -->
+  <rect x="22" y="56" width="40" height="26" rx="3" fill="url(#fd-label)"/>
+  <line x1="28" y1="66" x2="56" y2="66" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="28" y1="74" x2="50" y2="74" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- Highlight -->
+  <rect x="20" y="18" width="12" height="6" rx="3" fill="rgba(255,255,255,0.2)"/>
+</svg>

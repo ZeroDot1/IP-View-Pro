@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <defs>
+    <linearGradient id="chart-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4A90D9"/>
+      <stop offset="100%" stop-color="#2A5A8E"/>
+    </linearGradient>
+    <linearGradient id="chart-bar1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#34C759"/>
+      <stop offset="100%" stop-color="#27AE60"/>
+    </linearGradient>
+    <linearGradient id="chart-bar2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF9500"/>
+      <stop offset="100%" stop-color="#CC6600"/>
+    </linearGradient>
+    <linearGradient id="chart-bar3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF3B30"/>
+      <stop offset="100%" stop-color="#C0392B"/>
+    </linearGradient>
+    <filter id="chart-shadow">
+      <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.3)"/>
+    </filter>
+  </defs>
+  <!-- Rounded Rechteck Hintergrund -->
+  <rect x="8" y="8" width="84" height="84" rx="16" fill="url(#chart-bg)" filter="url(#chart-shadow)"/>
+  <!-- Säulen -->
+  <rect x="20" y="52" width="16" height="34" rx="4" fill="url(#chart-bar1)"/>
+  <rect x="42" y="38" width="16" height="48" rx="4" fill="url(#chart-bar2)"/>
+  <rect x="64" y="24" width="16" height="62" rx="4" fill="url(#chart-bar3)"/>
+  <!-- Highlight auf Säulen -->
+  <rect x="22" y="54" width="6" height="20" rx="3" fill="rgba(255,255,255,0.25)"/>
+  <rect x="44" y="40" width="6" height="30" rx="3" fill="rgba(255,255,255,0.25)"/>
+  <rect x="66" y="26" width="6" height="40" rx="3" fill="rgba(255,255,255,0.25)"/>
+  <!-- Glanz auf Hintergrund -->
+  <rect x="12" y="12" width="30" height="8" rx="4" fill="rgba(255,255,255,0.2)"/>
+</svg>

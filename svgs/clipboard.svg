@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <defs>
+    <linearGradient id="cb-body" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F0F0F5"/>
+      <stop offset="100%" stop-color="#D0D0D8"/>
+    </linearGradient>
+    <linearGradient id="cb-clip" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8E8E98"/>
+      <stop offset="100%" stop-color="#5E5E68"/>
+    </linearGradient>
+    <filter id="cb-shadow">
+      <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.3)"/>
+    </filter>
+  </defs>
+  <!-- Clipboard body -->
+  <rect x="22" y="24" width="56" height="66" rx="6" fill="url(#cb-body)" filter="url(#cb-shadow)"/>
+  <!-- Klemme oben -->
+  <rect x="36" y="16" width="28" height="14" rx="4" fill="url(#cb-clip)"/>
+  <circle cx="50" cy="28" r="4" fill="#3A3A44"/>
+  <!-- Text-Linien -->
+  <line x1="34" y1="44" x2="66" y2="44" stroke="#A0A0A8" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="34" y1="54" x2="62" y2="54" stroke="#A0A0A8" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="34" y1="64" x2="64" y2="64" stroke="#A0A0A8" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="34" y1="74" x2="56" y2="74" stroke="#A0A0A8" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Highlight -->
+  <rect x="26" y="28" width="20" height="6" rx="3" fill="rgba(255,255,255,0.3)"/>
+</svg>

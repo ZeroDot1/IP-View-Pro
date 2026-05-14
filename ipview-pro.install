@@ -1,0 +1,30 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# IPView Pro v2.7.0 — .install script
+# Updates desktop database and icon cache after install/upgrade/removal.
+# Public Domain — No License — No Restrictions
+# ═══════════════════════════════════════════════════════════════════════════════
+
+post_install() {
+    # Update desktop-entry database
+    update-desktop-database -q 2>/dev/null || true
+    # Update icon cache (scalable icons)
+    gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
+    echo "  -> IPView Pro installed successfully."
+    echo "  -> Run 'ipview-pro' from terminal or application menu."
+}
+
+post_upgrade() {
+    post_install
+}
+
+pre_remove() {
+    # Nothing special needed; pacman removes the files
+    echo "  -> Removing IPView Pro..."
+}
+
+post_remove() {
+    # Clean up desktop database and icon cache
+    update-desktop-database -q 2>/dev/null || true
+    gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
+    echo "  -> IPView Pro removed."
+}

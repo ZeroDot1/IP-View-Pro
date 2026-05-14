@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <defs>
+    <linearGradient id="warn-body" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE87A"/>
+      <stop offset="50%" stop-color="#FFD60A"/>
+      <stop offset="100%" stop-color="#E6A800"/>
+    </linearGradient>
+    <linearGradient id="warn-symbol" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F0F0F0"/>
+    </linearGradient>
+    <filter id="warn-shadow">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="rgba(200,150,0,0.4)"/>
+    </filter>
+  </defs>
+  <!-- Dreieck -->
+  <path d="M50 10 L94 88 L6 88 Z" fill="url(#warn-body)" filter="url(#warn-shadow)"/>
+  <!-- Highlight auf Dreieck -->
+  <path d="M50 18 L26 72 L40 72" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="4" stroke-linecap="round"/>
+  <!-- Ausrufezeichen - senkrechter Strich -->
+  <rect x="44" y="40" width="12" height="30" rx="4" fill="url(#warn-symbol)" filter="url(#warn-shadow)"/>
+  <!-- Ausrufezeichen - Punkt -->
+  <circle cx="50" cy="80" r="7" fill="url(#warn-symbol)"/>
+</svg>

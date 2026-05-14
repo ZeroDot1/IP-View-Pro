@@ -1,0 +1,18 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>icon.svg</file>
+        <file>svgs/scroll.svg</file>
+        <file>svgs/wastebasket.svg</file>
+        <file>svgs/clipboard.svg</file>
+        <file>svgs/floppy-disk.svg</file>
+        <file>svgs/chart-bar.svg</file>
+        <file>svgs/search.svg</file>
+        <file>svgs/wrench.svg</file>
+        <file>svgs/lightning.svg</file>
+        <file>svgs/warning.svg</file>
+        <file>svgs/checkmark.svg</file>
+        <file>svgs/camera.svg</file>
+        <file>svgs/info.svg</file>
+    </qresource>
+</RCC>
