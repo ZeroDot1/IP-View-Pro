@@ -221,8 +221,8 @@ void MainWindow::updateTrayTooltip(const QJsonObject &jsonData) noexcept
 void MainWindow::setupUI() noexcept
 {
     setWindowTitle(QStringLiteral("IP View Pro v") + QApplication::applicationVersion());
-    setMinimumSize(800, 700);
-    resize(950, 850);
+    setMinimumSize(1280, 720);
+    resize(1920, 1080);
 
     auto *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(10, 10, 10, 10);

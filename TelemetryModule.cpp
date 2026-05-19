@@ -34,16 +34,17 @@ std::expected<Stats, std::string>
 TelemetryModule::fetchStats(std::string_view interface) noexcept
 {
     QFile file(QStringLiteral("/proc/net/dev"));
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    if (!file.open(QIODevice::ReadOnly)) {
         return std::unexpected(
             std::string("Cannot open /proc/net/dev: ") + file.errorString().toStdString());
     }
 
-    QTextStream in(&file);
-    QString const content = in.readAll();
+    QByteArray const raw = file.readAll();
     file.close();
 
-    return parseProcNetDev(content, interface);
+    std::string_view const buf(raw.constData(),
+                               static_cast<std::size_t>(raw.size()));
+    return parseProcNetDev(buf, interface);
 }
 
 QStringList TelemetryModule::availableInterfaces() const noexcept
@@ -118,21 +119,25 @@ QList<InterfaceInfo> TelemetryModule::getAllInterfaces() const noexcept
 void TelemetryModule::onTick() noexcept
 {
     QFile file(QStringLiteral("/proc/net/dev"));
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    if (!file.open(QIODevice::ReadOnly)) {   // ← binary mode, kein QTextStream
         emit errorOccurred(QStringLiteral("Cannot open /proc/net/dev"));
         return;
     }
 
-    QTextStream in(&file);
-    QString const content = in.readAll();
+    QByteArray const raw = file.readAll();   // ← QByteArray statt QString
     file.close();
+
+    // ── Zero-Copy: std::string_view in den Roh-Puffer (Item 40) ──────────
+    std::string_view const buf(raw.constData(),
+                               static_cast<std::size_t>(raw.size()));
 
     QStringList const ifaces = availableInterfaces();
     QList<InterfaceInfo> updated;
+    updated.reserve(ifaces.size());
 
     for (QString const &iface : ifaces) {
         std::string const name = iface.toStdString();
-        Stats const current = parseProcNetDev(content, name);
+        Stats const current = parseProcNetDev(buf, name);
 
         // Find previous entry for speed calculation
         auto it = std::find_if(mInterfaces.begin(), mInterfaces.end(),
@@ -211,7 +216,7 @@ void TelemetryModule::adjustIntervalDynamically(double totalActivity) noexcept
 //  Private Helpers
 // ═══════════════════════════════════════════════════════════════════════════════
 
-Stats TelemetryModule::parseProcNetDev(const QString &content,
+Stats TelemetryModule::parseProcNetDev(std::string_view buf,
                                        std::string_view interface) noexcept
 {
     Stats stats{};
@@ -221,42 +226,60 @@ Stats TelemetryModule::parseProcNetDev(const QString &content,
     //  face |bytes    packets errs drop fifo ...     |bytes    packets errs ...
     //    lo: 12345    678    0    0    0 ...         98765    432    0 ...
 
-    QString const searchStr = QString::fromUtf8(interface.data(),
-                                                static_cast<qsizetype>(interface.size()));
-    QStringList const lines = content.split(QLatin1Char('\n'));
+    // ── Zero-Copy: Zeilen-weise aus std::string_view (Item 40) ───────────
+    std::size_t pos = 0;
+    while (pos < buf.size()) {
+        std::size_t const nl = buf.find('\n', pos);
+        std::size_t const end = (nl == std::string_view::npos) ? buf.size() : nl;
+        std::string_view const line = buf.substr(pos, end - pos);
+        pos = (nl == std::string_view::npos) ? buf.size() : nl + 1;
 
-    for (QString const &line : lines) {
-        if (!line.contains(searchStr, Qt::CaseInsensitive)) continue;
+        if (line.empty()) continue;
 
-        // Format: "   eth0:  rx_bytes rx_packets rx_errs ...  tx_bytes ..."
-        // Split after the colon
-        qsizetype const colonPos = line.indexOf(QLatin1Char(':'));
-        if (colonPos < 0) break;
+        // Interface-Namen in der Zeile suchen
+        if (line.find(interface) == std::string_view::npos) continue;
 
-        QString const valuesPart = line.mid(colonPos + 1).trimmed();
-        QStringList const tokens = valuesPart.split(QRegularExpression(QStringLiteral("\\s+")),
-                                                     Qt::SkipEmptyParts);
+        // Format: "   eth0:  rx_bytes rx_packets ..."
+        std::size_t const colon = line.find(':');
+        if (colon == std::string_view::npos) break;
 
-        if (tokens.size() < 10) break;
+        std::string_view const values = line.substr(colon + 1);
 
-        // C++26: std::from_chars for performant string-to-integer conversion
-        auto parseU64 = [](const QString &s) -> std::uint64_t {
-            std::uint64_t val = 0;
-            QByteArray const ba = s.toUtf8();
-            auto [ptr, ec] = std::from_chars(ba.data(), ba.data() + ba.size(), val);
-            if (ec != std::errc{}) return 0;
-            return val;
+        // Token parsen (whitespace-separiert) — C++26: direkter Zugriff
+        auto parseToken = [&](int idx) -> std::uint64_t {
+            std::size_t start = 0;
+            int tokenIdx = 0;
+            while (start < values.size()) {
+                // Whitespace überspringen
+                while (start < values.size() && (values[start] == ' ' || values[start] == '\t'))
+                    ++start;
+                if (start >= values.size()) break;
+
+                std::size_t tokenEnd = start;
+                while (tokenEnd < values.size() && values[tokenEnd] != ' ' && values[tokenEnd] != '\t')
+                    ++tokenEnd;
+
+                if (tokenIdx == idx) {
+                    std::string_view const tok = values.substr(start, tokenEnd - start);
+                    std::uint64_t val = 0;
+                    auto [ptr, ec] = std::from_chars(tok.data(), tok.data() + tok.size(), val);
+                    return (ec == std::errc{}) ? val : 0;
+                }
+
+                ++tokenIdx;
+                start = tokenEnd;
+            }
+            return 0;
         };
 
-        // Indices: 0=rx_bytes, 1=rx_packets, 2=rx_errs, 3=rx_drop,
-        //          4=rx_fifo, 5=rx_frame, 6=rx_compressed, 7=rx_multicast,
-        //          8=tx_bytes, 9=tx_packets, 10=tx_errs, 11=tx_drop, ...
-        stats.rxBytes   = parseU64(tokens.value(0));
-        stats.rxPackets = parseU64(tokens.value(1));
-        stats.rxErrors  = parseU64(tokens.value(2));
-        stats.txBytes   = parseU64(tokens.value(8));
-        stats.txPackets = parseU64(tokens.value(9));
-        stats.txErrors  = parseU64(tokens.value(10));
+        // Indices: 0=rx_bytes, 1=rx_packets, 2=rx_errs, ...
+        //          8=tx_bytes, 9=tx_packets, 10=tx_errs
+        stats.rxBytes   = parseToken(0);
+        stats.rxPackets = parseToken(1);
+        stats.rxErrors  = parseToken(2);
+        stats.txBytes   = parseToken(8);
+        stats.txPackets = parseToken(9);
+        stats.txErrors  = parseToken(10);
         break;
     }
 

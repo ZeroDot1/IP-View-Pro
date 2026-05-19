@@ -78,7 +78,7 @@ private slots:
     void onTick() noexcept;
 
 private:
-    [[nodiscard]] Stats parseProcNetDev(const QString &content, std::string_view interface) noexcept;
+    [[nodiscard]] Stats parseProcNetDev(std::string_view buf, std::string_view interface) noexcept;
     [[nodiscard]] bool  isValidInterface(std::string_view name) const noexcept;
 
     // ── Dynamic polling (Item 41) ─────────────────────────────────────────
