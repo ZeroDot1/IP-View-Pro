@@ -127,6 +127,10 @@ public:
     static void setStatusCallback(StatusCallback cb) noexcept;
     static void clearStatusCallback() noexcept;
 
+    // ── Cross-Platform-Datenverzeichnis (Item 16) ──────────────────────
+    [[nodiscard]] static QString dataDirectory() noexcept;
+    [[nodiscard]] static QString configDirectory() noexcept;
+
 private:
     DatabaseModule() = default;
     ~DatabaseModule() = default;

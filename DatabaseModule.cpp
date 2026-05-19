@@ -833,6 +833,24 @@ bool DatabaseModule::clearTelemetryAggregated() noexcept
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+//  Cross-Platform-Datenverzeichnis (Item 16)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+QString DatabaseModule::dataDirectory() noexcept
+{
+    // XDG: ~/.local/share/IPView/
+    return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
+           + QStringLiteral("/IPView");
+}
+
+QString DatabaseModule::configDirectory() noexcept
+{
+    // XDG: ~/.config/IPView/
+    return QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+           + QStringLiteral("/IPView");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 //  Private Helpers
 // ═══════════════════════════════════════════════════════════════════════════════
 
