@@ -100,6 +100,9 @@ public:
     static void saveScanConcurrency(int count) noexcept;
     [[nodiscard]] static int loadScanConcurrency(int defaultCount = 100) noexcept;
 
+    // ── Validation (Item 15) ──────────────────────────────────────────────
+    [[nodiscard]] static bool validateAll() noexcept;
+
     // ── Convenience: save all settings at once ────────────────────────────
     static void saveNetworkSettings(int apiIndex, bool ipv6, bool autoRefresh) noexcept;
 

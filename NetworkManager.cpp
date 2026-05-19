@@ -238,13 +238,16 @@ void NetworkManager::onReplyFinished(QNetworkReply *reply)
     }
 
     QByteArray const rawData = reply->readAll();
-    QJsonObject const normalized = DataNormalizer::normalize(rawData);
+    auto normalizedResult = DataNormalizer::normalize(rawData);
 
-    if (normalized.isEmpty()) {
+    if (!normalizedResult.has_value()) {
+        IPView::Logger::debug("DataNormalizer: {} — trying next API", normalizedResult.error().toStdString());
         advanceToNextApi();
         reply->deleteLater();
         return;
     }
+
+    QJsonObject const &normalized = *normalizedResult;
 
     // ── Sparse-Data Check ─────────────────────────────────────────────────
     //  If City or Org are missing, try the next API for enrichment

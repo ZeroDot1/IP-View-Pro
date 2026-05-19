@@ -17,6 +17,8 @@
 #include <QDir>
 #include <QFileInfo>
 
+#include <algorithm>
+
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Static members
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -61,6 +63,9 @@ void Manager::initialize() noexcept
           sSettings.fileName().toStdString());
 
     sInitialized = true;
+
+    // Automatische Validierung beim Start
+    static_cast<void>(validateAll());
 }
 
 void Manager::sync() noexcept
@@ -219,6 +224,91 @@ void Manager::saveScanConcurrency(int count) noexcept
 int Manager::loadScanConcurrency(int defaultCount) noexcept
 {
     return settings().value(QLatin1StringView(Key::SCAN_CONCURRENCY), defaultCount).toInt();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Validation (Item 15)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+bool Manager::validateAll() noexcept
+{
+    if (!sInitialized) {
+        IPView::Logger::warn("ConfigManager: validateAll() called before initialize()");
+        return false;
+    }
+
+    bool valid = true;
+
+    // Window/LastTab — muss im Bereich der Tabs liegen (0..7)
+    {
+        int const tab = loadLastTab(-1);
+        if (tab < 0 || tab > 7) {
+            IPView::Logger::warn("ConfigManager: Clamping invalid lastTab={} to 0", tab);
+            saveLastTab(0);
+            valid = false;
+        }
+    }
+
+    // Network/SelectedApiIndex — max 4 APIs vorhanden
+    {
+        int const idx = loadApiIndex(-1);
+        if (idx < 0 || idx > 3) {
+            IPView::Logger::warn("ConfigManager: Clamping invalid apiIndex={} to 0", idx);
+            saveApiIndex(0);
+            valid = false;
+        }
+    }
+
+    // Telemetry/IntervalMs — mindestens 500 ms
+    {
+        int const interval = loadTelemetryInterval(0);
+        int const clamped  = std::clamp(interval, 500, 3600000);
+        if (interval != clamped) {
+            IPView::Logger::warn("ConfigManager: Clamping telemetryInterval={} to {}", interval, clamped);
+            saveTelemetryInterval(clamped);
+            valid = false;
+        }
+    }
+
+    // Telemetry/AggregationWindowSec — mindestens 60 s
+    {
+        int const win = loadTelemetryWindowSize(0);
+        int const clamped = std::clamp(win, 60, 86400);
+        if (win != clamped) {
+            IPView::Logger::warn("ConfigManager: Clamping telemetryWindowSize={} to {}", win, clamped);
+            saveTelemetryWindowSize(clamped);
+            valid = false;
+        }
+    }
+
+    // Scanner/TimeoutMs — mindestens 50 ms
+    {
+        int const timeout = loadScanTimeout(0);
+        int const clamped = std::clamp(timeout, 50, 30000);
+        if (timeout != clamped) {
+            IPView::Logger::warn("ConfigManager: Clamping scanTimeout={} to {}", timeout, clamped);
+            saveScanTimeout(clamped);
+            valid = false;
+        }
+    }
+
+    // Scanner/MaxConcurrent — 1..1000
+    {
+        int const conc = loadScanConcurrency(0);
+        int const clamped = std::clamp(conc, 1, 1000);
+        if (conc != clamped) {
+            IPView::Logger::warn("ConfigManager: Clamping scanConcurrency={} to {}", conc, clamped);
+            saveScanConcurrency(clamped);
+            valid = false;
+        }
+    }
+
+    if (valid) {
+        IPView::Logger::info("ConfigManager: Validation passed — all settings in range");
+    }
+
+    sync();
+    return valid;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
