@@ -189,6 +189,66 @@ bool DatabaseModule::createSchema() noexcept
         "ON telemetry_aggregated(interface, window_end DESC)"
     ));
 
+    // ── Schema-Version-Tabelle (Item 13) ───────────────────────────────
+    query.exec(QStringLiteral(
+        "CREATE TABLE IF NOT EXISTS schema_version ("
+        "  version   INTEGER PRIMARY KEY,"
+        "  applied   DATETIME DEFAULT CURRENT_TIMESTAMP"
+        ")"
+    ));
+
+    // Aktuelle Schema-Version eintragen, falls nicht vorhanden
+    QSqlQuery verQuery(sDb);
+    verQuery.exec(QStringLiteral("SELECT COUNT(*) FROM schema_version"));
+    if (verQuery.next() && verQuery.value(0).toInt() == 0) {
+        QSqlQuery insVer(sDb);
+        insVer.exec(QStringLiteral("INSERT INTO schema_version (version) VALUES (1)"));
+        IPView::Logger::info("DatabaseModule: Schema version 1 initialized");
+    }
+
+    // ── SQL-Views für Reports (Item 12) ───────────────────────────────
+    query.exec(QStringLiteral(
+        "CREATE VIEW IF NOT EXISTS v_daily_telemetry AS "
+        "SELECT date(window_end) AS day, interface, "
+        "  AVG(avg_rx_speed) AS avg_rx, AVG(avg_tx_speed) AS avg_tx, "
+        "  MAX(max_rx_speed) AS peak_rx, MAX(max_tx_speed) AS peak_tx, "
+        "  SUM(total_rx_bytes) AS total_rx, SUM(total_tx_bytes) AS total_tx "
+        "FROM telemetry_aggregated "
+        "GROUP BY day, interface "
+        "ORDER BY day DESC"
+    ));
+
+    query.exec(QStringLiteral(
+        "CREATE VIEW IF NOT EXISTS v_weekly_telemetry AS "
+        "SELECT strftime('%Y-W%W', window_end) AS week, interface, "
+        "  AVG(avg_rx_speed) AS avg_rx, AVG(avg_tx_speed) AS avg_tx, "
+        "  MAX(max_rx_speed) AS peak_rx, MAX(max_tx_speed) AS peak_tx, "
+        "  SUM(total_rx_bytes) AS total_rx, SUM(total_tx_bytes) AS total_tx "
+        "FROM telemetry_aggregated "
+        "GROUP BY week, interface "
+        "ORDER BY week DESC"
+    ));
+
+    query.exec(QStringLiteral(
+        "CREATE VIEW IF NOT EXISTS v_monthly_telemetry AS "
+        "SELECT strftime('%Y-%m', window_end) AS month, interface, "
+        "  AVG(avg_rx_speed) AS avg_rx, AVG(avg_tx_speed) AS avg_tx, "
+        "  MAX(max_rx_speed) AS peak_rx, MAX(max_tx_speed) AS peak_tx, "
+        "  SUM(total_rx_bytes) AS total_rx, SUM(total_tx_bytes) AS total_tx "
+        "FROM telemetry_aggregated "
+        "GROUP BY month, interface "
+        "ORDER BY month DESC"
+    ));
+
+    query.exec(QStringLiteral(
+        "CREATE VIEW IF NOT EXISTS v_trend_telemetry AS "
+        "SELECT window_end, interface, "
+        "  AVG(avg_rx_speed) OVER (PARTITION BY interface ORDER BY window_end ROWS 6 PRECEDING) AS rx_trend, "
+        "  AVG(avg_tx_speed) OVER (PARTITION BY interface ORDER BY window_end ROWS 6 PRECEDING) AS tx_trend "
+        "FROM telemetry_aggregated "
+        "ORDER BY window_end DESC"
+    ));
+
     return true;
 }
 
