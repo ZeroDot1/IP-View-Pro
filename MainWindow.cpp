@@ -234,42 +234,46 @@ void MainWindow::setupUI() noexcept
     tabWidget->tabBar()->setExpanding(true);
     tabWidget->setIconSize(QSize(14, 14));
 
-    // ── Tabs über Registry anlegen ────────────────────────────────────────
-    //  Die TabRegistry entkoppelt MainWindow von konkreten Tab-Klassen
-    //  und erlaubt dynamische Registrierung/Query über ID-Strings.
+    // ── Tabs in logischer Reihenfolge ──────────────────────────────────────
+    //  1. Overview    – Einstieg & Status
+    //  2. Whois       – IP/Host-Informationen
+    //  3. Scanner     – Port-Scan
+    //  4. Tools       – Ping, Traceroute, iPerf3
+    //  5. Speedtest   – Bandbreite
+    //  6. TLS Auditor – Sicherheits-Check
+    //  7. Telemetry   – Live-Überwachung
+    //  8. History     – Verlauf
+    //  9. About       – App-Info
 
     // Dashboard (Overview) — Sonderfall (eigener Namespace)
     dashboardView = mTabRegistry.registerTab<IPView::UI::DashboardView>(
         QStringLiteral("dashboard"), QStringLiteral(" Overview"),
         QIcon(QStringLiteral(":/svgs/chart-bar.svg")));
 
-    // Sub-Tabs via Registry
     whoisTab     = mTabRegistry.registerTab<WhoisTab>(
                        QStringLiteral("whois"),     QStringLiteral(" Whois Lookup"),
                        QIcon(QStringLiteral(":/svgs/search.svg")));
-    toolsTab     = mTabRegistry.registerTab<ToolsTab>(
-                       QStringLiteral("tools"),     QStringLiteral(" Network Tools"),
-                       QIcon(QStringLiteral(":/svgs/wrench.svg")));
     scannerTab   = mTabRegistry.registerTab<ScannerTab>(
                        QStringLiteral("scanner"),   QStringLiteral(" Port Scanner"),
                        QIcon(QStringLiteral(":/svgs/compass.svg")));
-    historyTab   = mTabRegistry.registerTab<HistoryTab>(
-                       QStringLiteral("history"),   QStringLiteral(" History"),
-                       QIcon(QStringLiteral(":/svgs/scroll.svg")));
+    toolsTab     = mTabRegistry.registerTab<ToolsTab>(
+                       QStringLiteral("tools"),     QStringLiteral(" Network Tools"),
+                       QIcon(QStringLiteral(":/svgs/wrench.svg")));
     speedtestTab = mTabRegistry.registerTab<SpeedtestTab>(
                        QStringLiteral("speedtest"), QStringLiteral(" Speedtest"),
                        QIcon(QStringLiteral(":/svgs/lightning.svg")));
-    telemetryTab = mTabRegistry.registerTab<TelemetryTab>(
-                       QStringLiteral("telemetry"), QStringLiteral(" Telemetry"),
-                       QIcon(QStringLiteral(":/svgs/graph.svg")));
-    aboutTab     = mTabRegistry.registerTab<AboutTab>(
-                       QStringLiteral("about"),     QStringLiteral(" About"),
-                       QIcon(QStringLiteral(":/svgs/info.svg")));
-
-    // Item 48: TLS-Auditor Tab
     mTabRegistry.registerTab<AuditorTab>(
         QStringLiteral("auditor"), QStringLiteral(" TLS Auditor"),
         QIcon(QStringLiteral(":/svgs/shield.svg")));
+    telemetryTab = mTabRegistry.registerTab<TelemetryTab>(
+                       QStringLiteral("telemetry"), QStringLiteral(" Telemetry"),
+                       QIcon(QStringLiteral(":/svgs/graph.svg")));
+    historyTab   = mTabRegistry.registerTab<HistoryTab>(
+                       QStringLiteral("history"),   QStringLiteral(" History"),
+                       QIcon(QStringLiteral(":/svgs/scroll.svg")));
+    aboutTab     = mTabRegistry.registerTab<AboutTab>(
+                       QStringLiteral("about"),     QStringLiteral(" About"),
+                       QIcon(QStringLiteral(":/svgs/info.svg")));
 
     // Alle registrierten Tabs in den QTabWidget einfügen
     mTabRegistry.populateTabWidget(tabWidget);
