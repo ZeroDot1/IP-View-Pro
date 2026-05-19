@@ -14,7 +14,10 @@
 #include <QTextEdit>
 #include <QLineEdit>
 #include <QLabel>
+#include <QTabWidget>
 #include <QProcess>
+
+class Iperf3Window; // Forward-Deklaration (Item 8)
 
 class ToolsTab : public QWidget
 {
@@ -40,6 +43,11 @@ private:
 
     // ── Prozess ───────────────────────────────────────────────────────────
     QProcess *pingProcess{nullptr};
+
+    // ── Eingebettetes Iperf3Window (Item 8) ──────────────────────────────
+    QTabWidget    *mToolsTabWidget{nullptr};
+    Iperf3Window  *mIperfWindow{nullptr};
+    int            mIperfTabIndex{-1};
 };
 
 #endif // TOOLSTAB_H

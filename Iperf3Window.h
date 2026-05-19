@@ -28,6 +28,11 @@ public:
     explicit Iperf3Window(QWidget *parent = nullptr);
     ~Iperf3Window() override;
 
+    // ── Embedding-Unterstützung (Item 8) ───────────────────────────────
+    /// Wenn true: kein separates Fenster, sondern als Widget in Parent einbettbar.
+    void setEmbeddedMode(bool embedded = true) noexcept;
+    [[nodiscard]] bool isEmbedded() const noexcept { return mEmbedded; }
+
 private slots:
     void onStartClicked();
     void onStopClicked();
@@ -67,6 +72,7 @@ private:
     bool    isRunning{false};
     double  totalTransfer{0.0};
     qint64  startTime{0};
+    bool    mEmbedded{false};
 };
 
 #endif // IPERF3WINDOW_H

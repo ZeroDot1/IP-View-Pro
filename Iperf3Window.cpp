@@ -44,6 +44,23 @@ Iperf3Window::~Iperf3Window()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+//  Embedded-Mode (Item 8)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void Iperf3Window::setEmbeddedMode(bool embedded) noexcept
+{
+    mEmbedded = embedded;
+    if (embedded) {
+        // Als Widget ohne Fenster-Dekoration einbetten
+        setWindowFlags(Qt::Widget);
+        setParent(parentWidget());
+    } else {
+        // Als normales Dialog-Fenster
+        setWindowFlags(Qt::Dialog);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 //  UI Setup
 // ═══════════════════════════════════════════════════════════════════════════════
 

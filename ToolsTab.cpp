@@ -18,7 +18,8 @@ ToolsTab::ToolsTab(QWidget *parent)
     : QWidget(parent)
 {
     auto *mainLayout = new QVBoxLayout(this);
-    auto *toolsTabWidget = new QTabWidget();
+    mToolsTabWidget = new QTabWidget();
+    auto *toolsTabWidget = mToolsTabWidget;
 
     // ── Ping & iPerf3 Tab ───────────────────────────────────────────────────
     auto *pingIperfTab = new QWidget();
@@ -170,6 +171,15 @@ void ToolsTab::onStopPingClicked()
 // ═══════════════════════════════════════════════════════════════════════════════
 void ToolsTab::onIperfClicked()
 {
-    auto *iperf = new Iperf3Window(this);
-    iperf->show();
+    if (!mIperfWindow) {
+        // Iperf3Window einmal erstellen und als Tab einbetten
+        mIperfWindow = new Iperf3Window(this);
+        mIperfWindow->setEmbeddedMode(true);
+        mIperfWindow->setWindowTitle(QStringLiteral("iPerf3 Bandwidth Test"));
+        mIperfTabIndex = mToolsTabWidget->addTab(mIperfWindow,
+            QIcon(QStringLiteral(":/svgs/lightning.svg")),
+            QStringLiteral("iPerf3"));
+    }
+    // Zum iPerf3-Tab wechseln
+    mToolsTabWidget->setCurrentWidget(mIperfWindow);
 }
