@@ -7,6 +7,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "DatabaseModule.h"
+#include "Logger.h"
 
 #include <QSqlQuery>
 #include <QSqlError>
@@ -61,8 +62,7 @@ bool DatabaseModule::init(const QString &dbPath) noexcept
     sDb.setDatabaseName(path);
 
     if (!sDb.open()) {
-        qWarning("DatabaseModule: Cannot open database: %s",
-                 qPrintable(sDb.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: Cannot open database: {}", sDb.lastError().text().toStdString());
         return false;
     }
 
@@ -73,13 +73,13 @@ bool DatabaseModule::init(const QString &dbPath) noexcept
     pragma.exec(QStringLiteral("PRAGMA foreign_keys=ON"));
 
     if (!createSchema()) {
-        qWarning("DatabaseModule: Schema creation failed");
+        IPView::Logger::warn("DatabaseModule: Schema creation failed");
         sDb.close();
         return false;
     }
 
     sInitialized = true;
-    qInfo("DatabaseModule: Initialized at %s", qPrintable(path));
+    IPView::Logger::info("DatabaseModule: Initialized at {}", path.toStdString());
     return true;
 }
 
@@ -91,7 +91,7 @@ void DatabaseModule::shutdown() noexcept
 
     sDb.close();
     sInitialized = false;
-    qInfo("DatabaseModule: Shutdown complete");
+    IPView::Logger::info("DatabaseModule: Shutdown complete");
 }
 
 bool DatabaseModule::isInitialized() noexcept
@@ -123,8 +123,8 @@ bool DatabaseModule::createSchema() noexcept
     ));
 
     if (!historyTable) {
-        qWarning("DatabaseModule: Failed to create ip_history: %s",
-                 qPrintable(query.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: Failed to create ip_history: {}",
+                 query.lastError().text().toStdString());
         return false;
     }
 
@@ -148,8 +148,8 @@ bool DatabaseModule::createSchema() noexcept
     ));
 
     if (!telemetryTable) {
-        qWarning("DatabaseModule: Failed to create telemetry table: %s",
-                 qPrintable(query.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: Failed to create telemetry table: {}",
+                 query.lastError().text().toStdString());
         return false;
     }
 
@@ -178,8 +178,8 @@ bool DatabaseModule::createSchema() noexcept
     ));
 
     if (!aggTable) {
-        qWarning("DatabaseModule: Failed to create telemetry_aggregated table: %s",
-                 qPrintable(query.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: Failed to create telemetry_aggregated table: {}",
+                 query.lastError().text().toStdString());
         return false;
     }
 
@@ -217,8 +217,8 @@ bool DatabaseModule::storeResult(const QJsonObject &data) noexcept
     query.addBindValue(QString::fromUtf8(doc.toJson(QJsonDocument::Compact)));
 
     if (!query.exec()) {
-        qWarning("DatabaseModule: storeResult failed: %s",
-                 qPrintable(query.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: storeResult failed: {}",
+                 query.lastError().text().toStdString());
         return false;
     }
 
@@ -245,8 +245,8 @@ bool DatabaseModule::storeTelemetry(const QString &interfaceName,
     query.addBindValue(txSpeed);
 
     if (!query.exec()) {
-        qWarning("DatabaseModule: storeTelemetry failed: %s",
-                 qPrintable(query.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: storeTelemetry failed: {}",
+                 query.lastError().text().toStdString());
         return false;
     }
 
@@ -272,8 +272,8 @@ std::vector<HistoryEntry> DatabaseModule::getHistory(int limit) noexcept
     query.addBindValue(limit);
 
     if (!query.exec()) {
-        qWarning("DatabaseModule: getHistory failed: %s",
-                 qPrintable(query.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: getHistory failed: {}",
+                 query.lastError().text().toStdString());
         return entries;
     }
 
@@ -374,8 +374,8 @@ bool DatabaseModule::clearHistory() noexcept
 
     QSqlQuery query(sDb);
     if (!query.exec(QStringLiteral("DELETE FROM ip_history"))) {
-        qWarning("DatabaseModule: clearHistory failed: %s",
-                 qPrintable(query.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: clearHistory failed: {}",
+                 query.lastError().text().toStdString());
         return false;
     }
 
@@ -411,8 +411,8 @@ bool DatabaseModule::pruneHistory(int keepDays) noexcept
     query.addBindValue(QStringLiteral("-%1 days").arg(keepDays));
 
     if (!query.exec()) {
-        qWarning("DatabaseModule: pruneHistory failed: %s",
-                 qPrintable(query.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: pruneHistory failed: {}",
+                 query.lastError().text().toStdString());
         static_cast<void>(rollbackTransaction());
         return false;
     }
@@ -421,7 +421,7 @@ bool DatabaseModule::pruneHistory(int keepDays) noexcept
     bool const ok = commitTransaction();
 
     if (ok && deleted > 0) {
-        qInfo("DatabaseModule: Pruned %d old history entries (>%d days)", deleted, keepDays);
+        IPView::Logger::info("DatabaseModule: Pruned {} old history entries (>{} days)", deleted, keepDays);
         vacuum();
     }
 
@@ -444,8 +444,8 @@ bool DatabaseModule::pruneTelemetry(int keepDays) noexcept
     query.addBindValue(QStringLiteral("-%1 days").arg(keepDays));
 
     if (!query.exec()) {
-        qWarning("DatabaseModule: pruneTelemetry failed: %s",
-                 qPrintable(query.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: pruneTelemetry failed: {}",
+                 query.lastError().text().toStdString());
         static_cast<void>(rollbackTransaction());
         return false;
     }
@@ -459,8 +459,8 @@ bool DatabaseModule::pruneTelemetry(int keepDays) noexcept
     aggQuery.addBindValue(QStringLiteral("-%1 days").arg(keepDays));
 
     if (!aggQuery.exec()) {
-        qWarning("DatabaseModule: pruneTelemetry aggregated failed: %s",
-                 qPrintable(aggQuery.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: pruneTelemetry aggregated failed: {}",
+                 aggQuery.lastError().text().toStdString());
         static_cast<void>(rollbackTransaction());
         return false;
     }
@@ -469,7 +469,7 @@ bool DatabaseModule::pruneTelemetry(int keepDays) noexcept
     bool const ok = commitTransaction();
 
     if (ok && (deletedTel > 0 || deletedAgg > 0)) {
-        qInfo("DatabaseModule: Pruned %d telemetry + %d aggregated entries (>%d days)",
+        IPView::Logger::info("DatabaseModule: Pruned {} telemetry + {} aggregated entries (>{} days)",
               deletedTel, deletedAgg, keepDays);
         vacuum();
     }
@@ -488,18 +488,18 @@ bool DatabaseModule::integrityCheck() noexcept
 
     QSqlQuery query(sDb);
     if (!query.exec(QStringLiteral("PRAGMA integrity_check"))) {
-        qWarning("DatabaseModule: integrity_check failed: %s",
-                 qPrintable(query.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: integrity_check failed: {}",
+                 query.lastError().text().toStdString());
         return false;
     }
 
     if (query.next()) {
         QString const result = query.value(0).toString();
         if (result == QStringLiteral("ok")) {
-            qInfo("DatabaseModule: Integrity check passed");
+            IPView::Logger::info("DatabaseModule: Integrity check passed");
             return true;
         }
-        qWarning("DatabaseModule: Integrity check FAILED: %s", qPrintable(result));
+        IPView::Logger::warn("DatabaseModule: Integrity check FAILED: {}", result.toStdString());
         return false;
     }
 
@@ -544,8 +544,8 @@ bool DatabaseModule::storeTelemetryAggregated(
     query.addBindValue(windowEnd);
 
     if (!query.exec()) {
-        qWarning("DatabaseModule: storeTelemetryAggregated failed: %s",
-                 qPrintable(query.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: storeTelemetryAggregated failed: {}",
+                 query.lastError().text().toStdString());
         return false;
     }
 
@@ -575,8 +575,8 @@ DatabaseModule::getTelemetryAggregated(int limit) noexcept
     query.addBindValue(limit);
 
     if (!query.exec()) {
-        qWarning("DatabaseModule: getTelemetryAggregated failed: %s",
-                 qPrintable(query.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: getTelemetryAggregated failed: {}",
+                 query.lastError().text().toStdString());
         return entries;
     }
 
@@ -622,8 +622,8 @@ DatabaseModule::getTelemetryAggregatedForInterface(
     query.addBindValue(limit);
 
     if (!query.exec()) {
-        qWarning("DatabaseModule: getTelemetryAggregatedForInterface failed: %s",
-                 qPrintable(query.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: getTelemetryAggregatedForInterface failed: {}",
+                 query.lastError().text().toStdString());
         return entries;
     }
 
@@ -737,8 +737,8 @@ bool DatabaseModule::clearTelemetryAggregated() noexcept
 
     QSqlQuery query(sDb);
     if (!query.exec(QStringLiteral("DELETE FROM telemetry_aggregated"))) {
-        qWarning("DatabaseModule: clearTelemetryAggregated failed: %s",
-                 qPrintable(query.lastError().text()));
+        IPView::Logger::warn("DatabaseModule: clearTelemetryAggregated failed: {}",
+                 query.lastError().text().toStdString());
         return false;
     }
 

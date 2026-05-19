@@ -18,6 +18,7 @@
 #include "Theme.h"
 #include "DatabaseModule.h"
 #include "ConfigManager.h"
+#include "Logger.h"
 
 // ── Compile-time constant application metadata ─────────────────────────────
 //  C++26 consteval: Guaranteed evaluation at compile time
@@ -111,10 +112,10 @@ int main(int argc, char* argv[])
     //  DATABASE INITIALIZATION
     // ════════════════════════════════════════════════════════════════════════
     if (!IPView::Storage::DatabaseModule::init()) {
-        qWarning("main: DatabaseModule initialization failed — "
+        IPView::Logger::warn("main: DatabaseModule initialization failed — "
                  "IP history will not be persisted.");
     } else {
-        qInfo("main: DatabaseModule initialized successfully.");
+        IPView::Logger::info("main: DatabaseModule initialized successfully.");
     }
 
     // ════════════════════════════════════════════════════════════════════

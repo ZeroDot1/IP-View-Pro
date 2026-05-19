@@ -17,6 +17,8 @@
 #include <QSqlError>
 #include <QMutexLocker>
 
+#include "Logger.h"
+
 #include <algorithm>
 #include <charconv>
 #include <map>
@@ -58,7 +60,7 @@ void TelemetryPersistenceModule::start(int intervalMs) noexcept
     aggregateNow();
 
     mTimer->start(intervalMs);
-    qInfo("TelemetryPersistenceModule: Started (interval=%d ms)", intervalMs);
+    IPView::Logger::info("TelemetryPersistenceModule: Started (interval={} ms)", intervalMs);
 }
 
 void TelemetryPersistenceModule::stop() noexcept
@@ -67,7 +69,7 @@ void TelemetryPersistenceModule::stop() noexcept
     mTimer->stop();
     mPreviousSamples.clear();
     mSamplesLoaded = false;
-    qInfo("TelemetryPersistenceModule: Stopped");
+    IPView::Logger::info("TelemetryPersistenceModule: Stopped");
 }
 
 bool TelemetryPersistenceModule::isRunning() const noexcept

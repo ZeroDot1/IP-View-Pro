@@ -9,9 +9,10 @@
 #include "SecurityUtil.h"
 
 #include <QUrl>
-#include <QDebug>
 #include <QTimer>
 #include <QNetworkRequest>
+
+#include "Logger.h"
 
 #include <array>     // C++26: constexpr API lists
 #include <utility>   // std::pair
@@ -122,7 +123,7 @@ void NetworkManager::tryNextAPI() noexcept
 {
     if (currentApiIndex >= static_cast<int>(apiList.size())) {
         QString const errorMsg = QStringLiteral("All IPv4 APIs failed. Try IPv6 or check your connection.");
-        qDebug().noquote() << errorMsg;
+        IPView::Logger::debug("All IPv4 APIs failed. Try IPv6 or check your connection.");
         emit errorOccurred(errorMsg);
         return;
     }
@@ -141,7 +142,7 @@ void NetworkManager::tryNextIPv6API() noexcept
 {
     if (currentIPv6ApiIndex >= static_cast<int>(ipv6ApiList.size())) {
         QString const errorMsg = QStringLiteral("All IPv6 APIs failed. Try IPv4 or check your connection.");
-        qDebug().noquote() << errorMsg;
+        IPView::Logger::debug("All IPv6 APIs failed. Try IPv4 or check your connection.");
         emit errorOccurred(errorMsg);
         return;
     }
@@ -228,7 +229,7 @@ void NetworkManager::onReplyFinished(QNetworkReply *reply)
 
     if (reply->error() != QNetworkReply::NoError) {
         QString const errorMsg = QStringLiteral("API failed: %1").arg(reply->errorString());
-        qDebug().noquote() << errorMsg;
+        IPView::Logger::debug("API failed: {}", reply->errorString().toStdString());
 
         advanceToNextApi();
         emit errorOccurred(errorMsg);
@@ -256,7 +257,7 @@ void NetworkManager::onReplyFinished(QNetworkReply *reply)
                                      : static_cast<int>(apiList.size());
 
         if (nextIndex < listSize) {
-            qDebug().noquote() << "Data is sparse, trying next API for enrichment...";
+            IPView::Logger::debug("Data is sparse, trying next API for enrichment...");
             advanceToNextApi();
             reply->deleteLater();
             return;

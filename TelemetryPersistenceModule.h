@@ -72,7 +72,7 @@ public:
     [[nodiscard]] static int autoStartInterval() noexcept;
 
     // ── Maintenance ────────────────────────────────────────────────────────
-    static bool clearAggregatedHistory() noexcept;
+    [[nodiscard]] static bool clearAggregatedHistory() noexcept;
 
 signals:
     void aggregationStored(const Storage::AggregatedTelemetryEntry &record);

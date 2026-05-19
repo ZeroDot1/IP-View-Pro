@@ -10,6 +10,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "ConfigManager.h"
+#include "Logger.h"
 
 #include <QApplication>
 #include <QStandardPaths>
@@ -56,8 +57,8 @@ void Manager::initialize() noexcept
     QString const configDir = QFileInfo(sSettings.fileName()).absolutePath();
     QDir().mkpath(configDir);
 
-    qInfo("ConfigManager: Initialized (%s)",
-          qPrintable(sSettings.fileName()));
+    IPView::Logger::info("ConfigManager: Initialized ({})",
+          sSettings.fileName().toStdString());
 
     sInitialized = true;
 }

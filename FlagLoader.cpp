@@ -6,9 +6,9 @@
 
 #include "FlagLoader.h"
 #include "SecurityUtil.h"
+#include "Logger.h"
 #include <QUrl>
 #include <QNetworkRequest>
-#include <QDebug>
 #include <QTimer>
 
 FlagLoader::FlagLoader(QObject *parent)
@@ -73,8 +73,8 @@ void FlagLoader::onReplyFinished(QNetworkReply *reply)
 
     if (reply->error() != QNetworkReply::NoError || !label) {
         if (reply->error() != QNetworkReply::NoError) {
-            qDebug().noquote() << QStringLiteral("Flag download failed for %1: %2")
-                                      .arg(country, reply->errorString());
+            IPView::Logger::debug("Flag download failed for {}: {}",
+                                      country.toStdString(), reply->errorString().toStdString());
         }
         reply->deleteLater();
         return;
