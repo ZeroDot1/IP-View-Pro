@@ -28,10 +28,9 @@ MainWindow::MainWindow(QWidget *parent)
     setupUI();
     setupTray();
 
-    networkManager        = new NetworkManager(this);
-    flagLoader            = new FlagLoader(this);
-    autoRefreshTimer      = new QTimer(this);
-    telemetryPersistence  = new IPView::Telemetry::TelemetryPersistenceModule(this);
+    networkManager   = new NetworkManager(this);
+    flagLoader       = new FlagLoader(this);
+    autoRefreshTimer = new QTimer(this);
 
     connect(autoRefreshTimer, &QTimer::timeout, this, &MainWindow::onRefreshClicked);
 
@@ -62,13 +61,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     // ── Restore per-user configuration (XDG: ~/.config/IPView/) ──────────
     loadSettings();
-
-    // ── Auto-start telemetry persistence if previously enabled ──────────
-    if (IPView::Config::Manager::loadTelemetryAutoStart()) {
-        int const interval = IPView::Config::Manager::loadTelemetryInterval(60000);
-        telemetryPersistence->start(interval);
-        qInfo("TelemetryPersistence: Auto-started (interval=%d ms)", interval);
-    }
 
     onRefreshClicked();
 }
@@ -409,9 +401,6 @@ void MainWindow::saveSettings() noexcept
         dashboardView->isIPv6Mode(),
         autoRefreshTimer->isActive()
     );
-
-    // ── Telemetry persistence ─────────────────────────────────────────────
-    Manager::saveTelemetryAutoStart(telemetryPersistence->isRunning());
 
     Manager::sync();
 }

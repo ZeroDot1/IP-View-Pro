@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.0 — SpeedtestTab.cpp
+//  IPView Pro v2.9.0 — SpeedtestTab.cpp
 //  C++26: auto, QStringLiteral, const-correctness, structured bindings
 //  Professional speed test via Python speedtest-cli (sivel) with --json.
-//  Features: Server browser, animated progress, real-time metrics.
+//  Uses ServerSelectionModule for server browsing and filtering.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "SpeedtestTab.h"
@@ -14,6 +14,7 @@
 #include <QDialogButtonBox>
 #include <QFont>
 #include <QHeaderView>
+#include <QLineEdit>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -22,8 +23,10 @@
 #include <QTableWidget>
 #include <QVBoxLayout>
 
-// ── App-wide style constants (C++26: constexpr std::string_view) ──────────
-//  Uses char arrays for minimal runtime overhead
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Style constants
+// ═══════════════════════════════════════════════════════════════════════════════
+
 static constexpr auto BG_DARK    = "#0f0f1a";
 static constexpr auto BG_CARD    = "#1a1a2e";
 static constexpr auto BORDER     = "#2a2a3e";
@@ -38,6 +41,7 @@ SpeedtestTab::SpeedtestTab(QWidget *parent)
     : QWidget(parent)
     , process(new QProcess(this))
     , progressTimer(new QTimer(this))
+    , serverSelector(new IPView::Speedtest::ServerSelectionModule(this))
 {
     setupUI();
 
@@ -59,14 +63,13 @@ SpeedtestTab::~SpeedtestTab()
     }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 //  UI Setup
-// ════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 
 [[nodiscard]]
 QString SpeedtestTab::appStyleSheet() const noexcept
 {
-    // C++26: QStringLiteral + constexpr char arrays for maximum efficiency
     return QStringLiteral(
         "QWidget { background-color: %1; color: %2; font-family: 'Segoe UI'; }"
     ).arg(QString::fromLatin1(BG_DARK), QString::fromLatin1(TEXT_WHITE));
@@ -96,7 +99,7 @@ QFrame *SpeedtestTab::createMetricCard(
     t->setAlignment(Qt::AlignCenter);
     lay->addWidget(t);
 
-    valueLabel = new QLabel(QStringLiteral("—"));
+    valueLabel = new QLabel(QStringLiteral("\u2014"));
     valueLabel->setStyleSheet(QStringLiteral(
         "color: %1; font-size: 32px; font-weight: bold; background: transparent;"
     ).arg(color));
@@ -121,10 +124,10 @@ void SpeedtestTab::setupUI()
     root->setContentsMargins(24, 16, 24, 16);
     root->setSpacing(14);
 
-    // ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     //  OPTIONS PANEL
-    // ══════════════════════════════════════════════════════════════════
-    QGroupBox *optGroup = new QGroupBox("Test Options");
+    // ══════════════════════════════════════════════════════════════════════
+    QGroupBox *optGroup = new QGroupBox(QStringLiteral("Test Options"));
     optGroup->setStyleSheet(QString(
         "QGroupBox { font-weight: bold; color: %1; border: 1px solid %2; "
         "border-radius: 8px; margin-top: 12px; padding-top: 18px; "
@@ -136,7 +139,6 @@ void SpeedtestTab::setupUI()
     QHBoxLayout *optRow = new QHBoxLayout(optGroup);
     optRow->setSpacing(18);
 
-    // Checkboxes – uniformly styled
     const QString cbStyle = QString(
         "QCheckBox { color: %1; font-size: 11px; spacing: 6px; }"
         "QCheckBox::indicator { width: 16px; height: 16px; border-radius: 3px; "
@@ -145,9 +147,9 @@ void SpeedtestTab::setupUI()
         "QCheckBox::indicator:hover { border-color: %4; }"
     ).arg(TEXT_WHITE, BORDER, BG_CARD, ACCENT);
 
-    singleConnCheck = new QCheckBox("Single Connection");
-    secureCheck     = new QCheckBox("Secure (HTTPS)");
-    shareCheck      = new QCheckBox("Share Result");
+    singleConnCheck = new QCheckBox(QStringLiteral("Single Connection"));
+    secureCheck     = new QCheckBox(QStringLiteral("Secure (HTTPS)"));
+    shareCheck      = new QCheckBox(QStringLiteral("Share Result"));
     singleConnCheck->setStyleSheet(cbStyle);
     secureCheck->setStyleSheet(cbStyle);
     shareCheck->setStyleSheet(cbStyle);
@@ -158,13 +160,13 @@ void SpeedtestTab::setupUI()
     optRow->addStretch();
 
     // Server selection
-    QLabel *srvLabel = new QLabel("Server:");
+    QLabel *srvLabel = new QLabel(QStringLiteral("Server:"));
     srvLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold; background: transparent;").arg(TEXT_WHITE));
 
     serverCombo = new QComboBox();
     serverCombo->setEditable(false);
     serverCombo->setMinimumWidth(260);
-    serverCombo->addItem("⟲ Auto (fastest)", 0);
+    serverCombo->addItem(QStringLiteral("\u27F2 Auto (fastest)"), 0);
     serverCombo->setStyleSheet(QString(
         "QComboBox { background: %1; color: %2; border: 1px solid %3; "
         "border-radius: 5px; padding: 5px 10px; font-size: 11px; }"
@@ -177,7 +179,7 @@ void SpeedtestTab::setupUI()
         "selection-background-color: %4; border: 1px solid %3; outline: none; }"
     ).arg(BG_CARD, TEXT_WHITE, BORDER, ACCENT));
 
-    browseServersButton = new QPushButton("Browse…");
+    browseServersButton = new QPushButton(QStringLiteral("Browse\u2026"));
     browseServersButton->setCursor(Qt::PointingHandCursor);
     browseServersButton->setFixedHeight(28);
     browseServersButton->setStyleSheet(QString(
@@ -192,16 +194,16 @@ void SpeedtestTab::setupUI()
 
     root->addWidget(optGroup);
 
-    // ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     //  ISP / SERVER INFO
-    // ══════════════════════════════════════════════════════════════════
-    ispLabel = new QLabel("ISP: —");
+    // ══════════════════════════════════════════════════════════════════════
+    ispLabel = new QLabel(QStringLiteral("ISP: \u2014"));
     ispLabel->setAlignment(Qt::AlignCenter);
     ispLabel->setStyleSheet(QString(
         "color: %1; font-size: 15px; font-weight: bold; background: transparent;"
     ).arg(CYAN));
 
-    serverLabel = new QLabel("No server selected – will use auto-select");
+    serverLabel = new QLabel(QStringLiteral("No server selected \u2013 will use auto-select"));
     serverLabel->setAlignment(Qt::AlignCenter);
     serverLabel->setStyleSheet(QString(
         "color: %1; font-size: 11px; background: transparent;"
@@ -210,28 +212,28 @@ void SpeedtestTab::setupUI()
     root->addWidget(ispLabel);
     root->addWidget(serverLabel);
 
-    // ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     //  METRIC CARDS
-    // ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     QHBoxLayout *meterRow = new QHBoxLayout();
     meterRow->setSpacing(16);
-    meterRow->addWidget(createMetricCard("PING",     pingLabel,     "ms",    ACCENT));
-    meterRow->addWidget(createMetricCard("DOWNLOAD", downloadLabel, "Mbps",  GREEN));
-    meterRow->addWidget(createMetricCard("UPLOAD",   uploadLabel,   "Mbps",  CYAN));
+    meterRow->addWidget(createMetricCard(QStringLiteral("PING"),     pingLabel,     QStringLiteral("ms"),    ACCENT));
+    meterRow->addWidget(createMetricCard(QStringLiteral("DOWNLOAD"), downloadLabel, QStringLiteral("Mbps"),  GREEN));
+    meterRow->addWidget(createMetricCard(QStringLiteral("UPLOAD"),   uploadLabel,   QStringLiteral("Mbps"),  CYAN));
     root->addLayout(meterRow);
 
-    // ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     //  SHARE LINK
-    // ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     shareLinkLabel = new QLabel();
     shareLinkLabel->setAlignment(Qt::AlignCenter);
     shareLinkLabel->setOpenExternalLinks(true);
-    shareLinkLabel->setStyleSheet("background: transparent;");
+    shareLinkLabel->setStyleSheet(QStringLiteral("background: transparent;"));
     root->addWidget(shareLinkLabel);
 
-    // ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     //  PROGRESS BAR
-    // ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     progressGauge = new QProgressBar();
     progressGauge->setRange(0, 100);
     progressGauge->setValue(0);
@@ -247,13 +249,13 @@ void SpeedtestTab::setupUI()
     ).arg(BG_CARD, TEXT_WHITE, ACCENT, CYAN, GREEN));
     root->addWidget(progressGauge);
 
-    // ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     //  GO / STOP BUTTONS
-    // ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     QHBoxLayout *btnRow = new QHBoxLayout();
     btnRow->addStretch();
 
-    startButton = new QPushButton("GO");
+    startButton = new QPushButton(QStringLiteral("GO"));
     startButton->setFixedSize(150, 150);
     startButton->setCursor(Qt::PointingHandCursor);
     startButton->setStyleSheet(QString(
@@ -265,7 +267,7 @@ void SpeedtestTab::setupUI()
         "QPushButton:pressed { background: %1; color: white; }"
     ).arg(ACCENT, TEXT_WHITE));
 
-    stopButton = new QPushButton("STOP");
+    stopButton = new QPushButton(QStringLiteral("STOP"));
     stopButton->setFixedSize(110, 44);
     stopButton->setCursor(Qt::PointingHandCursor);
     stopButton->setEnabled(false);
@@ -285,23 +287,23 @@ void SpeedtestTab::setupUI()
     btnRow->addStretch();
     root->addLayout(btnRow);
 
-    // ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     //  STATUS
-    // ══════════════════════════════════════════════════════════════════
-    statusLabel = new QLabel("Ready – press GO to start");
+    // ══════════════════════════════════════════════════════════════════════
+    statusLabel = new QLabel(QStringLiteral("Ready \u2013 press GO to start"));
     statusLabel->setAlignment(Qt::AlignCenter);
     statusLabel->setStyleSheet(QString(
         "color: %1; font-size: 13px; font-weight: bold; background: transparent;"
     ).arg(ACCENT));
     root->addWidget(statusLabel);
 
-    // ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     //  LOG
-    // ══════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     logArea = new QTextEdit();
     logArea->setReadOnly(true);
     logArea->setMaximumHeight(130);
-    logArea->setPlaceholderText("Test log will appear here...");
+    logArea->setPlaceholderText(QStringLiteral("Test log will appear here..."));
     logArea->setStyleSheet(QString(
         "QTextEdit { background: #08081a; color: %1; font-size: 10px; "
         "border-radius: 8px; border: 1px solid %2; padding: 6px; "
@@ -309,15 +311,15 @@ void SpeedtestTab::setupUI()
     ).arg(TEXT_DIM, BORDER));
     root->addWidget(logArea);
 
-    // ── Connections ─────────────────────────────────────────────────
-    connect(startButton,       &QPushButton::clicked, this, &SpeedtestTab::onStartClicked);
-    connect(stopButton,        &QPushButton::clicked, this, &SpeedtestTab::onStopClicked);
+    // ── Connections ──────────────────────────────────────────────────────
+    connect(startButton,         &QPushButton::clicked, this, &SpeedtestTab::onStartClicked);
+    connect(stopButton,          &QPushButton::clicked, this, &SpeedtestTab::onStopClicked);
     connect(browseServersButton, &QPushButton::clicked, this, &SpeedtestTab::onBrowseServers);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  CONTROL HELPERS
-// ════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Control helpers
+// ═══════════════════════════════════════════════════════════════════════════════
 
 void SpeedtestTab::setControlsEnabled(bool enabled) noexcept
 {
@@ -332,31 +334,29 @@ void SpeedtestTab::setControlsEnabled(bool enabled) noexcept
 
 void SpeedtestTab::resetDisplay() noexcept
 {
-    pingLabel->setText("—");
-    downloadLabel->setText("—");
-    uploadLabel->setText("—");
-    ispLabel->setText("ISP: —");
+    pingLabel->setText(QStringLiteral("\u2014"));
+    downloadLabel->setText(QStringLiteral("\u2014"));
+    uploadLabel->setText(QStringLiteral("\u2014"));
+    ispLabel->setText(QStringLiteral("ISP: \u2014"));
     serverLabel->setText(serverCombo->currentIndex() == 0
-                         ? "Auto-select (fastest server)"
-                         : QString("Server #%1 selected").arg(serverCombo->currentData().toInt()));
-    shareLinkLabel->setText("");
+                         ? QStringLiteral("Auto-select (fastest server)")
+                         : QStringLiteral("Server #%1 selected").arg(serverCombo->currentData().toInt()));
+    shareLinkLabel->setText(QString());
     progressGauge->setValue(0);
-    progressGauge->setFormat("");
+    progressGauge->setFormat(QString());
     logArea->clear();
     jsonBuffer.clear();
     isJsonMode       = false;
     isServerListMode = false;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  SPEEDTEST START
-// ════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Speedtest start
+// ═══════════════════════════════════════════════════════════════════════════════
 
 QString SpeedtestTab::findSpeedtest() const noexcept
 {
-    QString p = QStandardPaths::findExecutable("speedtest-cli");
-    if (p.isEmpty()) p = QStandardPaths::findExecutable("speedtest");
-    return p;
+    return IPView::Speedtest::ServerSelectionModule::findSpeedtestBinary();
 }
 
 void SpeedtestTab::startProcess(const QStringList &args)
@@ -376,37 +376,37 @@ void SpeedtestTab::onStartClicked()
         process->waitForFinished(2000);
     }
 
-    QString program = findSpeedtest();
+    QString const program = findSpeedtest();
     if (program.isEmpty()) {
-        statusLabel->setText(QStringLiteral("<img src=':/svgs/warning.svg' width='16' height='16'> speedtest-cli not found!"));
-        logArea->append("Install: sudo pacman -S speedtest-cli");
+        statusLabel->setText(QStringLiteral("speedtest-cli not found! Install: sudo pacman -S speedtest-cli"));
+        logArea->append(QStringLiteral("Install: sudo pacman -S speedtest-cli"));
         return;
     }
 
     resetDisplay();
 
     // Args: --json is required for structured output
-    QStringList args = {"--json"};
-    if (secureCheck->isChecked())     args << "--secure";
-    if (singleConnCheck->isChecked()) args << "--single";
-    if (shareCheck->isChecked())      args << "--share";
+    QStringList args = {QStringLiteral("--json")};
+    if (secureCheck->isChecked())     args << QStringLiteral("--secure");
+    if (singleConnCheck->isChecked()) args << QStringLiteral("--single");
+    if (shareCheck->isChecked())      args << QStringLiteral("--share");
 
     // Server selection from combo box
-    int serverId = serverCombo->currentData().toInt();
+    int const serverId = serverCombo->currentData().toInt();
     if (serverId > 0) {
-        args << "--server" << QString::number(serverId);
-        serverLabel->setText(QString("Server #%1 selected").arg(serverId));
+        args << QStringLiteral("--server") << QString::number(serverId);
+        serverLabel->setText(QStringLiteral("Server #%1 selected").arg(serverId));
     } else {
-        serverLabel->setText("Auto-select (fastest server)");
+        serverLabel->setText(QStringLiteral("Auto-select (fastest server)"));
     }
 
-    logArea->append(QString("$ %1 %2").arg(program, args.join(' ')));
-    logArea->append("Contacting speedtest.net …");
+    logArea->append(QStringLiteral("$ %1 %2").arg(program, args.join(QLatin1Char(' '))));
+    logArea->append(QStringLiteral("Contacting speedtest.net \u2026"));
 
     setControlsEnabled(false);
-    statusLabel->setText("Initializing …");
+    statusLabel->setText(QStringLiteral("Initializing \u2026"));
     progressGauge->setValue(4);
-    progressGauge->setFormat("Initializing …");
+    progressGauge->setFormat(QStringLiteral("Initializing \u2026"));
     progressDot = 0;
     isJsonMode      = true;
     isServerListMode = false;
@@ -417,27 +417,42 @@ void SpeedtestTab::onStartClicked()
     startProcess(args);
 
     if (!process->waitForStarted(5000)) {
-        statusLabel->setText(QStringLiteral("<img src=':/svgs/warning.svg' width='16' height='16'> Failed to start process"));
+        statusLabel->setText(QStringLiteral("Failed to start process"));
         setControlsEnabled(true);
         progressTimer->stop();
     }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  SERVER BROWSER
-// ════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Server browser — uses ServerSelectionModule
+// ═══════════════════════════════════════════════════════════════════════════════
 
 void SpeedtestTab::onBrowseServers()
 {
-    QString program = findSpeedtest();
+    QString const program = findSpeedtest();
     if (program.isEmpty()) {
-        statusLabel->setText(QStringLiteral("<img src=':/svgs/warning.svg' width='16' height='16'> speedtest-cli not found!"));
+        statusLabel->setText(QStringLiteral("speedtest-cli not found!"));
         return;
+    }
+
+    // ── Use cached servers or fetch via ServerSelectionModule ────────────
+    std::vector<IPView::Speedtest::ServerInfo> servers;
+
+    if (serverCache.empty()) {
+        auto const result = serverSelector->getAvailableServers(30000);
+        if (result.has_value()) {
+            servers = *result;
+        } else {
+            statusLabel->setText(QStringLiteral("Server fetch failed: %1").arg(result.error()));
+            return;
+        }
+    } else {
+        servers = serverCache;
     }
 
     // ── Dialog ──────────────────────────────────────────────────────────
     QDialog dlg(this);
-    dlg.setWindowTitle("Browse Speedtest Servers");
+    dlg.setWindowTitle(QStringLiteral("Browse Speedtest Servers"));
     dlg.setMinimumSize(640, 480);
     dlg.setStyleSheet(QString(
         "QDialog { background: %1; color: %2; }"
@@ -446,14 +461,32 @@ void SpeedtestTab::onBrowseServers()
     QVBoxLayout *dlgLayout = new QVBoxLayout(&dlg);
     dlgLayout->setSpacing(12);
 
-    QLabel *info = new QLabel("Fetching server list from speedtest.net …");
+    QLabel *info = new QLabel(QStringLiteral("%1 servers found. Double-click or select + Accept.")
+                                  .arg(static_cast<int>(servers.size())));
     info->setStyleSheet(QString("color: %1; font-size: 12px;").arg(TEXT_DIM));
     dlgLayout->addWidget(info);
 
+    // Filter row
+    auto *filterRow = new QHBoxLayout();
+    auto *filterLabel = new QLabel(QStringLiteral("Filter:"));
+    filterLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(TEXT_WHITE));
+    auto *filterEdit = new QLineEdit();
+    filterEdit->setPlaceholderText(QStringLiteral("Search by sponsor or location..."));
+    filterEdit->setStyleSheet(QString(
+        "QLineEdit { background: %1; color: %2; border: 1px solid %3; "
+        "border-radius: 4px; padding: 4px 8px; font-size: 11px; }"
+    ).arg(BG_CARD, TEXT_WHITE, BORDER));
+    filterRow->addWidget(filterLabel);
+    filterRow->addWidget(filterEdit, 1);
+    dlgLayout->addLayout(filterRow);
+
     // Table
     QTableWidget *table = new QTableWidget(0, 4);
-    table->setObjectName("serverTable");
-    table->setHorizontalHeaderLabels({"ID", "Sponsor", "Location", "Distance (km)"});
+    table->setObjectName(QStringLiteral("serverTable"));
+    table->setHorizontalHeaderLabels({
+        QStringLiteral("ID"), QStringLiteral("Sponsor"),
+        QStringLiteral("Location"), QStringLiteral("Distance (km)")
+    });
     table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     table->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -475,38 +508,20 @@ void SpeedtestTab::onBrowseServers()
 
     // Buttons
     QDialogButtonBox *btns = new QDialogButtonBox();
-    QPushButton *selectBtn = btns->addButton("Select Server", QDialogButtonBox::AcceptRole);
+    QPushButton *selectBtn = btns->addButton(QStringLiteral("Select Server"), QDialogButtonBox::AcceptRole);
     selectBtn->setStyleSheet(QString(
         "QPushButton { background: %1; color: white; border: none; "
         "border-radius: 5px; padding: 8px 20px; font-weight: bold; }"
         "QPushButton:hover { background: #c0392b; }"
     ).arg(ACCENT));
     btns->addButton(QDialogButtonBox::Cancel);
-    btns->setStyleSheet("QPushButton { color: white; }");
+    btns->setStyleSheet(QStringLiteral("QPushButton { color: white; }"));
     dlgLayout->addWidget(btns);
 
-    // ── Parse – locally from --list or cached ─────────────────────────
-    // C++26: Lambda with auto parameters
-    auto populateTable = [&](const QString &raw) {
+    // ── Populate table ──────────────────────────────────────────────────
+    auto populateTable = [&](const std::vector<IPView::Speedtest::ServerInfo> &sv) {
         table->setRowCount(0);
-        QStringList const lines = raw.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
-
-        static QRegularExpression const re(
-            QStringLiteral(R"(^\s*(\d+)\)\s+(.*)\s+\((.*)\)\s+\[([\d.]+)\s*km\]$)"));
-        // Example: "34441) Telenor AB (Stockholm, Sweden) [7726.23 km]"
-
-        std::vector<ServerInfo> parsed;
-
-        for (QString const& line : lines) {
-            auto const m = re.match(line.trimmed());
-            if (!m.hasMatch()) continue;
-
-            ServerInfo s;
-            s.id         = m.captured(1).toInt();
-            s.sponsor    = m.captured(2).trimmed();
-            s.location   = m.captured(3).trimmed();
-            s.distanceKm = m.captured(4).toDouble();
-
+        for (auto const &s : sv) {
             int const row = table->rowCount();
             table->insertRow(row);
             table->setItem(row, 0, new QTableWidgetItem(QString::number(s.id)));
@@ -514,52 +529,28 @@ void SpeedtestTab::onBrowseServers()
             table->setItem(row, 2, new QTableWidgetItem(s.location));
             table->setItem(row, 3,
                 new QTableWidgetItem(QString::number(s.distanceKm, 'f', 1)));
-            parsed.push_back(s);
         }
-
-        if (parsed.empty()) {
-            info->setText(QStringLiteral("No servers parsed. Check your internet connection."));
-        } else {
-            info->setText(QStringLiteral("%1 servers found. Double-click or select + Accept.")
-                              .arg(static_cast<int>(parsed.size())));
-            serverCache = std::move(parsed);  // C++11: Move semantics
-        }
+        info->setText(QStringLiteral("%1 servers shown (of %2 total)")
+                          .arg(table->rowCount())
+                          .arg(static_cast<int>(servers.size())));
     };
 
-    // Do we already have cached servers?
-    if (!serverCache.empty()) {
-        // Populate from cache
-        for (const auto &s : serverCache) {
-            int row = table->rowCount();
-            table->insertRow(row);
-            table->setItem(row, 0, new QTableWidgetItem(QString::number(s.id)));
-            table->setItem(row, 1, new QTableWidgetItem(s.sponsor));
-            table->setItem(row, 2, new QTableWidgetItem(s.location));
-            table->setItem(row, 3, new QTableWidgetItem(QString::number(s.distanceKm, 'f', 1)));
-        }
-        info->setText(QString("%1 servers (cached). Double-click or select + Accept.").arg(serverCache.size()));
-    } else {
-        // Fetch live
-        table->setRowCount(0);
-        info->setText("Fetching server list …");
+    populateTable(servers);
 
-        QProcess listProc;
-        listProc.setProcessChannelMode(QProcess::MergedChannels);
-        listProc.start(program, QStringList{"--list"});
-
-        if (listProc.waitForFinished(30000)) {
-            QByteArray raw = listProc.readAll();
-            QString text = QString::fromUtf8(raw);
-            populateTable(text);
+    // ── Filter live ─────────────────────────────────────────────────────
+    connect(filterEdit, &QLineEdit::textChanged, &dlg, [&](const QString &text) {
+        if (text.isEmpty()) {
+            populateTable(servers);
         } else {
-            info->setText("Server list fetch timed out.");
+            auto const filtered = IPView::Speedtest::ServerSelectionModule::filterByQuery(servers, text);
+            populateTable(filtered);
         }
-    }
+    });
 
     // Double-click = selection
     connect(table, &QTableWidget::cellDoubleClicked, &dlg, [&](int row, int) {
         if (row >= 0) {
-            int sid = table->item(row, 0)->text().toInt();
+            int const sid = table->item(row, 0)->text().toInt();
             setSelectedServer(sid);
             dlg.accept();
         }
@@ -567,13 +558,18 @@ void SpeedtestTab::onBrowseServers()
 
     // Accept
     connect(btns, &QDialogButtonBox::accepted, &dlg, [&]() {
-        int row = table->currentRow();
+        int const row = table->currentRow();
         if (row >= 0) {
-            int sid = table->item(row, 0)->text().toInt();
+            int const sid = table->item(row, 0)->text().toInt();
             setSelectedServer(sid);
         }
     });
     connect(btns, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+    // Cache for next time
+    if (serverCache.empty()) {
+        serverCache = std::move(servers);
+    }
 
     dlg.exec();
 }
@@ -581,16 +577,15 @@ void SpeedtestTab::onBrowseServers()
 void SpeedtestTab::setSelectedServer(int serverId)
 {
     // Find the server in cache
-    for (const auto &s : serverCache) {
+    for (auto const &s : serverCache) {
         if (s.id == serverId) {
-            serverCombo->setCurrentIndex(
-                serverCombo->findData(serverId));
-            serverLabel->setText(QString("Server: %1 (%2) — #%3, %4 km")
+            serverCombo->setCurrentIndex(serverCombo->findData(serverId));
+            serverLabel->setText(QStringLiteral("Server: %1 (%2) \u2014 #%3, %4 km")
                                      .arg(s.sponsor, s.location)
                                      .arg(s.id)
                                      .arg(s.distanceKm, 0, 'f', 0));
-            statusLabel->setText(QString("Server #%1 selected").arg(serverId));
-            logArea->append(QString("Selected server: %1 (%2) — ID %3, %4 km")
+            statusLabel->setText(QStringLiteral("Server #%1 selected").arg(serverId));
+            logArea->append(QStringLiteral("Selected server: %1 (%2) \u2014 ID %3, %4 km")
                                 .arg(s.sponsor, s.location)
                                 .arg(s.id)
                                 .arg(s.distanceKm, 0, 'f', 0));
@@ -601,19 +596,19 @@ void SpeedtestTab::setSelectedServer(int serverId)
     for (int i = 0; i < serverCombo->count(); ++i) {
         if (serverCombo->itemData(i).toInt() == serverId) {
             serverCombo->setCurrentIndex(i);
-            serverLabel->setText(QString("Server #%1 selected").arg(serverId));
+            serverLabel->setText(QStringLiteral("Server #%1 selected").arg(serverId));
             return;
         }
     }
     // Add new entry
-    serverCombo->addItem(QString("Server #%1").arg(serverId), serverId);
+    serverCombo->addItem(QStringLiteral("Server #%1").arg(serverId), serverId);
     serverCombo->setCurrentIndex(serverCombo->count() - 1);
-    serverLabel->setText(QString("Server #%1 selected (custom)").arg(serverId));
+    serverLabel->setText(QStringLiteral("Server #%1 selected (custom)").arg(serverId));
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  DATA I/O
-// ════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Data I/O
+// ═══════════════════════════════════════════════════════════════════════════════
 
 void SpeedtestTab::onReadyRead()
 {
@@ -628,7 +623,7 @@ void SpeedtestTab::onReadyRead()
     if (isJsonMode) {
         jsonBuffer.append(rawData);
 
-        // Display intermediate output (e.g., "Retrieving...", "Testing from...")
+        // Display intermediate output
         QString const text = QString::fromUtf8(rawData).trimmed();
         if (!text.isEmpty() && !text.startsWith(QLatin1Char('{'))
             && !text.startsWith(QLatin1Char('['))) {
@@ -656,31 +651,30 @@ void SpeedtestTab::onProgressTick()
     progressGauge->setValue(qMax(progressGauge->value(), pseudo));
 
     progressDot = (progressDot + 1) % 8;
-    QString dots = QString(progressDot + 1, '.');
+    QString dots = QString(progressDot + 1, QLatin1Char('.'));
 
     QString stage;
-    if      (elapsed <  4000) stage = "Selecting server";
-    else if (elapsed < 12000) stage = "Testing ping";
-    else if (elapsed < 30000) stage = "Testing download";
-    else if (elapsed < 50000) stage = "Testing upload";
-    else                      stage = "Finishing";
+    if      (elapsed <  4000) stage = QStringLiteral("Selecting server");
+    else if (elapsed < 12000) stage = QStringLiteral("Testing ping");
+    else if (elapsed < 30000) stage = QStringLiteral("Testing download");
+    else if (elapsed < 50000) stage = QStringLiteral("Testing upload");
+    else                      stage = QStringLiteral("Finishing");
 
-    statusLabel->setText(stage % " " % dots);
-    progressGauge->setFormat(stage % " " % dots);
+    statusLabel->setText(stage % QStringLiteral(" ") % dots);
+    progressGauge->setFormat(stage % QStringLiteral(" ") % dots);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  FINISHED
-// ════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Finished
+// ═══════════════════════════════════════════════════════════════════════════════
 
 void SpeedtestTab::onSpeedtestFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
     progressTimer->stop();
     setControlsEnabled(true);
 
-    // Log crash exit (e.g. SIGSEGV, SIGKILL) vs normal exit
     if (exitStatus == QProcess::CrashExit) {
-        statusLabel->setText(QStringLiteral("<img src=':/svgs/warning.svg' width='16' height='16'> Process crashed (signal)"));
+        statusLabel->setText(QStringLiteral("Process crashed (signal)"));
         logArea->append(QStringLiteral("speedtest-cli crashed or was killed."));
         progressGauge->setFormat(QStringLiteral("Crashed"));
         isJsonMode = false;
@@ -695,14 +689,14 @@ void SpeedtestTab::onSpeedtestFinished(int exitCode, QProcess::ExitStatus exitSt
 
     // Server list mode
     if (isServerListMode) {
-        statusLabel->setText(QStringLiteral("<img src=':/svgs/checkmark.svg' width='16' height='16'> Server list loaded into log"));
+        statusLabel->setText(QStringLiteral("Server list loaded into log"));
         progressGauge->setValue(100);
         progressGauge->setFormat(QStringLiteral("Done"));
         isServerListMode = false;
         return;
     }
 
-    // JSON mode – evaluate
+    // JSON mode
     if (isJsonMode && (exitCode == 0 || jsonBuffer.size() > 20)) {
         QJsonParseError err;
         QJsonDocument const doc = QJsonDocument::fromJson(jsonBuffer, &err);
@@ -712,39 +706,35 @@ void SpeedtestTab::onSpeedtestFinished(int exitCode, QProcess::ExitStatus exitSt
             updateDisplayFromJson(obj);
             progressGauge->setValue(100);
             progressGauge->setFormat(QStringLiteral("Completed"));
-            statusLabel->setText(QStringLiteral("<img src=':/svgs/checkmark.svg' width='16' height='16'> Speed test completed"));
-            logArea->append(QStringLiteral("── Test finished ──"));
+            statusLabel->setText(QStringLiteral("Speed test completed"));
+            logArea->append(QStringLiteral("\u2500\u2500 Test finished \u2500\u2500"));
             isJsonMode = false;
             return;
         }
 
-        // JSON parse error – display raw data
-        statusLabel->setText(QStringLiteral("<img src=':/svgs/warning.svg' width='16' height='16'> JSON error: ") + err.errorString());
+        statusLabel->setText(QStringLiteral("JSON error: ") + err.errorString());
         logArea->append(QStringLiteral("JSON parse error: ") + err.errorString());
-        logArea->append(QStringLiteral("── Raw output ──"));
+        logArea->append(QStringLiteral("\u2500\u2500 Raw output \u2500\u2500"));
         logArea->append(QString::fromUtf8(jsonBuffer));
         progressGauge->setFormat(QStringLiteral("Parse error"));
         isJsonMode = false;
         return;
     }
 
-    // Error
     if (exitCode != 0) {
-        statusLabel->setText(QStringLiteral("<img src=':/svgs/warning.svg' width='16' height='16'> Test failed (exit %1)")
-                                 .arg(exitCode));
-        logArea->append(QStringLiteral("speedtest-cli exited with code %1")
-                            .arg(exitCode));
+        statusLabel->setText(QStringLiteral("Test failed (exit %1)").arg(exitCode));
+        logArea->append(QStringLiteral("speedtest-cli exited with code %1").arg(exitCode));
         progressGauge->setFormat(QStringLiteral("Failed"));
     } else {
-        statusLabel->setText(QStringLiteral("<img src=':/svgs/warning.svg' width='16' height='16'> No JSON data received"));
+        statusLabel->setText(QStringLiteral("No JSON data received"));
         progressGauge->setFormat(QStringLiteral("No data"));
     }
     isJsonMode = false;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  DISPLAY
-// ════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Display
+// ═══════════════════════════════════════════════════════════════════════════════
 
 void SpeedtestTab::updateDisplayFromJson(const QJsonObject &obj) noexcept
 {
@@ -752,7 +742,7 @@ void SpeedtestTab::updateDisplayFromJson(const QJsonObject &obj) noexcept
     double const ping = obj[QStringLiteral("ping")].toDouble();
     pingLabel->setText(QString::number(ping, 'f', 1));
 
-    // Download / Upload (bits/s → Mbit/s)
+    // Download / Upload (bits/s to Mbit/s)
     double const dl = obj[QStringLiteral("download")].toDouble() / 1.0e6;
     double const ul = obj[QStringLiteral("upload")].toDouble()   / 1.0e6;
     downloadLabel->setText(QString::number(dl, 'f', 1));
@@ -767,7 +757,7 @@ void SpeedtestTab::updateDisplayFromJson(const QJsonObject &obj) noexcept
         int const sid         = s[QStringLiteral("id")].toString().toInt();
         double const lat      = s[QStringLiteral("latency")].toDouble();
 
-        serverLabel->setText(QStringLiteral("Server: %1 (%2) · %3 · ID %4 · latency %5 ms")
+        serverLabel->setText(QStringLiteral("Server: %1 (%2) \u00B7 %3 \u00B7 ID %4 \u00B7 latency %5 ms")
                                  .arg(sponsor, name, cc)
                                  .arg(sid)
                                  .arg(lat, 0, 'f', 1));
@@ -794,23 +784,23 @@ void SpeedtestTab::updateDisplayFromJson(const QJsonObject &obj) noexcept
     }
 
     // Log
-    logArea->append(QStringLiteral("Ping: %1 ms · Download: %2 Mbps · Upload: %3 Mbps")
+    logArea->append(QStringLiteral("Ping: %1 ms \u00B7 Download: %2 Mbps \u00B7 Upload: %3 Mbps")
                         .arg(ping, 0, 'f', 1)
                         .arg(dl, 0, 'f', 1)
                         .arg(ul, 0, 'f', 1));
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  STOP
-// ════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Stop
+// ═══════════════════════════════════════════════════════════════════════════════
 
 void SpeedtestTab::onStopClicked()
 {
     if (process->state() == QProcess::Running) {
         process->kill();
-        logArea->append("Cancelled by user.");
-            statusLabel->setText(QStringLiteral("<img src=':/svgs/warning.svg' width='16' height='16'> Cancelled"));
-        progressGauge->setFormat("Cancelled");
+        logArea->append(QStringLiteral("Cancelled by user."));
+        statusLabel->setText(QStringLiteral("Cancelled"));
+        progressGauge->setFormat(QStringLiteral("Cancelled"));
     }
     progressTimer->stop();
     setControlsEnabled(true);

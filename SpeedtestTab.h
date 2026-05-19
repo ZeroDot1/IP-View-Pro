@@ -1,7 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.0 — SpeedtestTab.h
+//  IPView Pro v2.9.0 — SpeedtestTab.h
 //  C++26: [[nodiscard]], default member init, noexcept
 //  Professional speedtest via speedtest-cli (Python sivel) with --json.
+//  Uses ServerSelectionModule for server browsing and filtering.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #ifndef SPEEDTESTTAB_H
@@ -25,12 +26,7 @@
 
 #include <vector>
 
-struct ServerInfo {
-    int     id{0};
-    QString sponsor;
-    QString location;
-    double  distanceKm{0.0};
-};
+#include "ServerSelectionModule.h"
 
 class SpeedtestTab : public QWidget
 {
@@ -64,8 +60,7 @@ private:
     void resetDisplay() noexcept;
     void updateDisplayFromJson(const QJsonObject &obj) noexcept;
 
-    // ── Server management ──────────────────────────────────────────────────
-    void parseServerList(const QString &raw);
+    // ── Server management (delegates to ServerSelectionModule) ────────────
     void setSelectedServer(int serverId);
 
     // ── Process management ─────────────────────────────────────────────────
@@ -103,8 +98,9 @@ private:
     bool      isJsonMode{false};
     bool      isServerListMode{false};
 
-    // ── Server-Cache ──────────────────────────────────────────────────────
-    std::vector<ServerInfo> serverCache;
+    // ── Server selection module ────────────────────────────────────────────
+    IPView::Speedtest::ServerSelectionModule *serverSelector{nullptr};
+    std::vector<IPView::Speedtest::ServerInfo> serverCache;
 };
 
 #endif // SPEEDTESTTAB_H

@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.8.0 — TelemetryTab.h
+//  IPView Pro v2.9.0 — TelemetryTab.h
 //  C++26: [[nodiscard]], noexcept, const-correctness
-//  GUI for real-time network telemetry (TelemetryModule).
-//  Displays all active interfaces with live RX/TX rates.
+//  GUI for real-time network telemetry (TelemetryModule) with
+//  historical aggregation (TelemetryPersistenceModule).
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -16,8 +16,10 @@
 #include <QLabel>
 #include <QTableWidget>
 #include <QTimer>
+#include <QCheckBox>
 
 #include "TelemetryModule.h"
+#include "TelemetryPersistenceModule.h"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 class TelemetryTab : public QWidget
@@ -29,16 +31,23 @@ public:
     ~TelemetryTab() override = default;
 
 private slots:
+    // ── Live monitoring ──────────────────────────────────────────────────
     void onTelemetryUpdated(const QList<IPView::Telemetry::InterfaceInfo> &interfaces);
     void onToggleMonitoring();
     void onRefreshInterfaces();
+
+    // ── Persistence ──────────────────────────────────────────────────────
+    void onTogglePersistence();
+    void onShowAggregationHistory();
+    void onAggregationStored(const IPView::Storage::AggregatedTelemetryEntry &record);
 
 private:
     void setupUI() noexcept;
     void updateTable(const QList<IPView::Telemetry::InterfaceInfo> &interfaces) noexcept;
     [[nodiscard]] static QString formatSpeed(double bytesPerSec) noexcept;
+    void updatePersistenceStatus() noexcept;
 
-    // ── UI ─────────────────────────────────────────────────────────────────
+    // ── Live monitoring UI ───────────────────────────────────────────────
     QPushButton  *toggleButton{nullptr};
     QPushButton  *refreshButton{nullptr};
     QLabel       *statusLabel{nullptr};
@@ -46,8 +55,16 @@ private:
     QLabel       *totalRxLabel{nullptr};
     QLabel       *totalTxLabel{nullptr};
 
-    // ── Telemetry ──────────────────────────────────────────────────────────
-    IPView::Telemetry::TelemetryModule *mTelemetry{nullptr};
+    // ── Persistence UI ───────────────────────────────────────────────────
+    QCheckBox    *persistCheckBox{nullptr};
+    QPushButton  *historyButton{nullptr};
+    QLabel       *persistStatusLabel{nullptr};
+    QLabel       *latestRxLabel{nullptr};
+    QLabel       *latestTxLabel{nullptr};
+
+    // ── Modules ──────────────────────────────────────────────────────────
+    IPView::Telemetry::TelemetryModule              *mTelemetry{nullptr};
+    IPView::Telemetry::TelemetryPersistenceModule    *mPersistence{nullptr};
     bool mMonitoring{false};
 };
 
