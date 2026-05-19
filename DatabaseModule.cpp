@@ -14,7 +14,6 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QJsonDocument>
-#include <QThread>
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Statische Member
