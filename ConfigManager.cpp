@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — ConfigManager.cpp
 //  C++26: [[nodiscard]], noexcept, const-correctness
-//  Per-User-Konfiguration via QSettings (INI-Format).
+//  Per-user configuration via QSettings (INI format).
 //  Ablageort (XDG Base Directory):
 //    Linux:   ~/.config/IPView/IPView.conf
 //    Windows: ~/AppData/Roaming/IPView/IPView.ini
@@ -41,10 +41,10 @@ Manager& Manager::instance() noexcept
 
 Manager::Manager() noexcept
 {
-    // QSettings verwendet automatisch das INI-Format
-    // wenn kein Format angegeben wird, nutzt Qt das native Format
-    // (Windows: Registry, Linux: INI-Datei).
-    // Wir erzwingen INI für plattformunabhängiges Verhalten.
+    // QSettings automatically uses the INI format
+    // when no format is specified, Qt uses the native format
+    // (Windows: Registry, Linux: INI file).
+    // We force INI for platform-independent behavior.
     sSettings.setFallbacksEnabled(false);
 }
 
@@ -52,11 +52,11 @@ void Manager::initialize() noexcept
 {
     if (sInitialized) return;
 
-    // Stelle sicher, dass das Config-Verzeichnis existiert
+    // Ensure the config directory exists
     QString const configDir = QFileInfo(sSettings.fileName()).absolutePath();
     QDir().mkpath(configDir);
 
-    qInfo("ConfigManager: Initialisiert (%s)",
+    qInfo("ConfigManager: Initialized (%s)",
           qPrintable(sSettings.fileName()));
 
     sInitialized = true;
@@ -68,7 +68,7 @@ void Manager::sync() noexcept
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Interner Zugriff
+//  Internal access
 // ═══════════════════════════════════════════════════════════════════════════════
 
 QSettings& Manager::settings() noexcept

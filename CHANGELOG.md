@@ -5,38 +5,37 @@ All notable changes to this project are documented here.
 ## [2.8.1] — 2026-05-19
 
 ### Changed
-- **Theme.h — Tab-Design überarbeitet:** `PADDING_TAB` von `12px 25px` auf `6px 12px`
-  reduziert, Tab-Font-Size auf `11px` gesetzt. Alle 8 Tabs passen nun ohne Scrollen
-  in die Tab-Leiste. Gradient-Hover/Selected-Effekte mit `cubic-bezier`-Transition.
-- **MainWindow — Tab-Bar-Konfiguration:** `setUsesScrollButtons(false)` und
-  `setExpanding(true)` am QTabBar, Icon-Size auf `14×14` gesetzt.
-- **Neue Konstante:** `PADDING_TAB_L = "6px 18px"` für optionale breitere Tabs.
+- **Theme.h — Tab design overhauled:** `PADDING_TAB` reduced from `12px 25px` to `6px 12px`,
+  tab font-size set to `11px`. All 8 tabs now fit in the tab bar without scrolling.
+  Gradient hover/selected effects with `cubic-bezier` transition.
+- **MainWindow — Tab bar configuration:** `setUsesScrollButtons(false)` and
+  `setExpanding(true)` on QTabBar, icon size set to `14×14`.
+- **New constant:** `PADDING_TAB_L = "6px 18px"` for optional wider tabs.
 
 ### Visual
-- Tab-Hover: Gradient von `C_BG_HOVER` → `C_BG_ELEVATED` für Tiefeneffekt.
-- Tab-Selected: Gradient von `C_ACCENT` → `C_ACCENT_ACT` für leuchtende Akzentfarbe.
-- Tab-Bar: `qproperty-drawBase: false` entfernt die Standard-Unterstrich-Linie.
-- `min-width: 0` auf Tabs erlaubt kompaktes Layout ohne Scroll-Buttons.
+- Tab hover: Gradient from `C_BG_HOVER` → `C_BG_ELEVATED` for depth effect.
+- Tab selected: Gradient from `C_ACCENT` → `C_ACCENT_ACT` for bright accent color.
+- Tab bar: `qproperty-drawBase: false` removes the default underline line.
+- `min-width: 0` on tabs allows compact layout without scroll buttons.
 
 ---
 
 ## [2.8.0] — 2026-05-19
 
 ### Added
-- **`ScannerTab`** — GUI-Tab für `ScannerModule`: Quick-Scan (28 Ports), benutzerdefinierte
-  Port-Bereiche, Ergebnistabelle mit Port/State/Service/Latenz. Wird als eigener Tab
-  `Port Scanner` unter dem Icon `compass.svg` angezeigt.
-- **`TelemetryTab`** — GUI-Tab für `TelemetryModule`: Echtzeit-Monitoring von Netzwerk-
-  interfaces. Zeigt Gesamt-Download/Upload (Karten oben) und pro-Interface-Tabelle mit
-  RX/TX-Raten, Paketen und Fehlern. Wird als eigener Tab `Telemetry` unter `graph.svg`
-  angezeigt.
-- **`HistoryTab`-Persistenz:** Lädt IP-Historie beim Start aus SQLite (`DatabaseModule::getHistory()`).
-  Neue `SQLite persist`-Checkbox steuert, ob neue Einträge in die DB geschrieben werden.
-  `Clear` löscht auch die SQLite-Tabelle.
-- **`DashboardView::setApiIndex()`** — Neue Methode zum programmatischen Setzen des
-  API-ComboBox-Index (wichtig für Config-Wiederherstellung).
-- **SVG-Icons:** `svgs/compass.svg` (Scanner), `svgs/graph.svg` (Telemetry) erstellt
-  und in `resources.qrc` registriert.
+- **`ScannerTab`** — GUI tab for `ScannerModule`: Quick scan (28 ports), custom
+  port ranges, result table with port/state/service/latency. Displayed as its own
+  tab `Port Scanner` under the `compass.svg` icon.
+- **`TelemetryTab`** — GUI tab for `TelemetryModule`: Real-time monitoring of network
+  interfaces. Shows total download/upload (cards at top) and per-interface table with
+  RX/TX rates, packets, and errors. Displayed as its own tab `Telemetry` under `graph.svg`.
+- **`HistoryTab` persistence:** Loads IP history from SQLite on startup (`DatabaseModule::getHistory()`).
+  New `SQLite persist` checkbox controls whether new entries are written to the DB.
+  `Clear` also deletes the SQLite table.
+- **`DashboardView::setApiIndex()`** — New method to programmatically set the
+  API combo box index (important for config restoration).
+- **SVG icons:** `svgs/compass.svg` (scanner), `svgs/graph.svg` (telemetry) created
+  and registered in `resources.qrc`.
 - **Modular architecture:** UI components extracted into separate classes.
 - **`DashboardView`** — Standalone overview widget (API selection, IP card, data table,
   flag display, copy/export buttons). Replaces the inline overview tab in MainWindow.
@@ -53,12 +52,12 @@ All notable changes to this project are documented here.
   Batch processing with configurable concurrency (default 100 parallel connections).
   Supports port lists and ranges. Service name resolution for 28+ well-known ports.
   Emits `portFound`, `scanCompleted`, `scanCancelled`, and `scanProgress` signals.
-- **`ConfigManager`** — Per-user configuration via `QSettings` (INI-Format).
-  Speichert in `~/.config/IPView/IPView.conf` (XDG Base Directory Specification).
-  Jeder Benutzer hat seine eigene Konfigurationsdatei mit Fenstergeometrie,
-  API-Auswahl, IPv6-Modus, Auto-Refresh-Einstellungen.
-  Methoden: `saveWindowGeometry/State`, `saveLastTab`, `saveApiIndex`,
-  `saveIPv6Mode`, `saveAutoRefresh`, `saveNetworkSettings` uvm.
+- **`ConfigManager`** — Per-user configuration via `QSettings` (INI format).
+  Saves to `~/.config/IPView/IPView.conf` (XDG Base Directory Specification).
+  Each user has their own configuration file with window geometry, API selection,
+  IPv6 mode, auto-refresh settings.
+  Methods: `saveWindowGeometry/State`, `saveLastTab`, `saveApiIndex`,
+  `saveIPv6Mode`, `saveAutoRefresh`, `saveNetworkSettings`, and many more.
 - **`main.cpp`:** Database initialized at startup via `DatabaseModule::init()`.
   ConfigManager initialized at startup via `IPView::Config::Manager::initialize()`.
 
@@ -67,23 +66,23 @@ All notable changes to this project are documented here.
   inline widget creation. All overview-related widgets (apiCombo, ipLabel, ipTable,
   flagLabel, buttons) moved to `DashboardView`. Data display delegated to
   `DashboardView::updateDisplay()`. Flag loading uses `flagLabelWidget()` getter.
-- **Config persistence:** MainWindow speichert/lädt Fenstergeometrie, API-Index,
-  IPv6-Modus und Auto-Refresh automatisch via `saveSettings()`/`loadSettings()`.
-  Die Config liegt pro Benutzer in `~/.config/IPView/IPView.conf`.
-- **Database path:** `DatabaseModule::defaultDbPath()` verwendet jetzt
+- **Config persistence:** MainWindow saves/loads window geometry, API index,
+  IPv6 mode, and auto-refresh automatically via `saveSettings()`/`loadSettings()`.
+  The config is stored per user in `~/.config/IPView/IPView.conf`.
+- **Database path:** `DatabaseModule::defaultDbPath()` now uses
   `QStandardPaths::AppConfigLocation` → `~/.config/IPView/ipview_history.db`
-  (vorher: `~/.local/share/`). Config und Datenbank liegen nun im selben
-  Verzeichnis für jeden Benutzer.
-- **`DashboardView`:** Neue Methoden `setIPv6Mode(bool)` und `setAutoRefresh(bool)`
-  zum Wiederherstellen der gespeicherten Einstellungen.
-- **`NetworkManager`:** Neue Methode `getSelectedApiIndex()` für Config-Persistence.
-- **MainWindow-Tabs:** `ScannerTab` und `TelemetryTab` als neue Tabs registriert.
-  `ToolsTab` bleibt als Ping/Traceroute-Tab erhalten, Scanner bekommt eigenen Tab.
-- **`HistoryTab` mit SQLite-Persistenz:** Beim Start wird `loadPersistedHistory()`
-  aufgerufen, um gespeicherte Einträge aus `ipview_history.db` zu laden.
-  Neue Methoden: `loadPersistedHistory()`, persistCheckBox.
-- **Build-System:** `CMakeLists.txt` um `ScannerTab.cpp` und `TelemetryTab.cpp` ergänzt.
-  `resources.qrc` um `compass.svg` und `graph.svg` erweitert.
+  (previously: `~/.local/share/`). Config and database now reside in the same
+  directory for each user.
+- **`DashboardView`:** New methods `setIPv6Mode(bool)` and `setAutoRefresh(bool)`
+  for restoring saved settings.
+- **`NetworkManager`:** New method `getSelectedApiIndex()` for config persistence.
+- **MainWindow tabs:** `ScannerTab` and `TelemetryTab` registered as new tabs.
+  `ToolsTab` remains as the Ping/Traceroute tab; scanner gets its own tab.
+- **`HistoryTab` with SQLite persistence:** On startup, `loadPersistedHistory()`
+  is called to load saved entries from `ipview_history.db`.
+  New methods: `loadPersistedHistory()`, persistCheckBox.
+- **Build system:** `CMakeLists.txt` supplemented with `ScannerTab.cpp` and `TelemetryTab.cpp`.
+  `resources.qrc` extended with `compass.svg` and `graph.svg`.
 - **Version bumped:** `2.7.1` → `2.8.0` (`CMakeLists.txt`).
 - **CMake updated:** Added `DashboardView`, `TelemetryModule`, `DatabaseModule`,
   `ScannerModule`, `ConfigManager` source files. Added `Qt6::Sql` dependency.

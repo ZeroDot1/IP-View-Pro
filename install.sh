@@ -28,7 +28,7 @@ install_app() {
     echo "║     IPView Pro — Installing                  ║"
     echo "╚═══════════════════════════════════════════════╝"
 
-    # ── Prüfen ob Binary existiert ─────────────────────────────────────
+    # ── Check if binary exists ─────────────────────────────────────
     if [ ! -f "$BINARY" ]; then
         echo "  ERROR: Binary not found at $BINARY"
         echo "  Run './build.sh' first to compile the application."
@@ -199,7 +199,7 @@ case "${1:-install}" in
         ;;
 esac
 
-# Root-Prüfung (nicht nötig für help)
+# Root check (not needed for help)
 if [ "$(id -u)" -ne 0 ]; then
     echo "ERROR: This script must be run as root (sudo)."
     echo "  sudo ./install.sh"

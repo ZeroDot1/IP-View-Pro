@@ -25,7 +25,7 @@ namespace IPView::Scanner {
 struct ScanResult {
     int      port{0};
     bool     open{false};
-    QString  service;     // Bekannter Service-Name (z. B. "http", "ssh")
+    QString  service;     // Known service name (e.g., "http", "ssh")
     int      latencyMs{0};
 };
 
@@ -45,9 +45,9 @@ public:
     [[nodiscard]] bool isScanning() const noexcept;
 
     // ── Konstanten ─────────────────────────────────────────────────────────
-    static constexpr int CONNECTION_TIMEOUT_MS = 500;   // Timeout pro Port
-    static constexpr int MAX_CONCURRENT_SCANS   = 100;  // Gleichzeitige Scans
-    static constexpr int SCAN_DELAY_MS          = 10;   // Verzögerung zwischen Batches
+    static constexpr int CONNECTION_TIMEOUT_MS = 500;   // Timeout per port
+    static constexpr int MAX_CONCURRENT_SCANS   = 100;  // Concurrent scans
+    static constexpr int SCAN_DELAY_MS          = 10;   // Delay between batches
 
     // Bekannte Ports (Auswahl)
     static constexpr std::array KNOWN_PORTS = {
@@ -62,15 +62,15 @@ public:
     }
 
 signals:
-    // Wird emittiert, sobald ein Port gefunden wurde
+    // Emitted when a port is found
     void portFound(const IPView::Scanner::ScanResult &result);
-    // Wird emittiert, wenn ein Scan-Durchlauf abgeschlossen ist
+    // Emitted when a scan pass completes
     void scanCompleted(const QVector<IPView::Scanner::ScanResult> &results);
-    // Wird emittiert bei Fehlern
+    // Emitted on errors
     void scanError(const QString &message);
-    // Fortschritt (currentIndex, totalCount)
+    // Progress (currentIndex, totalCount)
     void scanProgress(int current, int total);
-    // Wird emittiert, wenn der Scan abgebrochen wurde
+    // Emitted when the scan is cancelled
     void scanCancelled();
 
 private slots:
@@ -88,7 +88,7 @@ private:
     QString              mTargetIp;
     QVector<int>         mPendingPorts;
     QVector<ScanResult>  mResults;
-    QVector<ScanResult>  mOpenPorts;       // Nur offene Ports (für portFound-Signal)
+    QVector<ScanResult>  mOpenPorts;       // Only open ports (for portFound signal)
 
     // ── Concurrency-Management ──────────────────────────────────────────────
     int                   mActiveSockets{0};

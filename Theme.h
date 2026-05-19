@@ -55,9 +55,9 @@ inline constexpr auto C_ERROR       = "#ff4444";
 inline constexpr auto C_INFO        = "#00d4ff";
 
 // ── Spacing ────────────────────────────────────────────────────────────────
-// Tabs: kompakt, damit alle 8 Tabs ohne Scrollen sichtbar sind
+// Tabs: compact — all 8 tabs fit without scrolling
 inline constexpr auto PADDING_TAB   = "6px 12px";
-inline constexpr auto PADDING_TAB_L = "6px 18px";   // für einzelne breitere Tabs
+inline constexpr auto PADDING_TAB_L = "6px 18px";   // for optional wider tabs
 inline constexpr auto PADDING_BTN   = "8px 20px";
 inline constexpr auto PADDING_BTN_S = "6px 14px";
 inline constexpr auto PADDING_INP   = "8px 12px";
@@ -108,7 +108,7 @@ inline QString appStyleSheet() noexcept
         "  transition: background 0.12s cubic-bezier(0.4,0,0.2,1),"
         "              color 0.12s cubic-bezier(0.4,0,0.2,1),"
         "              border-bottom 0.12s cubic-bezier(0.4,0,0.2,1);"
-        "  min-width: 0;"  // erlaubt schrumpfen, kein Scrollen
+        "  min-width: 0;"  // allow shrinking, no scroll buttons
         "}"
         "QTabBar::tab:selected {"
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"

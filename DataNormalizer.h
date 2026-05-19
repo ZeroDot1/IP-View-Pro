@@ -23,15 +23,15 @@
 #include <string_view>       // C++17 / C++26: lightweight string views
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  DataNormalizer — namespace (statt Klasse) für JSON-Normalisierung.
-//  Idiomatisches C++26: reine "namespace" anstelle einer statischen Klasse.
+//  DataNormalizer — namespace (instead of class) for JSON normalization.
+//  Idiomatic C++26: pure "namespace" instead of a static class.
 //  Normalisiert JSON-Responses von 12+ Geo-IP-APIs in ein einheitliches Format.
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace DataNormalizer {
 
-// ── Internal helpers (nicht Teil des öffentlichen API) ─────────────────
-//  Diese Funktionen sind im selben Namespace, aber als Implementierungsdetails
-//  zu betrachten. Nur normalize() und formatJsonHtml() sind öffentliches API.
+// ── Internal helpers (not part of the public API) ─────────────────
+//  These functions are in the same namespace but are implementation details
+//  to be considered. Only normalize() and formatJsonHtml() are public API.
 
     //  Used for the list of 18 standard field names in fillMissingFields()
     using FieldList = std::vector<QString>;

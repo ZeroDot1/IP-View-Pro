@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — MainWindow.h
 //  C++26: [[nodiscard]], default member init, structured bindings
-//  Main window der IPView-Anwendung mit Tab-Schnittstelle und System Tray.
+//  Main window of the IPView application with tab interface and system tray.
 //  Features: Dashboard, Whois, Tools (Ping/Traceroute/Scanner),
 //  History (SQLite-persistent), Speedtest, Telemetry, About.
 //  Public Domain — No License — No Restrictions.

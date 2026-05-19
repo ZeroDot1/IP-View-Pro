@@ -21,7 +21,7 @@ echo "  Source dir : $SCRIPT_DIR"
 echo "  Build  dir : $BUILD_DIR"
 echo ""
 
-# ── Prüfen auf benötigte Tools ────────────────────────
+# ── Check for required tools ────────────────────────
 MISSING=""
 command -v cmake >/dev/null 2>&1 || MISSING+=" cmake"
 if [ -n "$MISSING" ]; then

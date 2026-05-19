@@ -2,7 +2,7 @@
 //  IPView Pro v2.8.0 — MainWindow.cpp
 //  C++26: std::array for compile-time constants, auto, [[maybe_unused]]
 //  QStringLiteral, structured bindings
-//  Dashboard-Funktionalität ausgelagert in DashboardView (IPView::UI).
+//  Dashboard functionality extracted into DashboardView (IPView::UI).
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -34,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(autoRefreshTimer, &QTimer::timeout, this, &MainWindow::onRefreshClicked);
 
-    // ── API-Namen an DashboardView übergeben ────────────────────────────
+    // ── Pass API names to DashboardView ─────────────────────────────────
     dashboardView->setApiNames(networkManager->getApiNames());
 
     // ── Dashboard-Signale mit MainWindow verbinden ──────────────────────
@@ -59,7 +59,7 @@ MainWindow::MainWindow(QWidget *parent)
         dashboardView->setStatusMessage(err);
     });
 
-    // ── Per-User-Konfiguration wiederherstellen (XDG: ~/.config/IPView/) ─
+    // ── Restore per-user configuration (XDG: ~/.config/IPView/) ──────────
     loadSettings();
 
     onRefreshClicked();
@@ -114,7 +114,7 @@ void MainWindow::onExitRequested()
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     if (!reallyQuit && trayIcon->isVisible()) {
-        // In den Tray minimieren – Einstellungen dennoch speichern
+        // Minimize to tray – save settings regardless
         saveSettings();
         hide();
         event->ignore();
@@ -218,9 +218,9 @@ void MainWindow::setupUI() noexcept
     whoisTab     = new WhoisTab();
     toolsTab     = new ToolsTab();           // Ping / iPerf3 / Traceroute
     scannerTab   = new ScannerTab();         // Port-Scanner
-    historyTab   = new HistoryTab();         // IP-Verlauf (SQLite-persistent)
+    historyTab   = new HistoryTab();         // IP history (SQLite-persistent)
     speedtestTab = new SpeedtestTab();
-    telemetryTab = new TelemetryTab();       // Netzwerk-Echtzeit-Telemetrie
+    telemetryTab = new TelemetryTab();       // Real-time network telemetry
     aboutTab     = new AboutTab();
 
     tabWidget->addTab(dashboardView, QIcon(QStringLiteral(":/svgs/chart-bar.svg")),
@@ -259,13 +259,13 @@ void MainWindow::onDataReceived(const QJsonObject &jsonData)
 {
     currentData = jsonData;
 
-    // History nur bei IP-Änderung aktualisieren
+    // Update history only on IP change
     updateHistory(jsonData);
 
     // DashboardView aktualisieren
     dashboardView->updateDisplay(jsonData);
 
-    // Flag-Loading anstoßen (an DashboardView delegiert)
+    // Trigger flag loading (delegated to DashboardView)
     QString const cc = jsonData[QStringLiteral("country_code")].toString();
     if (!cc.isEmpty()) {
         flagLoader->loadFlag(cc, dashboardView->flagLabelWidget());
@@ -314,7 +314,7 @@ void MainWindow::onApiChanged(int index)
 
 void MainWindow::onIPv6Toggled(bool /*checked*/)
 {
-    // Die API-Combobox wird in DashboardView deaktiviert – hier kein weiterer Handlungsbedarf
+    // API combo-box is managed by DashboardView — no further action needed
 }
 
 void MainWindow::onAutoRefreshToggled(bool checked)
@@ -336,7 +336,7 @@ void MainWindow::onCopyAllRequested()
     text += QStringLiteral("Timestamp: %1\n\n")
                 .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss")));
 
-    // C++26: structured bindings für QJsonObject-Iteration
+    // C++26: structured bindings for QJsonObject iteration
     for (auto it = currentData.begin(); it != currentData.end(); ++it) {
         text += QStringLiteral("%1: %2\n")
                     .arg(it.key(), -22)
@@ -383,8 +383,8 @@ void MainWindow::onExportJsonRequested()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Per-User-Konfiguration (XDG Base Directory: ~/.config/IPView/IPView.conf)
-//  Jeder Benutzer hat seine eigene Config + SQLite-Datenbank.
+//  Per-user configuration (XDG Base Directory: ~/.config/IPView/IPView.conf)
+//  Each user has their own config + SQLite database.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 void MainWindow::saveSettings() noexcept
@@ -409,19 +409,19 @@ void MainWindow::loadSettings() noexcept
 {
     using namespace IPView::Config;
 
-    // ── Window-Geometrie wiederherstellen ───────────────────────────────────
+    // ── Restore window geometry ────────────────────────────────────────────
     QByteArray const geom = Manager::loadWindowGeometry();
     if (!geom.isEmpty()) {
         restoreGeometry(geom);
     }
 
-    // ── Letzten Tab wiederherstellen ────────────────────────────────────────
+    // ── Restore last tab ───────────────────────────────────────────────────
     int const lastTab = Manager::loadLastTab();
     if (lastTab >= 0 && lastTab < tabWidget->count()) {
         tabWidget->setCurrentIndex(lastTab);
     }
 
-    // ── Network-Einstellungen wiederherstellen ──────────────────────────────
+    // ── Restore network settings ───────────────────────────────────────────
     int const apiIndex = Manager::loadApiIndex();
     if (apiIndex >= 0) {
         networkManager->setSelectedAPI(apiIndex);

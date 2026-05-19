@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — DashboardView.cpp
 //  C++26: constexpr std::to_array, structured bindings, [[nodiscard]]
-//  Zentrale Übersicht — API-Auswahl, IP-Karte, Daten-Tabelle, Export.
-//  Ausgelagert aus MainWindow für modulare Architektur.
+//  Central overview — API selection, IP card, data table, export.
+//  Extracted from MainWindow for modular architecture.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -119,13 +119,13 @@ void DashboardView::setupUI() noexcept
     botRow->addWidget(onlineLabel);
     botRow->addWidget(flagLabel);
 
-    // ── Zusammenbau ───────────────────────────────────────────────────────
+    // ── Assembly ───────────────────────────────────────────────────────
     layout->addLayout(topRow);
     layout->addWidget(ipCard);
     layout->addWidget(ipTable);
     layout->addLayout(botRow);
 
-    // ── Signal-Slot-Verbindungen (dashboard-intern) ───────────────────────
+    // ── Signal-slot connections (dashboard-internal) ───────────────────────
     connect(refreshButton,       &QPushButton::clicked, this, &DashboardView::refreshRequested);
     connect(apiCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &DashboardView::apiChanged);
@@ -181,7 +181,7 @@ void DashboardView::setFlagPixmap(const QPixmap &pixmap) noexcept
 
 void DashboardView::setStatusMessage(const QString &msg) noexcept
 {
-    // Wird vom MainWindow via Statusleiste ergänzt
+    // Is supplemented by MainWindow via status bar
     Q_UNUSED(msg)
 }
 

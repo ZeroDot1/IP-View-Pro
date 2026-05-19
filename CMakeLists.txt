@@ -2,14 +2,14 @@
 # Requires: Qt 6.11+, CMake 3.28+, C++26 compiler (GCC 14+ / Clang 18+)
 #
 # ════════════════════════════════════════════════════════════════
-#  C++26 (ISO/IEC 14882:2026) | Qt 6.11 (März 2026)
+#  C++26 (ISO/IEC 14882:2026) | Qt 6.11 (March 2026)
 #  Security Hardening:
-#    • -Werror             — alle Warnungen = Fehler
-#    • -fstack-protector   — Stack-Smashing-Schutz
-#    • -D_FORTIFY_SOURCE   — Buffer-Overflow-Erkennung
-#    • -fPIE               — Position Independent Executable
-#    • Input-Validierung   — Kein User-Input in QProcess ohne Prüfung
-#    • SSL-Enforcement     — Strikte Zertifikatsprüfung
+#    • -Werror             — all warnings = errors
+#    • -fstack-protector   — stack smashing protection
+#    • -D_FORTIFY_SOURCE   — buffer overflow detection
+#    • -fPIE               — position independent executable
+#    • Input validation    — no user input passed to QProcess unchecked
+#    • SSL enforcement     — strict certificate validation
 #  Public Domain — No License — No Restrictions
 # ════════════════════════════════════════════════════════════════
 
@@ -55,7 +55,7 @@ if(SANITIZE)
     message(STATUS "Sanitizers ENABLED (Address + UndefinedBehavior)")
 endif()
 
-# ── Qt 6.11 (neuester Release: März 2026) ─────────────────────
+# ── Qt 6.11 (latest release: March 2026) ──────────────────────
 find_package(Qt6 6.11 REQUIRED COMPONENTS Core Widgets Network Svg Sql)
 
 # ── Automatische Qt-Metacompiler ──────────────────────────────
@@ -102,12 +102,12 @@ set_target_properties(IPView PROPERTIES
     MACOSX_BUNDLE    TRUE
 )
 
-# ── C++26-Polyfill für GCC 16.1.1 (saturate_cast) ────────────
+# ── C++26 polyfill for GCC 16.1.1 (saturate_cast) ────────────
 #  Force-include before any Qt header to provide q26::saturate_cast
 target_compile_options(IPView PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:-include>
     $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/saturate_fix.h>
 )
 
-# ── Install-Regel (Linux: /usr/local/bin) ──────────────────────
+# ── Install rule (Linux: /usr/local/bin) ──────────────────────
 install(TARGETS IPView RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

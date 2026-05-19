@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — DatabaseModule.h
 //  C++26: [[nodiscard]], noexcept, const-correctness
-//  Persistenzschicht (SQLite) für IP-Historie und Telemetrie-Daten.
-//  Thread-sicher durch QMutex. Singleton-Pattern.
+//  Persistence layer (SQLite) for IP history and telemetry data.
+//  Thread-safe via QMutex. Singleton pattern.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -22,7 +22,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Storage {
 
-// ── Datenbank-Eintrag für IP-Historie ────────────────────────────────────────
+// ── Database entry for IP history ────────────────────────────────────────
 struct HistoryEntry {
     qint64    id{-1};
     QString   ip;
@@ -31,7 +31,7 @@ struct HistoryEntry {
     QString   city;
     QString   org;
     QString   asn;
-    QString   jsonPayload;    // Vollständiger JSON-Datensatz
+    QString   jsonPayload;    // Complete JSON dataset
     QDateTime timestamp;
 };
 

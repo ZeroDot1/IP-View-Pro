@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.0 — SpeedtestTab.h
 //  C++26: [[nodiscard]], default member init, noexcept
-//  Professioneller Speedtest via speedtest-cli (Python sivel) mit --json.
+//  Professional speedtest via speedtest-cli (Python sivel) with --json.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #ifndef SPEEDTESTTAB_H

@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — TelemetryTab.h
 //  C++26: [[nodiscard]], noexcept, const-correctness
-//  GUI für Echtzeit-Netzwerk-Telemetrie (TelemetryModule).
-//  Zeigt alle aktiven Interfaces mit RX/TX-Raten in Echtzeit an.
+//  GUI for real-time network telemetry (TelemetryModule).
+//  Displays all active interfaces with live RX/TX rates.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 

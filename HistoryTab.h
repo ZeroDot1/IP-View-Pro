@@ -2,8 +2,8 @@
 //  IPView Pro v2.8.0 — HistoryTab.h
 //  C++26: default member init, structured bindings
 //  Records IP changes during the session (max. 50 entries).
-//  Persistenz via DatabaseModule (SQLite) – laden beim Start, speichern bei
-//  jedem neuen Eintrag.
+//  Persistence via DatabaseModule (SQLite) — load on startup, save on
+//  every new entry.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 

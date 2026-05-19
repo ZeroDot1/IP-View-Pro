@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — DashboardView.h
 //  C++26: constexpr std::array, [[nodiscard]], structured bindings
-//  Zentrale Übersicht der aktuellen IP-Daten (ausgelagert aus MainWindow).
+//  Central overview of current IP data (extracted from MainWindow).
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -23,9 +23,9 @@
 #include <string_view>
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  DashboardView — eigenständige Widget-Klasse für den IP-Overview-Tab.
-//  Enthält API-Auswahl, IP-Anzeige, Daten-Tabelle und Export-Buttons.
-//  Kommuniziert via Signale mit MainWindow / NetworkManager.
+//  DashboardView — standalone widget class for the IP overview tab.
+//  Contains API selection, IP display, data table and export buttons.
+//  Communicates via signals with MainWindow / NetworkManager.
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::UI {
 
@@ -58,7 +58,7 @@ signals:
     void exportJsonRequested();
 
 private:
-    // ── UI-Aufbau ───────────────────────────────────────────────────────────
+    // ── UI setup ───────────────────────────────────────────────────────────
     void setupUI() noexcept;
 
     // ── Widgets (Overview Tab) ──────────────────────────────────────────────

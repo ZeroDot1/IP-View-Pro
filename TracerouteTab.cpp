@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.0 — TracerouteTab.cpp
 //  C++26: [[nodiscard]], auto, QStringLiteral, const-correctness
-//  Traceroute/tracepath/tracert mit Cross-Plattform-Support.
+//  Traceroute/tracepath/tracert with cross-platform support.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "TracerouteTab.h"
@@ -67,7 +67,7 @@ void TracerouteTab::setTargetIp(const QString &ip) noexcept
 QString TracerouteTab::findTraceroute() const noexcept
 {
 #ifdef Q_OS_WIN
-    // tracert ist immer in %SYSTEMROOT%\System32
+    // tracert is always in %SYSTEMROOT%\System32
     QString const systemRoot = QProcessEnvironment::systemEnvironment()
                                    .value(QStringLiteral("SYSTEMROOT"), QStringLiteral("C:\\Windows"));
     QString const tracertPath = systemRoot + QStringLiteral("\\System32\\tracert.exe");

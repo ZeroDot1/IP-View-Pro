@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — ScannerTab.cpp
 //  C++26: structured bindings, constexpr, [[nodiscard]]
-//  GUI für den asynchronen Port-Scanner (ScannerModule).
-//  Bietet Quick-Scan (28 bekannte Ports) und benutzerdefinierten Bereich.
+//  GUI for the asynchronous port scanner (ScannerModule).
+//  Provides Quick Scan (28 known ports) and custom port range.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -153,7 +153,7 @@ void ScannerTab::setupUI() noexcept
     connect(scanButton,   &QPushButton::clicked, this, &ScannerTab::onStartScan);
     connect(cancelButton, &QPushButton::clicked, this, &ScannerTab::onCancelScan);
 
-    // Quick-Buttons setzen Ziel-IP auf localhost (Platzhalter)
+    // Quick buttons set target IP as placeholder
     connect(quick22,   &QPushButton::clicked, this, [this]() { targetEdit->setText(QStringLiteral("192.168.1.1")); });
     connect(quick80,   &QPushButton::clicked, this, [this]() { targetEdit->setText(QStringLiteral("192.168.1.1")); });
     connect(quick443,  &QPushButton::clicked, this, [this]() { targetEdit->setText(QStringLiteral("192.168.1.1")); });
@@ -262,7 +262,7 @@ void ScannerTab::onScanCancelled()
 
 void ScannerTab::onSelectionChanged()
 {
-    // Platzhalter für zukünftige Erweiterungen (z. B. Detail-Ansicht)
+    // Placeholder for future extensions (e.g., detail view)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

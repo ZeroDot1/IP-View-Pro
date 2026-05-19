@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — DatabaseModule.cpp
 //  C++26: structured bindings, constexpr, [[nodiscard]]
-//  SQLite-Persistenz: IP-Historie und Telemetrie-Daten.
-//  Thread-sicher via QMutex. Singleton-Pattern.
+//  SQLite persistence: IP history and telemetry data.
+//  Thread-safe via QMutex. Singleton pattern.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -50,7 +50,7 @@ bool DatabaseModule::init(const QString &dbPath) noexcept
     QString const path = dbPath.isEmpty() ? defaultDbPath() : dbPath;
     sDbPath = path;
 
-    // Sicherstellen, dass das Verzeichnis existiert
+    // Ensure the directory exists
     QDir dir = QFileInfo(path).absoluteDir();
     if (!dir.exists()) {
         dir.mkpath(QStringLiteral("."));
@@ -66,7 +66,7 @@ bool DatabaseModule::init(const QString &dbPath) noexcept
         return false;
     }
 
-    // WAL-Modus für bessere Performance bei parallelen Zugriffen
+    // WAL mode for better performance on concurrent access
     QSqlQuery pragma(sDb);
     pragma.exec(QStringLiteral("PRAGMA journal_mode=WAL"));
     pragma.exec(QStringLiteral("PRAGMA synchronous=NORMAL"));
@@ -128,7 +128,7 @@ bool DatabaseModule::createSchema() noexcept
         return false;
     }
 
-    // ── Index auf timestamp für schnelle Abfragen ─────────────────────────
+    // ── Index on timestamp for fast queries ─────────────────────────
     query.exec(QStringLiteral(
         "CREATE INDEX IF NOT EXISTS idx_history_timestamp "
         "ON ip_history(timestamp DESC)"
@@ -340,10 +340,10 @@ bool DatabaseModule::vacuum() noexcept
 
 QString DatabaseModule::defaultDbPath() noexcept
 {
-    // Nutzt GenericConfigLocation (~/.config/ laut XDG) + /IPView/,
-    // sodass die DB im selben Verzeichnis wie die QSettings-Config liegt:
+    // Uses GenericConfigLocation (~/.config/ per XDG) + /IPView/,
+    // so the DB resides in the same directory as the QSettings config:
     //   ~/.config/IPView/ipview_history.db
-    //   ~/.config/IPView/IPView.conf  (QSettings, INI-Format)
+    //   ~/.config/IPView/IPView.conf  (QSettings, INI format)
     QString const configDir = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);
     return configDir + QStringLiteral("/IPView/ipview_history.db");
 }

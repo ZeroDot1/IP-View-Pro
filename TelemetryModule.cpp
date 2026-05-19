@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — TelemetryModule.cpp
 //  C++26: std::expected, std::string_view, structured bindings
-//  Liest /proc/net/dev aus und berechnet Echtzeit-Übertragungsraten.
+//  Reads /proc/net/dev and calculates real-time transfer rates.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -59,9 +59,9 @@ QStringList TelemetryModule::availableInterfaces() const noexcept
     }
 
     QTextStream in(&file);
-    // Kopfzeilen überspringen (Inter-|   Receive-...)
-    in.readLine(); // erste Kopfzeile
-    in.readLine(); // zweite Kopfzeile
+    // Skip header lines (Inter-|   Receive-...)
+    in.readLine(); // first header line
+    in.readLine(); // second header line
 
     static QRegularExpression const re(QStringLiteral(R"(^\s*([^:]+):)"));
 
@@ -70,7 +70,7 @@ QStringList TelemetryModule::availableInterfaces() const noexcept
         auto const match = re.match(line);
         if (match.hasMatch()) {
             QString const ifName = match.captured(1).trimmed();
-            // Loopback und virtuelle Interfaces filtern
+            // Filter loopback and virtual interfaces
             if (isValidInterface(ifName.toStdString())) {
                 result.append(ifName);
             }
@@ -134,7 +134,7 @@ void TelemetryModule::onTick() noexcept
         std::string const name = iface.toStdString();
         Stats const current = parseProcNetDev(content, name);
 
-        // Vorherigen Eintrag suchen
+        // Find previous entry for speed calculation
         auto it = std::find_if(mInterfaces.begin(), mInterfaces.end(),
             [&](const InterfaceInfo &info) { return info.name == iface; });
 
@@ -142,7 +142,7 @@ void TelemetryModule::onTick() noexcept
         double txSpeed = 0.0;
 
         if (it != mInterfaces.end()) {
-            // Geschwindigkeit berechnen (Bytes pro Sekunde)
+            // Calculate speed (bytes per second)
             // Timer-Intervall in ms -> Faktor 1000/interval
             double const factor = 1000.0 / static_cast<double>(mTimer->interval());
 
@@ -155,7 +155,7 @@ void TelemetryModule::onTick() noexcept
             it->txSpeedBps = txSpeed;
             updated.append(*it);
         } else {
-            // Neuer Eintrag (keine Geschwindigkeit beim ersten Mal)
+            // New entry (no speed available on first run)
             InterfaceInfo info;
             info.name    = iface;
             info.current = current;
@@ -164,7 +164,7 @@ void TelemetryModule::onTick() noexcept
     }
 
     mInterfaces = updated;
-    mCacheValid = false; // Cache bei nächstem Aufruf neu laden
+    mCacheValid = false; // Reload cache on next call
     emit telemetryUpdated(mInterfaces);
 }
 
@@ -200,7 +200,7 @@ Stats TelemetryModule::parseProcNetDev(const QString &content,
 
         if (tokens.size() < 10) break;
 
-        // C++26: std::from_chars für performante String→Integer-Konvertierung
+        // C++26: std::from_chars for performant string-to-integer conversion
         auto parseU64 = [](const QString &s) -> std::uint64_t {
             std::uint64_t val = 0;
             QByteArray const ba = s.toUtf8();
@@ -226,13 +226,13 @@ Stats TelemetryModule::parseProcNetDev(const QString &content,
 
 bool TelemetryModule::isValidInterface(std::string_view name) const noexcept
 {
-    // Loopback, Docker/Bridge/VPN-Interfaces überspringen
+    // Skip loopback, Docker/bridge/VPN interfaces
     if (name == "lo" || name == "docker0") return false;
 
-    // Nur echte Ethernet/WLAN-Interfaces (eth*, wlan*, wlp*, enp*)
+    // Only real Ethernet/WLAN interfaces (eth*, wlan*, wlp*, enp*)
     if (name.size() < 2) return false;
 
-    // Virtuelle Interfaces (veth*, br-, tun*, tap*, vbox*)
+    // Virtual interfaces (veth*, br-, tun*, tap*, vbox*)
     if (name.starts_with("veth") || name.starts_with("br-") ||
         name.starts_with("tun") || name.starts_with("tap") ||
         name.starts_with("vbox") || name.starts_with("vmnet") ||

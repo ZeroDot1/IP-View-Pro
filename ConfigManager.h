@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — ConfigManager.h
 //  C++26: [[nodiscard]], noexcept, const-correctness
-//  Per-User-Konfiguration via QSettings (INI-Format).
+//  Per-user configuration via QSettings (INI format).
 //  Speichert in ~/.config/IPView/IPView.conf (XDG Base Directory).
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -18,11 +18,11 @@
 #include <cstdint>
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  ConfigManager — zentrale Konfigurationsverwaltung
+//  ConfigManager — central configuration management
 //
-//  Verwendet QSettings mit INI-Format → ~/.config/IPView/IPView.conf
-//  Jeder Benutzer hat seine eigene Konfigurationsdatei.
-//  Thread-safe durch QSettings-internes Locking.
+//  Uses QSettings with INI format → ~/.config/IPView/IPView.conf
+//  Each user has their own configuration file.
+//  Thread-safe via QSettings internal locking.
 //
 //  XDG Base Directory Specification:
 //    Linux:   ~/.config/IPView/IPView.conf
@@ -31,7 +31,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Config {
 
-// ── Konfigurationsschlüssel (als String-Konstanten) ─────────────────────────
+// ── Configuration keys (as string constants) ─────────────────────────
 namespace Key {
     inline constexpr auto WINDOW_GEOMETRY   = "Window/Geometry";
     inline constexpr auto WINDOW_STATE      = "Window/State";
@@ -51,7 +51,7 @@ namespace Key {
 class Manager
 {
 public:
-    // ── Singleton-Zugriff ──────────────────────────────────────────────────
+    // ── Singleton access ───────────────────────────────────────────────────
     [[nodiscard]] static Manager& instance() noexcept;
 
     // ── Lebenszyklus ───────────────────────────────────────────────────────
@@ -92,7 +92,7 @@ public:
     static void saveScanConcurrency(int count) noexcept;
     [[nodiscard]] static int loadScanConcurrency(int defaultCount = 100) noexcept;
 
-    // ── Convenience: Alle Einstellungen auf einmal speichern ──────────────
+    // ── Convenience: save all settings at once ────────────────────────────
     static void saveNetworkSettings(int apiIndex, bool ipv6, bool autoRefresh) noexcept;
 
 private:
@@ -102,7 +102,7 @@ private:
     Manager(const Manager&) = delete;
     Manager& operator=(const Manager&) = delete;
 
-    // ── Interner QSettings-Zugriff ─────────────────────────────────────────
+    // ── Internal QSettings access ──────────────────────────────────────────
     [[nodiscard]] static QSettings& settings() noexcept;
 
     // ── State ──────────────────────────────────────────────────────────────

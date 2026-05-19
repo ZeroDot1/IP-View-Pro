@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — TelemetryModule.h
 //  C++26: std::expected, std::string_view, [[nodiscard]], noexcept
-//  Echtzeit-Netzwerk-Telemetrie via /proc/net/dev im Hintergrund-Thread.
+//  Real-time network telemetry via /proc/net/dev in a background thread.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -20,23 +20,23 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Telemetry {
 
-// ── Netzwerk-Statistik-Struktur ─────────────────────────────────────────────
+// ── Network statistics structure ────────────────────────────────────────────
 struct Stats {
-    std::uint64_t rxBytes{0};   // Empfangene Bytes
-    std::uint64_t txBytes{0};   // Gesendete Bytes
-    std::uint64_t rxPackets{0}; // Empfangene Pakete
-    std::uint64_t txPackets{0}; // Gesendete Pakete
-    std::uint64_t rxErrors{0};  // Empfangsfehler
-    std::uint64_t txErrors{0};  // Sendefehler
+    std::uint64_t rxBytes{0};   // Received bytes
+    std::uint64_t txBytes{0};   // Transmitted bytes
+    std::uint64_t rxPackets{0}; // Received packets
+    std::uint64_t txPackets{0}; // Transmitted packets
+    std::uint64_t rxErrors{0};  // Receive errors
+    std::uint64_t txErrors{0};  // Transmit errors
 };
 
-// ── Schnittstellen-Liste ────────────────────────────────────────────────────
+// ── Interface list ──────────────────────────────────────────────────────────
 struct InterfaceInfo {
     QString name;
     Stats   current;
     Stats   previous;
-    double  rxSpeedBps{0.0};   // Empfangsgeschwindigkeit in Bytes/s
-    double  txSpeedBps{0.0};   // Sendegeschwindigkeit in Bytes/s
+    double  rxSpeedBps{0.0};   // Receive speed in bytes/s
+    double  txSpeedBps{0.0};   // Transmit speed in bytes/s
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -59,7 +59,7 @@ public:
     [[nodiscard]] QList<InterfaceInfo> getAllInterfaces() const noexcept;
 
 signals:
-    // Wird emittiert, sobald neue Messdaten vorliegen
+    // Emitted whenever new telemetry data is available
     void telemetryUpdated(const QList<IPView::Telemetry::InterfaceInfo> &interfaces);
     void errorOccurred(const QString &message);
 

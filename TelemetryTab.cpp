@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — TelemetryTab.cpp
 //  C++26: structured bindings, constexpr, [[nodiscard]]
-//  GUI für Echtzeit-Netzwerk-Telemetrie (TelemetryModule /proc/net/dev).
-//  Zeigt Interfaces mit RX/TX-Raten, Paketen und Fehlern.
+//  GUI for real-time network telemetry (TelemetryModule /proc/net/dev).
+//  Shows interfaces with RX/TX rates, packets, and errors.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -118,7 +118,7 @@ void TelemetryTab::onTelemetryUpdated(const QList<IPView::Telemetry::InterfaceIn
 {
     updateTable(interfaces);
 
-    // Gesamt-RX/TX berechnen
+    // Calculate total RX/TX
     double totalRx = 0.0, totalTx = 0.0;
     for (auto const &iface : interfaces) {
         totalRx += iface.rxSpeedBps;
@@ -156,14 +156,14 @@ void TelemetryTab::onToggleMonitoring()
 void TelemetryTab::onRefreshInterfaces()
 {
     if (mMonitoring) {
-        // Manuelles Refresh triggert die nächste Telemetry-Aktualisierung
+        // Manual refresh triggers the next telemetry update
         statusLabel->setText(QStringLiteral("Refreshing..."));
         // Das TelemetryModule aktualisiert automatisch via Timer
-        // Wir können den Timer kurz zurücksetzen für sofortiges Update
+        // We can reset the timer briefly for an immediate update
         mTelemetry->stopMonitoring();
         mTelemetry->startMonitoring(2000);
     } else {
-        // Einmalig die aktuellen Werte abrufen
+        // Fetch current values once
         QStringList const ifaces = mTelemetry->availableInterfaces();
         QList<IPView::Telemetry::InterfaceInfo> infos;
         for (QString const &name : ifaces) {
@@ -230,7 +230,7 @@ QString TelemetryTab::formatSpeed(double bytesPerSec) noexcept
 {
     if (bytesPerSec < 0.0) bytesPerSec = 0.0;
 
-    // Automatische Einheiten: B/s, KB/s, MB/s, GB/s
+    // Automatic units: B/s, KB/s, MB/s, GB/s
     static constexpr const char* units[] = {"B/s", "KB/s", "MB/s", "GB/s"};
     int unitIndex = 0;
     double value = bytesPerSec;

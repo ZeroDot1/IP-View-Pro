@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — ScannerTab.h
 //  C++26: [[nodiscard]], noexcept, const-correctness
-//  GUI für den asynchronen Port-Scanner (ScannerModule).
+//  GUI for the asynchronous port scanner (ScannerModule).
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 

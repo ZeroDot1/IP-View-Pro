@@ -2,8 +2,8 @@
 //  IPView Pro v2.8.0 — HistoryTab.cpp
 //  C++26: structured bindings, auto, QStringLiteral, const-correctness
 //  Displays IP changes with correct timestamps.
-//  Neu: Persistenz via DatabaseModule (SQLite) – Historie bleibt über Sitzungen
-//  hinweg erhalten und wird beim Start geladen.
+//  New: Persistence via DatabaseModule (SQLite) – History persists across sessions
+//  and is loaded on startup.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -32,11 +32,11 @@ HistoryTab::HistoryTab(QWidget *parent)
     auto *title = new QLabel(QStringLiteral("IP Change History"));
     title->setStyleSheet(QStringLiteral("color: %1; font-size: 14px; font-weight: bold;").arg(C_ACCENT));
 
-    // ── Info-Label: Einträge aus DB ────────────────────────────────────────
+    // ── Info label: entries from DB ────────────────────────────────────────
     auto *countLabel = new QLabel();
     countLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 11px;").arg(C_TEXT_DIM));
 
-    // ── Persistenz-Toggle ──────────────────────────────────────────────────
+    // ── Persistence toggle ─────────────────────────────────────────────────
     persistCheckBox = new QCheckBox(QStringLiteral("SQLite persist"));
     persistCheckBox->setChecked(true);
     persistCheckBox->setStyleSheet(QStringLiteral("color: %1;").arg(C_TEXT_SEC));
@@ -65,7 +65,7 @@ HistoryTab::HistoryTab(QWidget *parent)
 
     connect(clearButton, &QPushButton::clicked, this, &HistoryTab::onClearHistory);
 
-    // ── Beim Start: Historie aus SQLite laden ───────────────────────────
+    // ── Load history from SQLite on startup ───────────────────────────
     loadPersistedHistory();
 }
 
@@ -77,7 +77,7 @@ void HistoryTab::loadPersistedHistory() noexcept
     auto const entries = IPView::Storage::DatabaseModule::getHistory(50);
     if (entries.empty()) return;
 
-    // Gespeicherte History in historyWithTime übernehmen
+    // Adopt saved history into historyWithTime
     QString text;
     int idx = 1;
 
@@ -132,7 +132,7 @@ void HistoryTab::onClearHistory()
     historyWithTime.clear();
     historyArea->clear();
 
-    // Auch SQLite leeren, falls Persistenz aktiv
+    // Also clear SQLite if persistence is active
     if (IPView::Storage::DatabaseModule::isInitialized()) {
         IPView::Storage::DatabaseModule::clearHistory();
         IPView::Storage::DatabaseModule::vacuum();
@@ -147,7 +147,7 @@ void HistoryTab::updateHistory(const QList<QJsonObject> &history)
         QDateTime const now = QDateTime::currentDateTime();
         historyWithTime.prepend(qMakePair(now, history.first()));
 
-        // In SQLite speichern (falls aktiviert)
+        // Save to SQLite (if enabled)
         if (persistCheckBox->isChecked() && IPView::Storage::DatabaseModule::isInitialized()) {
             IPView::Storage::DatabaseModule::storeResult(history.first());
         }

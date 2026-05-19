@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.7.0 — AboutTab.h
-//  Zeigt Build-Informationen: Compiler, System, Version, Datum.
-//  Keine Lizenz — Public Domain.
+//  Shows build information: compiler, system, version, date.
+//  No license — Public Domain.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #ifndef ABOUTTAB_H

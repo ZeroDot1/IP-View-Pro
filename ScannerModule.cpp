@@ -94,7 +94,7 @@ void ScannerModule::cancelScan() noexcept
     mCancelled = true;
     mBatchTimer->stop();
 
-    // Alle aktiven Sockets schließen
+    // Close all active sockets
     for (auto &ctx : mSocketContexts) {
         if (ctx && ctx->socket && ctx->socket->state() != QAbstractSocket::UnconnectedState) {
             ctx->socket->abort();
@@ -118,14 +118,14 @@ bool ScannerModule::isScanning() const noexcept
 
 void ScannerModule::onSocketConnected()
 {
-    // Socket identifizieren, der connected wurde
+    // Identify which socket connected
     auto *socket = qobject_cast<QTcpSocket*>(sender());
     if (!socket) return;
 
     for (auto &ctx : mSocketContexts) {
         if (ctx && ctx->socket.get() == socket && !ctx->emitted) {
             ctx->emitted = true;
-            ctx->timer.invalidate(); // Timeout nicht mehr nötig
+            ctx->timer.invalidate(); // Timeout no longer needed
 
             int const ms = static_cast<int>(ctx->timer.elapsed());
 
@@ -139,7 +139,7 @@ void ScannerModule::onSocketConnected()
             mOpenPorts.append(result);
             emit portFound(result);
 
-            // Socket schließen (Port-Scan erfordert keine Datenübertragung)
+            // Close socket (port scan does not require data transfer)
             socket->disconnectFromHost();
             break;
         }
@@ -156,7 +156,7 @@ void ScannerModule::onSocketError(QAbstractSocket::SocketError /*error*/)
         if (ctx && ctx->socket.get() == socket && !ctx->emitted) {
             ctx->emitted = true;
 
-            // Geschlossenen Port zur Ergebnisliste hinzufügen (nur wenn nicht abgebrochen)
+            // Add closed port to results list (only if not cancelled)
             if (!mCancelled) {
                 ScanResult result;
                 result.port = ctx->port;
@@ -201,7 +201,7 @@ void ScannerModule::onBatchComplete()
     mSocketContexts.clear();
     mActiveSockets = 0;
 
-    // Nächsten Batch starten oder fertig
+    // Start next batch or finish
     if (mPendingPorts.isEmpty()) {
         finalizeResults();
     } else {
@@ -218,7 +218,7 @@ void ScannerModule::startNextBatch() noexcept
     int const batchSize = std::min(static_cast<int>(MAX_CONCURRENT_SCANS),
                                    static_cast<int>(mPendingPorts.size()));
 
-    // Timeout-Timer für den gesamten Batch
+    // Timeout timer for the entire batch
     mBatchTimer->start(CONNECTION_TIMEOUT_MS + SCAN_DELAY_MS * batchSize);
 
     for (int i = 0; i < batchSize; ++i) {
@@ -263,7 +263,7 @@ void ScannerModule::finalizeResults() noexcept
 
 QString ScannerModule::getServiceName(int port) noexcept
 {
-    // Bekannte Port-Services (häufigste)
+    // Known port services (most common)
     struct PortService { int port; const char* name; };
     static constexpr std::array services = {
         PortService{21,   "ftp"},
