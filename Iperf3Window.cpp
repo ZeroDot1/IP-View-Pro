@@ -44,7 +44,7 @@ Iperf3Window::~Iperf3Window()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Embedded-Mode (Item 8)
+//  Embedded mode (Item 8)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 void Iperf3Window::setEmbeddedMode(bool embedded) noexcept

@@ -2,7 +2,7 @@
 //  IPView Pro v2.9.0 — AuditorModule.h
 //  C++26: std::expected, [[nodiscard]], noexcept, std::string_view
 //  TLS/SSL Certificate Auditor — validates certificates for given hosts.
-//  Item 48: TLS-Auditor — prüft Zertifikatsgültigkeit, Chain, Ablaufdatum.
+//  Item 48: TLS Auditor — validates certificate validity, chain, expiry.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -24,25 +24,25 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Auditor {
 
-// ── Ergebnis einer einzelnen Zertifikatsprüfung ──────────────────────────
+// ── Result of a single certificate check ────────────────────────────────
 struct CertificateInfo {
     QString subject;               // CN / Subject
     QString issuer;                // Aussteller
-    QDateTime validFrom;           // Gültig ab
-    QDateTime validTo;             // Gültig bis
-    bool     isSelfSigned{false};  // Selbstsigniert?
-    bool     isExpired{false};     // Abgelaufen?
+    QDateTime validFrom;           // Valid from
+    QDateTime validTo;             // Valid to
+    bool     isSelfSigned{false};  // Self-signed?
+    bool     isExpired{false};     // Expired?
     bool     isValid{false};       // Gesamt-Validierung bestanden?
     QStringList subjectAltNames;   // SANs
-    QString errorMessage;          // Fehlerdetails falls ungültig
+    QString errorMessage;          // Error details if invalid
 };
 
-// ── Ergebnis pro geprüftem Host ─────────────────────────────────────────
+// ── Result per audited host ────────────────────────────────────────────
 struct AuditResult {
-    QString                host;           // Geprüfter Hostname
+    QString                host;           // Audited hostname
     int                    port{443};      // Port
-    std::vector<CertificateInfo> chain;    // Zertifikatskette (End-→Root)
-    int                    daysRemaining{0}; // Tage bis Ablauf
+    std::vector<CertificateInfo> chain;    // Certificate chain (leaf → root)
+    int                    daysRemaining{0}; // Days until expiry
     bool                   isSecure{false}; // Gesamtbewertung
     qint64                 latencyMs{0};    // Verbindungslatenz
 };
@@ -57,15 +57,15 @@ public:
     ~AuditorModule() override = default;
 
     // ── Public API ──────────────────────────────────────────────────────────
-    /// Einzelnen Host prüfen (blockierend, mit Timeout).
+    /// Audit a single host (blocking, with timeout).
     [[nodiscard]] std::expected<AuditResult, QString>
     auditHost(const QString &host, int port = 443, int timeoutMs = 10000) noexcept;
 
-    /// Mehrere Hosts nacheinander prüfen.
+    /// Audit multiple hosts sequentially.
     [[nodiscard]] std::vector<AuditResult>
     auditHosts(const QStringList &hosts, int port = 443, int timeoutMs = 10000) noexcept;
 
-    /// Batch aus einer Textliste (ein Host pro Zeile, optional "host:port").
+    /// Batch audit from a text list (one host per line, optionally "host:port").
     [[nodiscard]] std::vector<AuditResult>
     auditHostList(const QString &rawList, int defaultPort = 443, int timeoutMs = 10000) noexcept;
 

@@ -55,7 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(dashboardView, &IPView::UI::DashboardView::exportJsonRequested,
             this, &MainWindow::onExportJsonRequested);
 
-    // ── Event-basierte Tab-Verteilung (Item 2) ──────────────────────────
+    // ── Event-based tab distribution (Item 2) ──────────────────────────
     //  Statt direkter Methodenaufrufe werden Signale emittiert,
     //  to which tabs can attach themselves independently.
     connect(this, &MainWindow::dataRefreshed, this, [this](const QJsonObject &d) {
@@ -235,7 +235,7 @@ void MainWindow::setupUI() noexcept
     tabWidget->tabBar()->setExpanding(true);
     tabWidget->setIconSize(QSize(14, 14));
 
-    // ── Tabs in logischer Reihenfolge ──────────────────────────────────────
+    // ── Tabs in logical order ──────────────────────────────────────
     //  1. Overview    – Entry point & status
     //  2. Whois       – IP/host information
     //  3. Scanner     – Port scan
@@ -305,7 +305,7 @@ void MainWindow::onDataReceived(const QJsonObject &jsonData)
     // Update history only on IP change
     updateHistory(jsonData);
 
-    // Event-basierte Verteilung an alle Tabs
+    // Event-based distribution to all tabs
     emit dataRefreshed(jsonData);
 }
 
@@ -477,7 +477,7 @@ void MainWindow::setupPacketModule() noexcept
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Item 49: Alert Engine — verbindet Telemetry + Audit mit Alerts
+//  Item 49: Alert Engine — connects Telemetry + Audit with alerts
 // ═══════════════════════════════════════════════════════════════════════════════
 
 void MainWindow::setupAlertEngine() noexcept

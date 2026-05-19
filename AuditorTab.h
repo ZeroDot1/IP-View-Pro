@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.9.0 — AuditorTab.h
 //  C++26: noexcept, [[nodiscard]], default member init
-//  TLS-Auditor Tab — GUI für Zertifikatsprüfungen (Item 48).
+//  TLS-Auditor Tab — GUI for certificate auditing (Item 48).
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ private:
     void addResultToTable(const IPView::Auditor::AuditResult &result);
     void showCertificateDetails(const IPView::Auditor::AuditResult &result);
 
-    // ── UI-Elemente ───────────────────────────────────────────────────────
+    // ── UI elements ────────────────────────────────────────────────────────
     QLineEdit       *hostInput{nullptr};
     QPushButton     *auditButton{nullptr};
     QTableWidget    *resultTable{nullptr};

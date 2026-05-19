@@ -455,7 +455,7 @@ void SpeedtestTab::onMultiTestClicked()
         return;
     }
 
-    // ── Top 3 nächstgelegene Server auswählen ──────────────────────────
+    // ── Select top 3 closest servers ──────────────────────────
     auto sorted = serverCache;
     serverSelector->sortServers(sorted, IPView::Speedtest::ServerSelectionModule::SortBy::Distance);
     int const count = std::min(3, static_cast<int>(sorted.size()));
@@ -479,7 +479,7 @@ void SpeedtestTab::onMultiTestClicked()
     progressGauge->setValue(0);
     progressGauge->setFormat(QStringLiteral("0 / %1").arg(count));
 
-    // ── Timer für Fortschrittsanzeige ──────────────────────────────────
+    // ── Progress display timer ──────────────────────────────────
     if (!mMultiTimer) {
         mMultiTimer = new QTimer(this);
         connect(mMultiTimer, &QTimer::timeout, this, &SpeedtestTab::onMultiProgressTick);
@@ -558,7 +558,7 @@ void SpeedtestTab::aggregateMultiResults()
         return;
     }
 
-    // Beste Ergebnisse aus allen parallelen Tests aggregieren
+    // Aggregate best results from all parallel tests
     double bestPing    = 9999.0;
     double bestDl      = 0.0;
     double bestUl      = 0.0;

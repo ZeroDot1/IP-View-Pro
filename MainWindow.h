@@ -52,7 +52,7 @@ protected:
     void closeEvent(QCloseEvent *event) override;
 
 signals:
-    // ── Event-basierte Tab-Synchronisation (Item 2) ─────────────────────
+    // ── Event-based tab synchronization (Item 2) ──────────────────────────
     void dataRefreshed(const QJsonObject &data);
     void historyUpdated(const QList<QJsonObject> &history);
 

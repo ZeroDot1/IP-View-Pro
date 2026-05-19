@@ -91,7 +91,7 @@ private:
     mutable bool          mCacheValid{false};
     bool                  mMonitoring{false};
 
-    // ── Dynamische Intervall-Grenzen (Item 41) ────────────────────────────
+    // ── Dynamic interval bounds (Item 41) ────────────────────────────
     int  mBaseIntervalMs{2000};
     int  mMinIntervalMs{500};
     int  mMaxIntervalMs{10000};

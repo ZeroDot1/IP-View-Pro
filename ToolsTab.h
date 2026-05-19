@@ -17,7 +17,7 @@
 #include <QTabWidget>
 #include <QProcess>
 
-class Iperf3Window; // Forward-Deklaration (Item 8)
+class Iperf3Window; // // Forward declaration (Item 8)
 
 class ToolsTab : public QWidget
 {
@@ -34,7 +34,7 @@ private slots:
     void onIperfClicked();
 
 private:
-    // ── UI-Elemente ───────────────────────────────────────────────────────
+    // ── UI elements ───────────────────────────────────────────────────────
     QLineEdit   *targetEdit{nullptr};
     QTextEdit   *outputArea{nullptr};
     QPushButton *pingButton{nullptr};
@@ -44,7 +44,7 @@ private:
     // ── Prozess ───────────────────────────────────────────────────────────
     QProcess *pingProcess{nullptr};
 
-    // ── Eingebettetes Iperf3Window (Item 8) ──────────────────────────────
+    // ── Embedded Iperf3Window (Item 8) ──────────────────────────────
     QTabWidget    *mToolsTabWidget{nullptr};
     Iperf3Window  *mIperfWindow{nullptr};
     int            mIperfTabIndex{-1};

@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.9.0 — AuditorTab.cpp
 //  C++26: QStringLiteral, auto, structured bindings
-//  TLS-Auditor Tab — GUI für Zertifikatsprüfungen (Item 48).
+//  TLS-Auditor Tab — GUI for certificate auditing (Item 48).
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -27,12 +27,12 @@ void AuditorTab::setupUI()
 {
     auto *mainLayout = new QVBoxLayout(this);
 
-    // ── Top: Host-Eingabe ─────────────────────────────────────────────────
+    // ── Top: Host input ─────────────────────────────────────────────────
     auto *inputRow = new QHBoxLayout();
 
     auto *hostLabel = new QLabel(QStringLiteral("Host:"));
     hostInput = new QLineEdit();
-    hostInput->setPlaceholderText(QStringLiteral("example.com oder mehrere Zeilen (Batch)"));
+    hostInput->setPlaceholderText(QStringLiteral("example.com or multiple lines (batch)"));
     hostInput->setStyleSheet(inputStyle());
 
     auditButton = new QPushButton(QStringLiteral("🔍 Audit"));
@@ -60,15 +60,15 @@ void AuditorTab::setupUI()
     // ── Splitter: Tabelle oben, Details unten ────────────────────────────
     splitter = new QSplitter(Qt::Vertical);
 
-    // ── Ergebnistabelle ───────────────────────────────────────────────────
+    // ── Result table ───────────────────────────────────────────────────
     resultTable = new QTableWidget(0, 6);
     resultTable->setHorizontalHeaderLabels({
         QStringLiteral("Host"),
         QStringLiteral("Port"),
         QStringLiteral("Status"),
-        QStringLiteral("Ausgestellt für"),
+        QStringLiteral("Issued To"),
         QStringLiteral("Aussteller"),
-        QStringLiteral("Tage bis Ablauf")
+        QStringLiteral("Days Until Expiry")
     });
     resultTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     resultTable->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -90,7 +90,7 @@ void AuditorTab::setupUI()
 
     splitter->addWidget(resultTable);
 
-    // ── Detailansicht ─────────────────────────────────────────────────────
+    // ── Detail view ─────────────────────────────────────────────────────
     detailView = new QTextEdit();
     detailView->setReadOnly(true);
     detailView->setStyleSheet(monoStyle());
@@ -119,11 +119,11 @@ void AuditorTab::onAuditClicked()
     resultTable->setRowCount(0);
     detailView->clear();
 
-    // Prüfen, ob es mehrere Zeilen sind (Batch-Modus)
+    // Check if multiple lines (batch mode)
     QStringList const lines = input.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
 
     if (lines.size() > 1) {
-        // ── Batch-Modus ──────────────────────────────────────────────────
+        // ── Batch mode ──────────────────────────────────────────────────
         progressBar->setVisible(true);
         progressBar->setValue(0);
 
@@ -134,7 +134,7 @@ void AuditorTab::onAuditClicked()
 
         progressBar->setValue(progressBar->maximum());
     } else {
-        // ── Einzel-Host ──────────────────────────────────────────────────
+        // ── Single host ──────────────────────────────────────────────────
         progressBar->setVisible(false);
 
         int port = 443;
@@ -166,7 +166,7 @@ void AuditorTab::onHostSelectionChanged()
     int const row = resultTable->currentRow();
     if (row < 0) return;
 
-    // Aus der Tabelle die Daten rekonstruieren für Detailansicht
+    // Reconstruct data from table for detail view
     QString const host = resultTable->item(row, 0)->text();
     detailView->setHtml(QStringLiteral(
         "<h3>%1</h3><p>Details: see certificate chain in table.</p>"
@@ -194,7 +194,7 @@ void AuditorTab::addResultToTable(const IPView::Auditor::AuditResult &result)
 
     QString const statusText = result.isSecure
         ? QStringLiteral("✅ Secure")
-        : QStringLiteral("⚠️  Unsicher");
+        : QStringLiteral("Insecure");
     auto *statusItem = new QTableWidgetItem(statusText);
     statusItem->setForeground(result.isSecure ? QColor(0x4c, 0xaf, 0x50)
                                               : QColor(0xf4, 0x43, 0x36));
@@ -234,7 +234,7 @@ void AuditorTab::showCertificateDetails(const IPView::Auditor::AuditResult &resu
     html += QStringLiteral("<h3>TLS Audit: %1:%2</h3>").arg(result.host).arg(result.port);
     html += QStringLiteral("<p><b>Latency:</b> %1 ms</p>").arg(result.latencyMs);
     html += QStringLiteral("<p><b>Overall:</b> %1</p>")
-                .arg(result.isSecure ? QStringLiteral("✅ Secure") : QStringLiteral("⚠️  Unsicher"));
+                .arg(result.isSecure ? QStringLiteral("✅ Secure") : QStringLiteral("Insecure"));
 
     if (result.daysRemaining > 0) {
         html += QStringLiteral("<p><b>Days until expiry:</b> %1</p>").arg(result.daysRemaining);

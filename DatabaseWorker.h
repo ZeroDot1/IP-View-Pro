@@ -39,8 +39,8 @@ enum class WriteOp {
 // ── A job in the write queue ─────────────────────────────────────────
 struct WriteJob {
     WriteOp op;
-    QJsonObject    data;        // für storeResult
-    QString        iface;       // für Telemetry
+    QJsonObject    data;        // For storeResult
+    QString        iface;       // For telemetry
     quint64        rxBytes{0};
     quint64        txBytes{0};
     double         rxSpeed{0.0};

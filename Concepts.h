@@ -18,7 +18,7 @@ namespace IPView::Concepts {
 
 // ── NetworkTarget (Item 28) ──────────────────────────────────────────────
 //  Accepts std::string_view, const char*, QString (via conversion)
-//  und alle Typen, die sich in string_view konvertieren lassen.
+//  and any type convertible to std::string_view.
 template <typename T>
 concept NetworkTarget = std::convertible_to<T, std::string_view>
                      || requires (T t) {
@@ -31,7 +31,7 @@ template <typename T>
 concept NumericPort = std::integral<T> && (sizeof(T) <= 2);
 
 // ── BufferData ──────────────────────────────────────────────────────────
-//  Akzeptiert Typen, die kontinuierlichen Byte-Zugriff erlauben
+//  Accepts types that provide contiguous byte access
 template <typename T>
 concept BufferData = requires (T t) {
     { t.data() } -> std::convertible_to<const void*>;

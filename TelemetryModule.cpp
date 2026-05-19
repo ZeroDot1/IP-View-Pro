@@ -148,7 +148,7 @@ void TelemetryModule::onTick() noexcept
 
         if (it != mInterfaces.end()) {
             // Calculate speed (bytes per second)
-            // Timer-Intervall in ms -> Faktor 1000/interval
+            // Timer interval in ms -> factor 1000/interval
             double const factor = 1000.0 / static_cast<double>(mTimer->interval());
 
             rxSpeed = static_cast<double>(current.rxBytes - it->current.rxBytes) * factor;
@@ -185,10 +185,10 @@ void TelemetryModule::onTick() noexcept
 
 void TelemetryModule::adjustIntervalDynamically(double totalActivity) noexcept
 {
-    // totalActivity in bytes/sec — skaliere Intervall invers dazu
+    // Scale interval inversely with totalActivity (bytes/sec):
     //   activity <   50 KB/s  →  max interval (10 s)
     //   activity >   10 MB/s  →  min interval (500 ms)
-    //   dazwischen → linear interpoliert
+    //   in between → linear interpolation
     double constexpr lowWater  =     50.0 * 1024.0;  //   50 KB/s
     double constexpr highWater =     10.0 * 1024.0 * 1024.0;  // 10 MB/s
     int const targetMs = static_cast<int>(

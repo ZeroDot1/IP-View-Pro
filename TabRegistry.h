@@ -1,9 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.9.3 — TabRegistry.h
 //  C++26: std::unordered_map, std::string_view, constexpr
-//  Zentrale Tab-Registrierung — Tabs werden als Key-Value-Paare verwaltet.
-//  Entkoppelt MainWindow von konkreten Tab-Klassen (Registry Pattern).
-//  Guarantees insertion order for populateTabWidget() (Item: Tab-Reihenfolge).
+//  Central tab registry — tabs managed as key-value pairs.
+//  Decouples MainWindow from concrete tab classes (Registry Pattern).
+//  Guarantees insertion order for populateTabWidget() (Item: Tab order).
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 

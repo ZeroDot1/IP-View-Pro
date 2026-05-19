@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.9.0 — AuditorModule.cpp
 //  C++26: std::expected, std::from_chars, noexcept, [[nodiscard]]
-//  TLS/SSL Certificate Auditor — QSslSocket-basierte Zertifikatsprüfung.
-//  Item 48: TLS-Auditor — prüft Gültigkeit, Kette, Ablauf und SANs.
+//  TLS/SSL Certificate Auditor — QSslSocket-based certificate auditor.
+//  Item 48: TLS Auditor — validates validity, chain, expiry, and SANs.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -145,7 +145,7 @@ AuditorModule::performAudit(const QString &host, int port, int timeoutMs) noexce
 
     result.latencyMs = timer.elapsed();
 
-    // ── Zertifikatskette abrufen ───────────────────────────────────────────
+    // ── Retrieve certificate chain ──────────────────────────────────────────
     QList<QSslCertificate> const certChain = socket->peerCertificateChain();
     QSslCertificate const peerCert        = socket->peerCertificate();
 
@@ -155,17 +155,17 @@ AuditorModule::performAudit(const QString &host, int port, int timeoutMs) noexce
         return result;
     }
 
-    // Jedes Zertifikat in der Kette validieren
+    // Validate each certificate in the chain
     for (QSslCertificate const &cert : certChain) {
         result.chain.push_back(validateCertificate(cert));
     }
 
-    // Falls leere Kette, zumindest das Peer-Zertifikat einfügen
+    // If chain is empty, at least insert the peer certificate
     if (result.chain.empty()) {
         result.chain.push_back(validateCertificate(peerCert));
     }
 
-    // ── Ablauf-Tage berechnen ──────────────────────────────────────────────
+    // ── Calculate days until expiry ─────────────────────────────────────────
     QDateTime const expiryDate = peerCert.expiryDate();
     if (expiryDate.isValid()) {
         result.daysRemaining = static_cast<int>(QDateTime::currentDateTimeUtc().secsTo(expiryDate) / 86400);
@@ -176,9 +176,9 @@ AuditorModule::performAudit(const QString &host, int port, int timeoutMs) noexce
         return ci.isValid;
     });
 
-    // Wenn das Zertifikat selbstsigniert ist, aber sonst gültig → tolerant
+    // If the certificate is self-signed but otherwise valid → lenient
     if (result.chain.size() == 1 && result.chain.front().isSelfSigned && result.chain.front().isValid) {
-        result.isSecure = false; // Selbstsigniert = nicht vertrauenswürdig
+        result.isSecure = false; // Self-signed = not trusted
     }
 
     socket->disconnectFromHost();
@@ -201,10 +201,10 @@ AuditorModule::validateCertificate(const QSslCertificate &cert) noexcept
     ci.validFrom = cert.effectiveDate();
     ci.validTo   = cert.expiryDate();
 
-    // ── Selbstsigniert? ───────────────────────────────────────────────────
+    // ── Self-signed? ────────────────────────────────────────────────────────
     ci.isSelfSigned = (ci.subject == ci.issuer);
 
-    // ── Abgelaufen? ───────────────────────────────────────────────────────
+    // ── Expired? ──────────────────────────────────────────────────────────
     QDateTime const now = QDateTime::currentDateTimeUtc();
     ci.isExpired = (ci.validTo.isValid() && ci.validTo < now);
 
