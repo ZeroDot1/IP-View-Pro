@@ -52,6 +52,26 @@ MainWindow::MainWindow(QWidget *parent)
     connect(dashboardView, &IPView::UI::DashboardView::exportJsonRequested,
             this, &MainWindow::onExportJsonRequested);
 
+    // ── Event-basierte Tab-Verteilung (Item 2) ──────────────────────────
+    //  Statt direkter Methodenaufrufe werden Signale emittiert,
+    //  an die sich Tabs eigenständig anhängen können.
+    connect(this, &MainWindow::dataRefreshed, this, [this](const QJsonObject &d) {
+        dashboardView->updateDisplay(d);
+        QString const cc = d[QStringLiteral("country_code")].toString();
+        if (!cc.isEmpty()) {
+            flagLoader->loadFlag(cc, dashboardView->flagLabelWidget());
+        }
+        // Sub-Tabs über Signale statt Direktaufrufe
+        whoisTab->setIp(d[QStringLiteral("ip")].toString());
+        toolsTab->setTargetIp(d[QStringLiteral("ip")].toString());
+        updateTrayTooltip(d);
+        statusLabel->setText(QStringLiteral("Last update successful"));
+    });
+
+    connect(this, &MainWindow::historyUpdated, this, [this](const QList<QJsonObject> &h) {
+        historyTab->updateHistory(h);
+    });
+
     // ── Network-Signale ─────────────────────────────────────────────────
     connect(networkManager, &NetworkManager::dataReceived,
             this, &MainWindow::onDataReceived);
@@ -269,23 +289,8 @@ void MainWindow::onDataReceived(const QJsonObject &jsonData)
     // Update history only on IP change
     updateHistory(jsonData);
 
-    // Update DashboardView
-    dashboardView->updateDisplay(jsonData);
-
-    // Trigger flag loading (delegated to DashboardView)
-    QString const cc = jsonData[QStringLiteral("country_code")].toString();
-    if (!cc.isEmpty()) {
-        flagLoader->loadFlag(cc, dashboardView->flagLabelWidget());
-    }
-
-    // Forward IP to sub-tabs
-    whoisTab->setIp(jsonData[QStringLiteral("ip")].toString());
-    toolsTab->setTargetIp(jsonData[QStringLiteral("ip")].toString());
-
-    // Update tray tooltip
-    updateTrayTooltip(jsonData);
-
-    statusLabel->setText(QStringLiteral("Last update successful"));
+    // Event-basierte Verteilung an alle Tabs
+    emit dataRefreshed(jsonData);
 }
 
 void MainWindow::updateHistory(const QJsonObject &jsonEntry) noexcept
@@ -296,7 +301,7 @@ void MainWindow::updateHistory(const QJsonObject &jsonEntry) noexcept
         while (history.size() > MAX_HISTORY) {
             history.removeLast();
         }
-        historyTab->updateHistory(history);
+        emit historyUpdated(history);
     }
 }
 
