@@ -25,6 +25,7 @@
 #include <QGroupBox>
 
 #include <vector>
+#include <QList>
 
 #include "ServerSelectionModule.h"
 
@@ -39,10 +40,14 @@ public:
 private slots:
     void onStartClicked();
     void onStopClicked();
+    void onMultiTestClicked();
     void onSpeedtestFinished(int exitCode, QProcess::ExitStatus exitStatus);
     void onReadyRead();
     void onBrowseServers();
     void onProgressTick();
+    void onMultiProgressTick();
+    void onMultiProcessFinished(int index, int exitCode);
+    void aggregateMultiResults();
 
 private:
     // ── UI setup ───────────────────────────────────────────────────────────
@@ -97,6 +102,15 @@ private:
     QByteArray jsonBuffer;
     bool      isJsonMode{false};
     bool      isServerListMode{false};
+
+    // ── Parallel / Multi-Server Speedtest (Item 38) ───────────────────────
+    QList<QProcess*>   mMultiProcesses;
+    QList<QJsonObject> mMultiResults;
+    QTimer            *mMultiTimer{nullptr};
+    QPushButton       *mMultiButton{nullptr};
+    int                mMultiCompleted{0};
+    int                mMultiTotal{0};
+    bool               mMultiMode{false};
 
     // ── Server selection module ────────────────────────────────────────────
     IPView::Speedtest::ServerSelectionModule *serverSelector{nullptr};

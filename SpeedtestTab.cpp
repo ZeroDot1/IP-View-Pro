@@ -272,6 +272,21 @@ void SpeedtestTab::setupUI()
     btnRow->addWidget(startButton);
     btnRow->addSpacing(24);
     btnRow->addWidget(stopButton);
+    btnRow->addSpacing(24);
+
+    // ── Multi-Server Speedtest (Item 38) ─────────────────────────────────
+    mMultiButton = new QPushButton(QStringLiteral("MULTI"));
+    mMultiButton->setFixedSize(110, 44);
+    mMultiButton->setCursor(Qt::PointingHandCursor);
+    mMultiButton->setToolTip(QStringLiteral("Run parallel speedtests on multiple servers"));
+    mMultiButton->setStyleSheet(QString(
+        "QPushButton { background: %1; color: white; font-weight: bold; "
+        "border: 2px solid %1; border-radius: 8px; font-size: 15px; }"
+        "QPushButton:hover { background: %2; }"
+        "QPushButton:disabled { color: %3; border-color: %4; background: transparent; }"
+    ).arg(C_SUCCESS, C_SUCCESS_HVR, C_TEXT_MUTED, C_BORDER));
+    btnRow->addWidget(mMultiButton);
+
     btnRow->addStretch();
     root->addLayout(btnRow);
 
@@ -303,6 +318,7 @@ void SpeedtestTab::setupUI()
     connect(startButton,         &QPushButton::clicked, this, &SpeedtestTab::onStartClicked);
     connect(stopButton,          &QPushButton::clicked, this, &SpeedtestTab::onStopClicked);
     connect(browseServersButton, &QPushButton::clicked, this, &SpeedtestTab::onBrowseServers);
+    connect(mMultiButton,        &QPushButton::clicked, this, &SpeedtestTab::onMultiTestClicked);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -409,6 +425,187 @@ void SpeedtestTab::onStartClicked()
         setControlsEnabled(true);
         progressTimer->stop();
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Multi-Server Parallel Speedtest (Item 38)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void SpeedtestTab::onMultiTestClicked()
+{
+    QString const program = findSpeedtest();
+    if (program.isEmpty()) {
+        logArea->append(QStringLiteral("speedtest-cli not found! Install: sudo pacman -S speedtest-cli"));
+        return;
+    }
+
+    // ── Server-Liste laden ──────────────────────────────────────────────
+    if (serverCache.empty()) {
+        logArea->append(QStringLiteral("Fetching server list\u2026"));
+        auto servers = serverSelector->getAvailableServers(8000);
+        if (!servers.has_value()) {
+            logArea->append(QStringLiteral("Failed to fetch servers: ") + servers.error());
+            return;
+        }
+        serverCache = std::move(*servers);
+    }
+
+    if (serverCache.empty()) {
+        logArea->append(QStringLiteral("No servers available"));
+        return;
+    }
+
+    // ── Top 3 nächstgelegene Server auswählen ──────────────────────────
+    auto sorted = serverCache;
+    serverSelector->sortServers(sorted, IPView::Speedtest::ServerSelectionModule::SortBy::Distance);
+    int const count = std::min(3, static_cast<int>(sorted.size()));
+
+    resetDisplay();
+    logArea->clear();
+    logArea->append(QStringLiteral("\u2500\u2500 Multi-Server Speedtest (%1 servers) \u2500\u2500").arg(count));
+
+    // ── Alle vorherigen Prozesse bereinigen ────────────────────────────
+    for (auto *p : mMultiProcesses) {
+        if (p) { p->kill(); p->deleteLater(); }
+    }
+    mMultiProcesses.clear();
+    mMultiResults.clear();
+    mMultiCompleted = 0;
+    mMultiTotal = count;
+    mMultiMode = true;
+
+    setControlsEnabled(false);
+    statusLabel->setText(QStringLiteral("Running %1 parallel tests\u2026").arg(count));
+    progressGauge->setValue(0);
+    progressGauge->setFormat(QStringLiteral("0 / %1").arg(count));
+
+    // ── Timer für Fortschrittsanzeige ──────────────────────────────────
+    if (!mMultiTimer) {
+        mMultiTimer = new QTimer(this);
+        connect(mMultiTimer, &QTimer::timeout, this, &SpeedtestTab::onMultiProgressTick);
+    }
+    mMultiTimer->start(500);
+
+    // ── Prozesse parallel starten ──────────────────────────────────────
+    for (int i = 0; i < count; ++i) {
+        auto const &srv = sorted[static_cast<std::size_t>(i)];
+
+        QStringList args = {QStringLiteral("--json"), QStringLiteral("--server"), QString::number(srv.id)};
+        if (secureCheck->isChecked())     args << QStringLiteral("--secure");
+        if (singleConnCheck->isChecked()) args << QStringLiteral("--single");
+
+        logArea->append(QStringLiteral("  [%1] Server #%2 (%3, %4)")
+                            .arg(i + 1).arg(srv.id).arg(srv.sponsor, srv.location));
+
+        auto *p = new QProcess(this);
+        p->setProcessChannelMode(QProcess::MergedChannels);
+
+        connect(p, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+                this, [this, i](int exitCode, QProcess::ExitStatus) {
+            onMultiProcessFinished(i, exitCode);
+        });
+
+        mMultiProcesses.append(p);
+        p->start(program, args);
+    }
+}
+
+void SpeedtestTab::onMultiProgressTick()
+{
+    auto const running = std::count_if(mMultiProcesses.begin(), mMultiProcesses.end(),
+        [](QProcess *p) { return p && p->state() == QProcess::Running; });
+
+    statusLabel->setText(QStringLiteral("Running (%1 active, %2/%3 done)")
+                             .arg(static_cast<int>(running)).arg(mMultiCompleted).arg(mMultiTotal));
+    progressGauge->setValue(mMultiCompleted);
+    progressGauge->setMaximum(mMultiTotal);
+    progressGauge->setFormat(QStringLiteral("%1 / %2").arg(mMultiCompleted).arg(mMultiTotal));
+}
+
+void SpeedtestTab::onMultiProcessFinished(int index, int exitCode)
+{
+    if (!mMultiMode) return;
+
+    QProcess *p = mMultiProcesses.value(index);
+    if (!p) return;
+
+    QByteArray const output = p->readAll();
+
+    if (exitCode == 0 && !output.isEmpty()) {
+        QJsonParseError err;
+        QJsonDocument const doc = QJsonDocument::fromJson(output, &err);
+        if (err.error == QJsonParseError::NoError && doc.isObject()) {
+            mMultiResults.append(doc.object());
+        }
+    }
+
+    ++mMultiCompleted;
+
+    // Alle Prozesse fertig?
+    if (mMultiCompleted >= mMultiTotal) {
+        mMultiTimer->stop();
+        mMultiMode = false;
+        aggregateMultiResults();
+        setControlsEnabled(true);
+    }
+}
+
+void SpeedtestTab::aggregateMultiResults()
+{
+    if (mMultiResults.isEmpty()) {
+        statusLabel->setText(QStringLiteral("All multi-server tests failed"));
+        progressGauge->setFormat(QStringLiteral("Failed"));
+        return;
+    }
+
+    // Beste Ergebnisse aus allen parallelen Tests aggregieren
+    double bestPing    = 9999.0;
+    double bestDl      = 0.0;
+    double bestUl      = 0.0;
+    double totalDl     = 0.0;
+    double totalUl     = 0.0;
+    QString servers;
+
+    for (int i = 0; i < mMultiResults.size(); ++i) {
+        auto const &obj = mMultiResults[i];
+        double const ping = obj[QStringLiteral("ping")].toDouble();
+        double const dl   = obj[QStringLiteral("download")].toDouble() / 1.0e6;
+        double const ul   = obj[QStringLiteral("upload")].toDouble()   / 1.0e6;
+
+        bestPing = std::min(bestPing, ping);
+        bestDl   = std::max(bestDl,   dl);
+        bestUl   = std::max(bestUl,   ul);
+        totalDl += dl;
+        totalUl += ul;
+
+        QString const srv = obj[QStringLiteral("server")].toObject()
+                                [QStringLiteral("sponsor")].toString();
+        if (!srv.isEmpty()) {
+            if (!servers.isEmpty()) servers += QStringLiteral(", ");
+            servers += srv;
+        }
+
+        logArea->append(QStringLiteral("  [%1] Ping: %2 ms | DL: %3 Mbit/s | UL: %4 Mbit/s | %5")
+                            .arg(i + 1).arg(ping, 0, 'f', 1).arg(dl, 0, 'f', 1)
+                            .arg(ul, 0, 'f', 1).arg(srv));
+    }
+
+    // Anzeige: Bester Ping, max DL, max UL + Gesamt-DL
+    pingLabel->setText(QString::number(bestPing, 'f', 1));
+    downloadLabel->setText(QStringLiteral("%1 / %2")
+                               .arg(bestDl, 0, 'f', 1).arg(totalDl, 0, 'f', 1));
+    uploadLabel->setText(QStringLiteral("%1 / %2")
+                             .arg(bestUl, 0, 'f', 1).arg(totalUl, 0, 'f', 1));
+    serverLabel->setText(QStringLiteral("Multi (%1 servers)").arg(mMultiResults.size()));
+    ispLabel->setText(QStringLiteral("Aggregated from: %1").arg(servers));
+
+    statusLabel->setText(QStringLiteral("Multi-server test completed"));
+    progressGauge->setValue(mMultiTotal);
+    progressGauge->setFormat(QStringLiteral("Completed"));
+    logArea->append(QStringLiteral("\u2500\u2500 Multi test finished \u2500\u2500"));
+
+    // Bereinigen
+    mMultiResults.clear();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -784,6 +981,19 @@ void SpeedtestTab::updateDisplayFromJson(const QJsonObject &obj) noexcept
 
 void SpeedtestTab::onStopClicked()
 {
+    if (mMultiMode) {
+        for (auto *p : mMultiProcesses) {
+            if (p && p->state() == QProcess::Running) {
+                p->kill();
+            }
+        }
+        logArea->append(QStringLiteral("Multi-server test cancelled by user."));
+        statusLabel->setText(QStringLiteral("Cancelled"));
+        mMultiMode = false;
+        setControlsEnabled(true);
+        return;
+    }
+
     if (process->state() == QProcess::Running) {
         process->kill();
         logArea->append(QStringLiteral("Cancelled by user."));
