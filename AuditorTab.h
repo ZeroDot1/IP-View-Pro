@@ -29,6 +29,12 @@ class AuditorTab : public QWidget
 public:
     explicit AuditorTab(QWidget *parent = nullptr);
 
+    // ── Module access (for AlertEngine in MainWindow) ─────────────────────
+    [[nodiscard]] IPView::Auditor::AuditorModule* auditorModule() const noexcept
+    {
+        return mAuditor;
+    }
+
 private slots:
     void onAuditClicked();
     void onHostSelectionChanged();

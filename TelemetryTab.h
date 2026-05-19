@@ -30,6 +30,12 @@ public:
     explicit TelemetryTab(QWidget *parent = nullptr);
     ~TelemetryTab() override = default;
 
+    // ── Module access (for AlertEngine in MainWindow) ─────────────────────
+    [[nodiscard]] IPView::Telemetry::TelemetryModule* telemetryModule() const noexcept
+    {
+        return mTelemetry;
+    }
+
 private slots:
     // ── Live monitoring ──────────────────────────────────────────────────
     void onTelemetryUpdated(const QList<IPView::Telemetry::InterfaceInfo> &interfaces);

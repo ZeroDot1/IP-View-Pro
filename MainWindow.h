@@ -32,6 +32,8 @@
 #include "SpeedtestTab.h"
 #include "TelemetryTab.h"
 #include "AboutTab.h"
+#include "AuditorTab.h"
+#include "AlertEngine.h"
 #include "TabRegistry.h"
 // ═══════════════════════════════════════════════════════════════════════════════
 class MainWindow : public QWidget
@@ -109,6 +111,10 @@ private:
     QTimer              *autoRefreshTimer{nullptr};
     QList<QJsonObject>   history;
     QJsonObject          currentData;
+
+    // ── Alert Engine (Item 49) ─────────────────────────────────────────────
+    IPView::Alert::AlertEngine *mAlertEngine{nullptr};
+    void setupAlertEngine() noexcept;
 };
 
 #endif // MAINWINDOW_H

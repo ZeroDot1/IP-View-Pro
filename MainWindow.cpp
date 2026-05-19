@@ -28,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QWidget(parent)
 {
     setupUI();
+    setupAlertEngine();
     setupTray();
 
     networkManager   = new NetworkManager(this);
@@ -453,5 +454,22 @@ void MainWindow::loadSettings() noexcept
     dashboardView->setAutoRefresh(autoRefresh);
     if (autoRefresh) {
         autoRefreshTimer->start(300000);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Item 49: Alert Engine — verbindet Telemetry + Audit mit Alerts
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void MainWindow::setupAlertEngine() noexcept
+{
+    mAlertEngine = new IPView::Alert::AlertEngine(this);
+
+    // ── Telemetry → AlertEngine ───────────────────────────────────────────
+    if (telemetryTab && telemetryTab->telemetryModule()) {
+        connect(telemetryTab->telemetryModule(),
+                &IPView::Telemetry::TelemetryModule::telemetryUpdated,
+                mAlertEngine,
+                &IPView::Alert::AlertEngine::feedTelemetry);
     }
 }
