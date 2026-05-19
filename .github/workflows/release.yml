@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential qt6-base-dev qt6-svg-dev libsqlite3-dev
+
+      - name: Build
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
+
+      - name: Generate AppImage
+        run: |
+          wget -c "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage"
+          chmod +x appimagetool-x86_64.AppImage
+          mkdir -p AppDir/usr/bin
+          cp build/IPView AppDir/usr/bin/
+          # Assuming you have a desktop file and icon
+          cp ipview.desktop AppDir/
+          cp icon.svg AppDir/
+          ./appimagetool-x86_64.AppImage AppDir IPView-x86_64.AppImage
+        env:
+          ARCH: x86_64
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: IPView-x86_64.AppImage
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
