@@ -84,6 +84,31 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
 - **Compiler Hardening:** `-Werror`, `-fstack-protector-strong`, `-D_FORTIFY_SOURCE=3`, `-Wl,-z,relro -Wl,-z,now`.
 - **AddressSanitizer:** Optional via `cmake -DSANITIZE=ON`.
 
+###  Database Persistence (SQLite)
+- **Automatic History Logging:** Every IP lookup is persisted to a local SQLite database
+  (`~/.local/share/IPView/ipview_history.db`) with WAL journal mode for concurrent access.
+- **Tables:** `ip_history` (IP, country, city, org, ASN, full JSON payload, timestamp) and
+  `telemetry` (interface stats with RX/TX speeds).
+- **Thread-Safe:** All database operations are serialized via `QMutex`. Uses parameterized
+  queries — no SQL injection possible.
+- **Maintenance:** `vacuum()`, `clearHistory()`, and configurable query limits.
+
+###  Real-Time Network Telemetry
+- **`/proc/net/dev` Monitoring:** Background timer-driven polling (default 2s interval).
+- **Per-Interface Stats:** RX/TX bytes, packets, errors, and real-time transfer speeds (bytes/s).
+- **Smart Interface Filtering:** Automatically excludes loopback (`lo`), Docker (`docker0`),
+  virtual (`veth*`, `br-*`, `tun*`, `tap*`), and VM interfaces (`vbox*`, `vmnet*`).
+- **C++26 `std::expected`:** Type-safe error propagation with `std::from_chars` for
+  performant string-to-integer conversion.
+
+###  Asynchronous Port Scanner
+- **Non-Blocking:** Uses `QTcpSocket` with configurable timeout (500ms default).
+- **Batch Processing:** Up to 100 parallel connections per batch, with 10ms delay between
+  batches to avoid network flooding.
+- **Service Detection:** Resolves 28+ well-known ports to service names (SSH, HTTP, MySQL, etc.).
+- **Progress Reporting:** Real-time `scanProgress(current, total)` and `portFound()` signals.
+- **Safe Cancellation:** `cancelScan()` aborts all active connections immediately.
+
 ###  Copy All / Export JSON
 - **Copy All:** One-click clipboard copy of all IP and geolocation data as formatted text.
 - **Export JSON:** Save IP data as a formatted JSON file via the system file dialog.
@@ -108,12 +133,16 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
 | `saturate_fix.h` (polyfill) | Force-included via CMake | Polyfill for missing `std::saturate_cast` (GCC 16.1 / libstdc++) |
 | `std::to_array<std::string_view>` | NetworkManager, DataNormalizer | Compile-time API endpoint lists — no runtime initialization |
 | `consteval` | main.cpp | Application metadata (name, version) guaranteed at compile time |
-| `[[nodiscard]]` | 35× across the project | Compiler warns on discarded return values |
-| `noexcept` | 41× across the project | Exceptions stopped at API boundaries |
-| Structured bindings | 6 files | `auto const& [key, value]` — more readable, type-safe |
+| `[[nodiscard]]` | 45× across the project | Compiler warns on discarded return values |
+| `noexcept` | 55× across the project | Exceptions stopped at API boundaries |
+| Structured bindings | 8 files | `auto const& [key, value]` — more readable, type-safe |
+| `std::expected` | TelemetryModule | Type-safe error propagation without exceptions |
+| `std::from_chars` | TelemetryModule, ScannerModule | Performant string-to-integer conversion |
+| `std::optional` | DatabaseModule | Nullable return values for database queries |
+| `std::unique_ptr` | ScannerModule | RAII socket pool management |
 | `QLatin1StringView` | main.cpp | C++26-compatible string view for Qt APIs |
-| `static_assert` | MainWindow.cpp | Compile-time check for field list size consistency |
-| `std::move` | SpeedtestTab | Efficient server list cache transfer |
+| `static_assert` | MainWindow.cpp, DashboardView.cpp | Compile-time field list size consistency |
+| `std::move` | SpeedtestTab, DatabaseModule | Efficient data transfer |
 
 ---
 
@@ -207,6 +236,7 @@ IPView/
 ├── Theme.h               # Central design token system (colors, radii, QSS helpers)
 ├── SecurityUtil.h        # Security: input validation, SSL enforcement, path resolution
 ├── MainWindow.h/.cpp     # Main window with tab widget + system tray
+├── DashboardView.h/.cpp  # # Overview tab (API selection, IP card, data table, export)
 ├── NetworkManager.h/.cpp # Async API failover (12+ Geo-IP services)
 ├── DataNormalizer.h      # Namespace-based: JSON normalization (18-field unified format)
 ├── FlagLoader.h/.cpp     # Country flag download with in-memory caching
@@ -217,6 +247,9 @@ IPView/
 ├── Iperf3Window.h/.cpp   # iPerf3 dialog (client/server mode)
 ├── HistoryTab.h/.cpp     # IP change history with timestamps
 ├── SpeedtestTab.h/.cpp   # Speedtest with server browser
+├── TelemetryModule.h/.cpp# Real-time network telemetry (/proc/net/dev)
+├── DatabaseModule.h/.cpp # SQLite persistence layer (singleton, thread-safe)
+├── ScannerModule.h/.cpp  # Async port scanner (QTcpSocket, non-blocking)
 ├── CMakeLists.txt        # C++26, Qt 6.11, security hardening
 ├── saturate_fix.h        # C++26 polyfill (saturate_cast for GCC 16.1)
 ├── build.sh              # Build script
@@ -298,4 +331,4 @@ This project is released under **Public Domain**. It may be freely used, copied,
 
 ---
 
-*IPView Pro v2.7.1 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*
+*IPView Pro v2.8.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*

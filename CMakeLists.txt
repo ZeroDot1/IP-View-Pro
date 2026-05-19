@@ -16,7 +16,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 project(IPView
-    VERSION      2.7.1
+    VERSION      2.8.0
     DESCRIPTION  "Professional IP Monitoring & Network Analysis Tool"
     LANGUAGES    CXX
 )
@@ -56,7 +56,7 @@ if(SANITIZE)
 endif()
 
 # ── Qt 6.11 (neuester Release: März 2026) ─────────────────────
-find_package(Qt6 6.11 REQUIRED COMPONENTS Core Widgets Network Svg)
+find_package(Qt6 6.11 REQUIRED COMPONENTS Core Widgets Network Svg Sql)
 
 # ── Automatische Qt-Metacompiler ──────────────────────────────
 set(CMAKE_AUTOMOC ON)
@@ -67,6 +67,7 @@ set(CMAKE_AUTOUIC ON)
 qt_add_executable(IPView
     main.cpp
     MainWindow.cpp
+    DashboardView.cpp
     NetworkManager.cpp
     FlagLoader.cpp
     Iperf3Window.cpp
@@ -77,6 +78,9 @@ qt_add_executable(IPView
     HistoryTab.cpp
     SpeedtestTab.cpp
     AboutTab.cpp
+    TelemetryModule.cpp
+    DatabaseModule.cpp
+    ScannerModule.cpp
     resources.qrc
 )
 
@@ -86,6 +90,7 @@ target_link_libraries(IPView
         Qt6::Widgets
         Qt6::Network
         Qt6::Svg
+        Qt6::Sql
 )
 
 # ── Ziel-Eigenschaften ────────────────────────────────────────

@@ -1,0 +1,246 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+//  IPView Pro v2.8.0 — TelemetryModule.cpp
+//  C++26: std::expected, std::string_view, structured bindings
+//  Liest /proc/net/dev aus und berechnet Echtzeit-Übertragungsraten.
+//  Public Domain — No License — No Restrictions.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#include "TelemetryModule.h"
+
+#include <QFile>
+#include <QTextStream>
+#include <QRegularExpression>
+
+#include <algorithm>
+#include <charconv>     // C++26: std::from_chars
+#include <system_error>
+
+// ═══════════════════════════════════════════════════════════════════════════════
+namespace IPView::Telemetry {
+
+// ── Konstruktor ─────────────────────────────────────────────────────────────
+TelemetryModule::TelemetryModule(QObject *parent)
+    : QObject(parent)
+{
+    mTimer = new QTimer(this);
+    connect(mTimer, &QTimer::timeout, this, &TelemetryModule::onTick);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Public API
+// ═══════════════════════════════════════════════════════════════════════════════
+
+std::expected<Stats, std::string>
+TelemetryModule::fetchStats(std::string_view interface) noexcept
+{
+    QFile file(QStringLiteral("/proc/net/dev"));
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return std::unexpected(
+            std::string("Cannot open /proc/net/dev: ") + file.errorString().toStdString());
+    }
+
+    QTextStream in(&file);
+    QString const content = in.readAll();
+    file.close();
+
+    return parseProcNetDev(content, interface);
+}
+
+QStringList TelemetryModule::availableInterfaces() const noexcept
+{
+    if (mCacheValid && !mCachedInterfaces.isEmpty()) {
+        return mCachedInterfaces;
+    }
+
+    QStringList result;
+    QFile file(QStringLiteral("/proc/net/dev"));
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return result;
+    }
+
+    QTextStream in(&file);
+    // Kopfzeilen überspringen (Inter-|   Receive-...)
+    in.readLine(); // erste Kopfzeile
+    in.readLine(); // zweite Kopfzeile
+
+    static QRegularExpression const re(QStringLiteral(R"(^\s*([^:]+):)"));
+
+    while (!in.atEnd()) {
+        QString const line = in.readLine();
+        auto const match = re.match(line);
+        if (match.hasMatch()) {
+            QString const ifName = match.captured(1).trimmed();
+            // Loopback und virtuelle Interfaces filtern
+            if (isValidInterface(ifName.toStdString())) {
+                result.append(ifName);
+            }
+        }
+    }
+
+    file.close();
+
+    mCachedInterfaces = result;
+    mCacheValid = true;
+    return result;
+}
+
+void TelemetryModule::startMonitoring(int intervalMs) noexcept
+{
+    if (mMonitoring) return;
+
+    // Initiale Messwerte erfassen
+    onTick();
+    mTimer->start(intervalMs);
+    mMonitoring = true;
+}
+
+void TelemetryModule::stopMonitoring() noexcept
+{
+    if (!mMonitoring) return;
+    mTimer->stop();
+    mMonitoring = false;
+}
+
+bool TelemetryModule::isMonitoring() const noexcept
+{
+    return mMonitoring;
+}
+
+QList<InterfaceInfo> TelemetryModule::getAllInterfaces() const noexcept
+{
+    return mInterfaces;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Private Slots
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void TelemetryModule::onTick() noexcept
+{
+    QFile file(QStringLiteral("/proc/net/dev"));
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        emit errorOccurred(QStringLiteral("Cannot open /proc/net/dev"));
+        return;
+    }
+
+    QTextStream in(&file);
+    QString const content = in.readAll();
+    file.close();
+
+    QStringList const ifaces = availableInterfaces();
+    QList<InterfaceInfo> updated;
+
+    for (QString const &iface : ifaces) {
+        std::string const name = iface.toStdString();
+        Stats const current = parseProcNetDev(content, name);
+
+        // Vorherigen Eintrag suchen
+        auto it = std::find_if(mInterfaces.begin(), mInterfaces.end(),
+            [&](const InterfaceInfo &info) { return info.name == iface; });
+
+        double rxSpeed = 0.0;
+        double txSpeed = 0.0;
+
+        if (it != mInterfaces.end()) {
+            // Geschwindigkeit berechnen (Bytes pro Sekunde)
+            // Timer-Intervall in ms -> Faktor 1000/interval
+            double const factor = 1000.0 / static_cast<double>(mTimer->interval());
+
+            rxSpeed = static_cast<double>(current.rxBytes - it->current.rxBytes) * factor;
+            txSpeed = static_cast<double>(current.txBytes - it->current.txBytes) * factor;
+
+            it->previous = it->current;
+            it->current  = current;
+            it->rxSpeedBps = rxSpeed;
+            it->txSpeedBps = txSpeed;
+            updated.append(*it);
+        } else {
+            // Neuer Eintrag (keine Geschwindigkeit beim ersten Mal)
+            InterfaceInfo info;
+            info.name    = iface;
+            info.current = current;
+            updated.append(info);
+        }
+    }
+
+    mInterfaces = updated;
+    mCacheValid = false; // Cache bei nächstem Aufruf neu laden
+    emit telemetryUpdated(mInterfaces);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Private Helpers
+// ═══════════════════════════════════════════════════════════════════════════════
+
+Stats TelemetryModule::parseProcNetDev(const QString &content,
+                                       std::string_view interface) noexcept
+{
+    Stats stats{};
+
+    // /proc/net/dev Format:
+    // Inter-|   Receive                              |  Transmit
+    //  face |bytes    packets errs drop fifo ...     |bytes    packets errs ...
+    //    lo: 12345    678    0    0    0 ...         98765    432    0 ...
+
+    QString const searchStr = QString::fromUtf8(interface.data(),
+                                                static_cast<qsizetype>(interface.size()));
+    QStringList const lines = content.split(QLatin1Char('\n'));
+
+    for (QString const &line : lines) {
+        if (!line.contains(searchStr, Qt::CaseInsensitive)) continue;
+
+        // Format: "   eth0:  rx_bytes rx_packets rx_errs ...  tx_bytes ..."
+        // Nach dem Doppelpunkt splitten
+        qsizetype const colonPos = line.indexOf(QLatin1Char(':'));
+        if (colonPos < 0) break;
+
+        QString const valuesPart = line.mid(colonPos + 1).trimmed();
+        QStringList const tokens = valuesPart.split(QRegularExpression(QStringLiteral("\\s+")),
+                                                     Qt::SkipEmptyParts);
+
+        if (tokens.size() < 10) break;
+
+        // C++26: std::from_chars für performante String→Integer-Konvertierung
+        auto parseU64 = [](const QString &s) -> std::uint64_t {
+            std::uint64_t val = 0;
+            QByteArray const ba = s.toUtf8();
+            auto [ptr, ec] = std::from_chars(ba.data(), ba.data() + ba.size(), val);
+            if (ec != std::errc{}) return 0;
+            return val;
+        };
+
+        // Indices: 0=rx_bytes, 1=rx_packets, 2=rx_errs, 3=rx_drop,
+        //          4=rx_fifo, 5=rx_frame, 6=rx_compressed, 7=rx_multicast,
+        //          8=tx_bytes, 9=tx_packets, 10=tx_errs, 11=tx_drop, ...
+        stats.rxBytes   = parseU64(tokens.value(0));
+        stats.rxPackets = parseU64(tokens.value(1));
+        stats.rxErrors  = parseU64(tokens.value(2));
+        stats.txBytes   = parseU64(tokens.value(8));
+        stats.txPackets = parseU64(tokens.value(9));
+        stats.txErrors  = parseU64(tokens.value(10));
+        break;
+    }
+
+    return stats;
+}
+
+bool TelemetryModule::isValidInterface(std::string_view name) const noexcept
+{
+    // Loopback, Docker/Bridge/VPN-Interfaces überspringen
+    if (name == "lo" || name == "docker0") return false;
+
+    // Nur echte Ethernet/WLAN-Interfaces (eth*, wlan*, wlp*, enp*)
+    if (name.size() < 2) return false;
+
+    // Virtuelle Interfaces (veth*, br-, tun*, tap*, vbox*)
+    if (name.starts_with("veth") || name.starts_with("br-") ||
+        name.starts_with("tun") || name.starts_with("tap") ||
+        name.starts_with("vbox") || name.starts_with("vmnet") ||
+        name.starts_with("virbr") || name.starts_with("docker")) {
+        return false;
+    }
+
+    return true;
+}
+
+} // namespace IPView::Telemetry

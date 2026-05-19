@@ -1,7 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.0 — MainWindow.cpp
+//  IPView Pro v2.8.0 — MainWindow.cpp
 //  C++26: std::array for compile-time constants, auto, [[maybe_unused]]
 //  QStringLiteral, structured bindings
+//  Dashboard-Funktionalität ausgelagert in DashboardView (IPView::UI).
+//  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "MainWindow.h"
@@ -11,34 +13,11 @@
 #include <QDateTime>
 #include <QMessageBox>
 #include <QFileDialog>
-#include <QTextEdit>
-#include <QFrame>
-#include <QTableWidget>
-#include <QHeaderView>
-#include <QDesktopServices>
-#include <QUrl>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QJsonDocument>
 #include <QFile>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QTextStream>
-
-#include <array>    // C++26: std::to_array for constexpr field lists
-#include <utility>  // std::pair
-
-// ── Compile-time constants for UI field names ─────────────────────────────
-//  C++26 std::array: guaranteed stack-allocated, constexpr
-static constexpr auto FIELD_NAMES = std::to_array<std::string_view>({
-    "IP", "City", "Region", "Country", "Continent", "ISP / Organization",
-    "ASN", "Latitude", "Longitude", "Postal Code", "Timezone", "Currency",
-    "Calling Code", "Languages", "Hostname", "Network Type", "Security"
-});
-
-static constexpr auto FIELD_KEYS = std::to_array<std::string_view>({
-    "ip", "city", "region", "country_name", "continent", "org",
-    "asn", "latitude", "longitude", "postal", "timezone", "currency",
-    "calling_code", "languages", "hostname", "type", "security"
-});
 
 // ═══════════════════════════════════════════════════════════════════════════════
 MainWindow::MainWindow(QWidget *parent)
@@ -47,25 +26,36 @@ MainWindow::MainWindow(QWidget *parent)
     setupUI();
     setupTray();
 
-    networkManager  = new NetworkManager(this);
-    flagLoader      = new FlagLoader(this);
+    networkManager   = new NetworkManager(this);
+    flagLoader       = new FlagLoader(this);
     autoRefreshTimer = new QTimer(this);
 
     connect(autoRefreshTimer, &QTimer::timeout, this, &MainWindow::onRefreshClicked);
 
-    apiCombo->addItems(networkManager->getApiNames());
-    apiCombo->setCurrentIndex(0);
+    // ── API-Namen an DashboardView übergeben ────────────────────────────
+    dashboardView->setApiNames(networkManager->getApiNames());
 
-    // ── Signal-Slot Connections ──────────────────────────────────────────
-    connect(refreshButton,  &QPushButton::clicked,        this, &MainWindow::onRefreshClicked);
-    connect(networkManager, &NetworkManager::dataReceived, this, &MainWindow::onDataReceived);
+    // ── Dashboard-Signale mit MainWindow verbinden ──────────────────────
+    connect(dashboardView, &IPView::UI::DashboardView::refreshRequested,
+            this, &MainWindow::onRefreshClicked);
+    connect(dashboardView, &IPView::UI::DashboardView::apiChanged,
+            this, &MainWindow::onApiChanged);
+    connect(dashboardView, &IPView::UI::DashboardView::ipv6Toggled,
+            this, &MainWindow::onIPv6Toggled);
+    connect(dashboardView, &IPView::UI::DashboardView::autoRefreshToggled,
+            this, &MainWindow::onAutoRefreshToggled);
+    connect(dashboardView, &IPView::UI::DashboardView::copyAllRequested,
+            this, &MainWindow::onCopyAllRequested);
+    connect(dashboardView, &IPView::UI::DashboardView::exportJsonRequested,
+            this, &MainWindow::onExportJsonRequested);
+
+    // ── Network-Signale ─────────────────────────────────────────────────
+    connect(networkManager, &NetworkManager::dataReceived,
+            this, &MainWindow::onDataReceived);
     connect(networkManager, &NetworkManager::errorOccurred, this, [this](QString const& err) {
         statusLabel->setText(QStringLiteral("Error: ") + err);
+        dashboardView->setStatusMessage(err);
     });
-    connect(apiCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &MainWindow::onApiChanged);
-    connect(ipv6CheckBox,        &QCheckBox::toggled, this, &MainWindow::onIPv6Toggled);
-    connect(autoRefreshCheckBox, &QCheckBox::toggled, this, &MainWindow::onAutoRefreshToggled);
 
     onRefreshClicked();
 }
@@ -82,7 +72,7 @@ void MainWindow::setupTray() noexcept
 
     trayMenu = new QMenu(this);
     restoreAction = trayMenu->addAction(QStringLiteral("Restore Window"),
-                                        this, &MainWindow::showNormal);
+                                        this, &QWidget::showNormal);
     trayMenu->addSeparator();
     exitAction = trayMenu->addAction(QStringLiteral("Exit"),
                                      this, &MainWindow::onExitRequested);
@@ -152,8 +142,6 @@ static QString countryCodeToFlag(const QString &cc) noexcept
 }
 
 // ── Tray hover tooltip (dark-theme design with Unicode) ────────────────────
-//  QSystemTrayIcon does not support HTML/CSS, so the tooltip
-//  is formatted using Unicode box-drawing characters and regional indicator flags.
 void MainWindow::updateTrayTooltip(const QJsonObject &jsonData) noexcept
 {
     QString tip;
@@ -164,37 +152,32 @@ void MainWindow::updateTrayTooltip(const QJsonObject &jsonData) noexcept
     QString const org    = jsonData[QStringLiteral("org")].toString();
     QString const asn    = jsonData[QStringLiteral("asn")].toString();
 
-    // ── Header line with app name ──────────────────────────────────────────
-    tip += QStringLiteral("\u250F\u2501\u2501\u2501 IP View Pro \u2501\u2501\u2501\u2513\n"); // ┏━━━ IP View Pro ━━━┓
-    tip += QStringLiteral("\u2503  \u25CF Online                     \u2503\n");             // ┃  ● Online          ┃
+    tip += QStringLiteral("\u250F\u2501\u2501\u2501 IP View Pro \u2501\u2501\u2501\u2513\n");
+    tip += QStringLiteral("\u2503  \u25CF Online                     \u2503\n");
 
-    // ── IP + Flag ─────────────────────────────────────────────────────
-    tip += QStringLiteral("\u2523\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u252B\n"); // ┣━━━━━━━━━━━━━━━━━━━━━━━┫
-    tip += QStringLiteral("\u2503  %1 %2\n")                               // ┃  🇩🇪 1.2.3.4
+    tip += QStringLiteral("\u2523\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u252B\n");
+    tip += QStringLiteral("\u2503  %1 %2\n")
               .arg(countryCodeToFlag(cc),
-                   ip.isEmpty()  ? QStringLiteral("—") : ip);
+                   ip.isEmpty()  ? QStringLiteral("\u2014") : ip);
     if (!cn.isEmpty()) {
-        tip += QStringLiteral("\u2503     %1").arg(cn);                   // ┃     Germany
-        if (!city.isEmpty()) tip += QStringLiteral("  ·  %1").arg(city);  //          ·  Berlin
+        tip += QStringLiteral("\u2503     %1").arg(cn);
+        if (!city.isEmpty()) tip += QStringLiteral("  \u00B7  %1").arg(city);
         tip += QLatin1Char('\n');
     }
 
-    // ── ISP / ASN ───────────────────────────────────────────────────────
     if (!org.isEmpty() || !asn.isEmpty()) {
-        tip += QStringLiteral("\u2523\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u252B\n"); // ┣━━━━━━━━━━━━━━━━━━━━━━━┫
+        tip += QStringLiteral("\u2523\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u252B\n");
         if (!org.isEmpty())
             tip += QStringLiteral("\u2503  %1\n").arg(org);
         if (!asn.isEmpty())
             tip += QStringLiteral("\u2503  %1\n").arg(asn);
     }
 
-    // ── Timestamp ─────────────────────────────────────────────────────
-    tip += QStringLiteral("\u2523\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u252B\n"); // ┣━━━━━━━━━━━━━━━━━━━━━━━┫
-    tip += QStringLiteral("\u2503  %1\n")                                   // ┃  14:32:01
+    tip += QStringLiteral("\u2523\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u252B\n");
+    tip += QStringLiteral("\u2503  %1\n")
               .arg(QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss")));
 
-    // ── Footer ────────────────────────────────────────────────────────
-    tip += QStringLiteral("\u2517\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u251B"); // ┗━━━━━━━━━━━━━━━━━━━━━━━┛
+    tip += QStringLiteral("\u2517\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u251B");
 
     trayIcon->setToolTip(tip);
 }
@@ -214,86 +197,8 @@ void MainWindow::setupUI() noexcept
 
     tabWidget = new QTabWidget();
 
-    // ── Overview Tab ───────────────────────────────────────────────────────
-    overviewTab = new QWidget();
-    auto *ovLayout = new QVBoxLayout(overviewTab);
-    ovLayout->setSpacing(15);
-    ovLayout->setContentsMargins(20, 20, 20, 20);
-
-    // Top controls row
-    auto *topRow = new QHBoxLayout();
-    apiCombo = new QComboBox();
-    apiCombo->setFixedWidth(200);
-    apiCombo->setStyleSheet(comboStyle());
-
-    ipv6CheckBox       = new QCheckBox(QStringLiteral("IPv6"));
-    autoRefreshCheckBox = new QCheckBox(QStringLiteral("Auto (5m)"));
-
-    refreshButton = new QPushButton(QStringLiteral("⟳ Refresh"));
-    refreshButton->setProperty("accent", true);
-    refreshButton->setStyleSheet(btnAccentStyle());
-
-    topRow->addWidget(apiCombo);
-    topRow->addWidget(ipv6CheckBox);
-    topRow->addWidget(autoRefreshCheckBox);
-    topRow->addStretch();
-    topRow->addWidget(refreshButton);
-
-    // IP Card
-    auto *ipCard = new QFrame();
-    ipCard->setProperty("card", true);
-    ipCard->setStyleSheet(cardStyle());
-    auto *ipCardLayout = new QVBoxLayout(ipCard);
-    ipLabel = new QLabel(QStringLiteral("Loading IP..."));
-    ipLabel->setFont(QFont(QStringLiteral("Segoe UI"), 26, QFont::Bold));
-    ipLabel->setStyleSheet(QStringLiteral("color: %1;").arg(C_PRIMARY));
-    ipLabel->setAlignment(Qt::AlignCenter);
-    ipCardLayout->addWidget(ipLabel);
-
-    // Data Table — uses the constexpr FIELD_NAMES
-    ipTable = new QTableWidget(static_cast<int>(FIELD_NAMES.size()), 2);
-    ipTable->setObjectName(QStringLiteral("ipTable"));
-    ipTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    ipTable->verticalHeader()->setVisible(false);
-    ipTable->setHorizontalHeaderLabels({QStringLiteral("Field"), QStringLiteral("Value")});
-    ipTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ipTable->setAlternatingRowColors(true);
-
-    for (auto i = 0; i < static_cast<int>(FIELD_NAMES.size()); ++i) {
-        auto *item = new QTableWidgetItem(
-            QString::fromUtf8(FIELD_NAMES[static_cast<std::size_t>(i)].data(),
-                              static_cast<qsizetype>(FIELD_NAMES[static_cast<std::size_t>(i)].size())));
-        item->setFlags(item->flags() ^ Qt::ItemIsEditable);
-        item->setForeground(QBrush(QColor(QStringLiteral("#888888"))));
-        ipTable->setItem(i, 0, item);
-    }
-
-    // Bottom info row
-    auto *botRow = new QHBoxLayout();
-    timestampLabel = new QLabel();
-    onlineLabel    = new QLabel();
-    flagLabel      = new QLabel();
-    flagLabel->setFixedSize(64, 42);
-
-    copyAllButton = new QPushButton(QIcon(QStringLiteral(":/svgs/clipboard.svg")),
-                                    QStringLiteral(" Copy All"));
-    copyAllButton->setStyleSheet(btnSmallStyle());
-
-    exportJsonButton = new QPushButton(QIcon(QStringLiteral(":/svgs/floppy-disk.svg")),
-                                       QStringLiteral(" Export JSON"));
-    exportJsonButton->setStyleSheet(btnSmallStyle());
-
-    botRow->addWidget(timestampLabel);
-    botRow->addStretch();
-    botRow->addWidget(copyAllButton);
-    botRow->addWidget(exportJsonButton);
-    botRow->addWidget(onlineLabel);
-    botRow->addWidget(flagLabel);
-
-    ovLayout->addLayout(topRow);
-    ovLayout->addWidget(ipCard);
-    ovLayout->addWidget(ipTable);
-    ovLayout->addLayout(botRow);
+    // ── Dashboard-Tab (ausgelagert aus MainWindow in DashboardView) ────
+    dashboardView = new IPView::UI::DashboardView();
 
     // ── Sub-Tabs ──────────────────────────────────────────────────────────
     whoisTab     = new WhoisTab();
@@ -302,17 +207,17 @@ void MainWindow::setupUI() noexcept
     speedtestTab = new SpeedtestTab();
     aboutTab     = new AboutTab();
 
-    tabWidget->addTab(overviewTab,  QIcon(QStringLiteral(":/svgs/chart-bar.svg")),
+    tabWidget->addTab(dashboardView, QIcon(QStringLiteral(":/svgs/chart-bar.svg")),
                       QStringLiteral(" Overview"));
-    tabWidget->addTab(whoisTab,     QIcon(QStringLiteral(":/svgs/search.svg")),
+    tabWidget->addTab(whoisTab,      QIcon(QStringLiteral(":/svgs/search.svg")),
                       QStringLiteral(" Whois Lookup"));
-    tabWidget->addTab(toolsTab,     QIcon(QStringLiteral(":/svgs/wrench.svg")),
+    tabWidget->addTab(toolsTab,      QIcon(QStringLiteral(":/svgs/wrench.svg")),
                       QStringLiteral(" Network Tools"));
-    tabWidget->addTab(historyTab,   QIcon(QStringLiteral(":/svgs/scroll.svg")),
+    tabWidget->addTab(historyTab,    QIcon(QStringLiteral(":/svgs/scroll.svg")),
                       QStringLiteral(" History"));
-    tabWidget->addTab(speedtestTab, QIcon(QStringLiteral(":/svgs/lightning.svg")),
+    tabWidget->addTab(speedtestTab,  QIcon(QStringLiteral(":/svgs/lightning.svg")),
                       QStringLiteral(" Speedtest"));
-    tabWidget->addTab(aboutTab,     QIcon(QStringLiteral(":/svgs/info.svg")),
+    tabWidget->addTab(aboutTab,      QIcon(QStringLiteral(":/svgs/info.svg")),
                       QStringLiteral(" About"));
 
     mainLayout->addWidget(tabWidget);
@@ -324,10 +229,6 @@ void MainWindow::setupUI() noexcept
     statusLayout->addWidget(statusLabel);
     statusLayout->addStretch();
     mainLayout->addLayout(statusLayout);
-
-    // Button-Connections
-    connect(copyAllButton,   &QPushButton::clicked, this, &MainWindow::onCopyAllClicked);
-    connect(exportJsonButton, &QPushButton::clicked, this, &MainWindow::onExportJsonClicked);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -336,61 +237,40 @@ void MainWindow::setupUI() noexcept
 
 void MainWindow::onDataReceived(const QJsonObject &jsonData)
 {
-    // Only add to history on IP change
-    if (history.isEmpty() || history.first()[QStringLiteral("ip")] != jsonData[QStringLiteral("ip")]) {
-        history.prepend(jsonData);
+    currentData = jsonData;
+
+    // History nur bei IP-Änderung aktualisieren
+    updateHistory(jsonData);
+
+    // DashboardView aktualisieren
+    dashboardView->updateDisplay(jsonData);
+
+    // Flag-Loading anstoßen (an DashboardView delegiert)
+    QString const cc = jsonData[QStringLiteral("country_code")].toString();
+    if (!cc.isEmpty()) {
+        flagLoader->loadFlag(cc, dashboardView->flagLabelWidget());
+    }
+
+    // IP an Sub-Tabs weiterreichen
+    whoisTab->setIp(jsonData[QStringLiteral("ip")].toString());
+    toolsTab->setTargetIp(jsonData[QStringLiteral("ip")].toString());
+
+    // Tray-Tooltip aktualisieren
+    updateTrayTooltip(jsonData);
+
+    statusLabel->setText(QStringLiteral("Last update successful"));
+}
+
+void MainWindow::updateHistory(const QJsonObject &jsonEntry) noexcept
+{
+    if (history.isEmpty() || history.first()[QStringLiteral("ip")] != jsonEntry[QStringLiteral("ip")]) {
+        history.prepend(jsonEntry);
         static constexpr int MAX_HISTORY = 50;
         while (history.size() > MAX_HISTORY) {
             history.removeLast();
         }
         historyTab->updateHistory(history);
     }
-
-    updateDataDisplay(jsonData);
-    whoisTab->setIp(jsonData[QStringLiteral("ip")].toString());
-    toolsTab->setTargetIp(jsonData[QStringLiteral("ip")].toString());
-}
-
-void MainWindow::updateDataDisplay(const QJsonObject &jsonData) noexcept
-{
-    currentData = jsonData;
-
-    QString const ip = jsonData[QStringLiteral("ip")].toString();
-    ipLabel->setText(ip.isEmpty() ? QStringLiteral("N/A") : ip);
-
-    // C++26 structured bindings with constexpr arrays
-    for (auto i = 0; i < static_cast<int>(FIELD_KEYS.size()) && i < ipTable->rowCount(); ++i) {
-        QString const key = QString::fromUtf8(
-            FIELD_KEYS[static_cast<std::size_t>(i)].data(),
-            static_cast<qsizetype>(FIELD_KEYS[static_cast<std::size_t>(i)].size()));
-        QString const val = jsonData[key].toString();
-
-        QTableWidgetItem *existing = ipTable->item(i, 1);
-        QString const displayVal = val.isEmpty() ? QStringLiteral("N/A") : val;
-
-        if (existing) {
-            existing->setText(displayVal);
-        } else {
-            auto *item = new QTableWidgetItem(displayVal);
-            item->setFlags(item->flags() ^ Qt::ItemIsEditable);
-            ipTable->setItem(i, 1, item);
-        }
-    }
-
-    timestampLabel->setText(QStringLiteral("Updated: ")
-                            + QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss")));
-    onlineLabel->setText(QStringLiteral("● Online"));
-    onlineLabel->setStyleSheet(onlineLabelStyle());
-
-    QString const cc = jsonData[QStringLiteral("country_code")].toString();
-    if (!cc.isEmpty()) {
-        flagLoader->loadFlag(cc, flagLabel);
-    } else {
-        flagLabel->clear();
-    }
-
-    updateTrayTooltip(jsonData);
-    statusLabel->setText(QStringLiteral("Last update successful"));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -400,7 +280,7 @@ void MainWindow::updateDataDisplay(const QJsonObject &jsonData) noexcept
 void MainWindow::onRefreshClicked()
 {
     statusLabel->setText(QStringLiteral("Refreshing data..."));
-    if (ipv6CheckBox->isChecked()) {
+    if (dashboardView->isIPv6Mode()) {
         networkManager->fetchIPv6Data();
     } else {
         networkManager->fetchIPData();
@@ -412,21 +292,21 @@ void MainWindow::onApiChanged(int index)
     networkManager->setSelectedAPI(index);
 }
 
-void MainWindow::onIPv6Toggled(bool checked)
+void MainWindow::onIPv6Toggled(bool /*checked*/)
 {
-    apiCombo->setEnabled(!checked);
+    // Die API-Combobox wird in DashboardView deaktiviert – hier kein weiterer Handlungsbedarf
 }
 
 void MainWindow::onAutoRefreshToggled(bool checked)
 {
     if (checked) {
-        autoRefreshTimer->start(300000);  // 5 minutes
+        autoRefreshTimer->start(300000);  // 5 Minuten
     } else {
         autoRefreshTimer->stop();
     }
 }
 
-void MainWindow::onCopyAllClicked()
+void MainWindow::onCopyAllRequested()
 {
     if (currentData.isEmpty()) return;
 
@@ -436,26 +316,20 @@ void MainWindow::onCopyAllClicked()
     text += QStringLiteral("Timestamp: %1\n\n")
                 .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss")));
 
-    // C++26: iterate through structured bindings and std::array in parallel
-    static_assert(FIELD_NAMES.size() == FIELD_KEYS.size(),
-                  "FIELD_NAMES and FIELD_KEYS must have the same size");
-
-    for (std::size_t i = 0; i < FIELD_NAMES.size(); ++i) {
-        QString const key = QString::fromUtf8(FIELD_KEYS[i].data(),
-                                              static_cast<qsizetype>(FIELD_KEYS[i].size()));
-        QString const val = currentData[key].toString();
-        QString const fieldName = QString::fromUtf8(FIELD_NAMES[i].data(),
-                                                     static_cast<qsizetype>(FIELD_NAMES[i].size()));
+    // C++26: structured bindings für QJsonObject-Iteration
+    for (auto it = currentData.begin(); it != currentData.end(); ++it) {
         text += QStringLiteral("%1: %2\n")
-                    .arg(fieldName, -22)
-                    .arg(val.isEmpty() ? QStringLiteral("N/A") : val);
+                    .arg(it.key(), -22)
+                    .arg(it.value().toString().isEmpty()
+                             ? QStringLiteral("N/A")
+                             : it.value().toString());
     }
 
     QApplication::clipboard()->setText(text);
     statusLabel->setText(QStringLiteral("Copied to clipboard!"));
 }
 
-void MainWindow::onExportJsonClicked()
+void MainWindow::onExportJsonRequested()
 {
     if (currentData.isEmpty()) {
         statusLabel->setText(QStringLiteral("No data to export"));

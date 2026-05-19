@@ -13,13 +13,15 @@
 #include <QLocalServer>
 #include <QLocalSocket>
 #include <QMessageBox>
+#include <QDebug>
 #include "MainWindow.h"
 #include "Theme.h"
+#include "DatabaseModule.h"
 
 // ── Compile-time constant application metadata ─────────────────────────────
 //  C++26 consteval: Guaranteed evaluation at compile time
 consteval auto appName()        noexcept { return "IPView"; }
-consteval auto appVersion()     noexcept { return "2.7.0"; }
+consteval auto appVersion()     noexcept { return "2.8.0"; }
 consteval auto appOrgName()     noexcept { return "IPView"; }
 consteval auto appOrgDomain()   noexcept { return "ipview.local"; }
 consteval auto appDisplayName() noexcept { return "IP View Pro"; }
@@ -97,6 +99,16 @@ int main(int argc, char* argv[])
 
     QLocalServer localServer;
     localServer.listen(QLatin1StringView(localServerKey()));
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  DATABASE INITIALIZATION
+    // ════════════════════════════════════════════════════════════════════════
+    if (!IPView::Storage::DatabaseModule::init()) {
+        qWarning("main: DatabaseModule initialization failed — "
+                 "IP history will not be persisted.");
+    } else {
+        qInfo("main: DatabaseModule initialized successfully.");
+    }
 
     // ════════════════════════════════════════════════════════════════════
     //  MAIN WINDOW

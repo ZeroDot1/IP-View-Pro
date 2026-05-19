@@ -1,7 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.0 — MainWindow.h
+//  IPView Pro v2.8.0 — MainWindow.h
 //  C++26: [[nodiscard]], default member init, structured bindings
-//  Main window of the IPView application with tab interface and system tray.
+//  Main window der IPView-Anwendung mit Tab-Schnittstelle und System Tray.
+//  Die Dashboard-Übersicht wurde in die eigenständige Klasse DashboardView
+//  ausgelagert (siehe IPView::UI::DashboardView).
+//  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #ifndef MAINWINDOW_H
@@ -16,14 +19,11 @@
 #include <QMenu>
 #include <QAction>
 #include <QCloseEvent>
-#include <QPushButton>
 #include <QLabel>
-#include <QComboBox>
-#include <QCheckBox>
-#include <QTableWidget>
 
 #include "NetworkManager.h"
 #include "FlagLoader.h"
+#include "DashboardView.h"
 #include "WhoisTab.h"
 #include "ToolsTab.h"
 #include "HistoryTab.h"
@@ -50,8 +50,8 @@ private slots:
     void onApiChanged(int index);
     void onIPv6Toggled(bool checked);
     void onAutoRefreshToggled(bool checked);
-    void onCopyAllClicked();
-    void onExportJsonClicked();
+    void onCopyAllRequested();
+    void onExportJsonRequested();
     void onTrayIconActivated(QSystemTrayIcon::ActivationReason reason);
     void onExitRequested();
 
@@ -61,26 +61,14 @@ private:
     void setupTray() noexcept;
 
     void updateTrayTooltip(const QJsonObject &data) noexcept;
-    void updateDataDisplay(const QJsonObject &data) noexcept;
+    void updateHistory(const QJsonObject &data) noexcept;
 
     // ── Tab Widget ────────────────────────────────────────────────────────
     QTabWidget *tabWidget{nullptr};
 
-    // ── IP Overview Tab ─────────────────────────────────────────────────
-    QWidget     *overviewTab{nullptr};
-    QLabel      *ipLabel{nullptr};
-    QLabel      *timestampLabel{nullptr};
-    QLabel      *flagLabel{nullptr};
+    // ── Dashboard (Overview) ─────────────────────────────────────────────
+    IPView::UI::DashboardView *dashboardView{nullptr};
     QLabel      *statusLabel{nullptr};
-    QLabel      *onlineLabel{nullptr};
-
-    QComboBox   *apiCombo{nullptr};
-    QCheckBox   *ipv6CheckBox{nullptr};
-    QCheckBox   *autoRefreshCheckBox{nullptr};
-    QPushButton *refreshButton{nullptr};
-    QPushButton *copyAllButton{nullptr};
-    QPushButton *exportJsonButton{nullptr};
-    QTableWidget *ipTable{nullptr};
 
     // ── Sub-Tabs ──────────────────────────────────────────────────────────
     WhoisTab     *whoisTab{nullptr};
