@@ -336,6 +336,34 @@ int DatabaseModule::getHistoryCount() noexcept
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+//  Transaction Support (Item 11)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+bool DatabaseModule::beginTransaction() noexcept
+{
+    QMutexLocker lock(&sMutex);
+    if (!sInitialized) return false;
+    QSqlQuery query(sDb);
+    return query.exec(QStringLiteral("BEGIN IMMEDIATE"));
+}
+
+bool DatabaseModule::commitTransaction() noexcept
+{
+    QMutexLocker lock(&sMutex);
+    if (!sInitialized) return false;
+    QSqlQuery query(sDb);
+    return query.exec(QStringLiteral("COMMIT"));
+}
+
+bool DatabaseModule::rollbackTransaction() noexcept
+{
+    QMutexLocker lock(&sMutex);
+    if (!sInitialized) return false;
+    QSqlQuery query(sDb);
+    return query.exec(QStringLiteral("ROLLBACK"));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 //  Maintenance
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -361,6 +389,121 @@ bool DatabaseModule::vacuum() noexcept
 
     QSqlQuery query(sDb);
     return query.exec(QStringLiteral("VACUUM"));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Pruning (Item 18)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+bool DatabaseModule::pruneHistory(int keepDays) noexcept
+{
+    QMutexLocker lock(&sMutex);
+    if (!sInitialized) return false;
+
+    if (keepDays <= 0) return false;
+
+    if (!beginTransaction()) return false;
+
+    QSqlQuery query(sDb);
+    query.prepare(QStringLiteral(
+        "DELETE FROM ip_history WHERE timestamp < datetime('now', ?)"
+    ));
+    query.addBindValue(QStringLiteral("-%1 days").arg(keepDays));
+
+    if (!query.exec()) {
+        qWarning("DatabaseModule: pruneHistory failed: %s",
+                 qPrintable(query.lastError().text()));
+        static_cast<void>(rollbackTransaction());
+        return false;
+    }
+
+    int const deleted = query.numRowsAffected();
+    bool const ok = commitTransaction();
+
+    if (ok && deleted > 0) {
+        qInfo("DatabaseModule: Pruned %d old history entries (>%d days)", deleted, keepDays);
+        vacuum();
+    }
+
+    return ok;
+}
+
+bool DatabaseModule::pruneTelemetry(int keepDays) noexcept
+{
+    QMutexLocker lock(&sMutex);
+    if (!sInitialized) return false;
+
+    if (keepDays <= 0) return false;
+
+    if (!beginTransaction()) return false;
+
+    QSqlQuery query(sDb);
+    query.prepare(QStringLiteral(
+        "DELETE FROM telemetry WHERE timestamp < datetime('now', ?)"
+    ));
+    query.addBindValue(QStringLiteral("-%1 days").arg(keepDays));
+
+    if (!query.exec()) {
+        qWarning("DatabaseModule: pruneTelemetry failed: %s",
+                 qPrintable(query.lastError().text()));
+        static_cast<void>(rollbackTransaction());
+        return false;
+    }
+
+    int const deletedTel = query.numRowsAffected();
+
+    QSqlQuery aggQuery(sDb);
+    aggQuery.prepare(QStringLiteral(
+        "DELETE FROM telemetry_aggregated WHERE window_end < datetime('now', ?)"
+    ));
+    aggQuery.addBindValue(QStringLiteral("-%1 days").arg(keepDays));
+
+    if (!aggQuery.exec()) {
+        qWarning("DatabaseModule: pruneTelemetry aggregated failed: %s",
+                 qPrintable(aggQuery.lastError().text()));
+        static_cast<void>(rollbackTransaction());
+        return false;
+    }
+
+    int const deletedAgg = aggQuery.numRowsAffected();
+    bool const ok = commitTransaction();
+
+    if (ok && (deletedTel > 0 || deletedAgg > 0)) {
+        qInfo("DatabaseModule: Pruned %d telemetry + %d aggregated entries (>%d days)",
+              deletedTel, deletedAgg, keepDays);
+        vacuum();
+    }
+
+    return ok;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Integrity (Item 20)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+bool DatabaseModule::integrityCheck() noexcept
+{
+    QMutexLocker lock(&sMutex);
+    if (!sInitialized) return false;
+
+    QSqlQuery query(sDb);
+    if (!query.exec(QStringLiteral("PRAGMA integrity_check"))) {
+        qWarning("DatabaseModule: integrity_check failed: %s",
+                 qPrintable(query.lastError().text()));
+        return false;
+    }
+
+    if (query.next()) {
+        QString const result = query.value(0).toString();
+        if (result == QStringLiteral("ok")) {
+            qInfo("DatabaseModule: Integrity check passed");
+            return true;
+        }
+        qWarning("DatabaseModule: Integrity check FAILED: %s", qPrintable(result));
+        return false;
+    }
+
+    return false;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

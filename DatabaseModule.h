@@ -104,9 +104,21 @@ public:
 
     static bool clearTelemetryAggregated() noexcept;
 
+    // ── Transaction Support (Item 11) ────────────────────────────────────
+    [[nodiscard]] static bool beginTransaction() noexcept;
+    [[nodiscard]] static bool commitTransaction() noexcept;
+    [[nodiscard]] static bool rollbackTransaction() noexcept;
+
     // ── Maintenance ────────────────────────────────────────────────────────
     static bool clearHistory() noexcept;
     static bool vacuum() noexcept;
+
+    // ── Pruning (Item 18) ─────────────────────────────────────────────────
+    [[nodiscard]] static bool pruneHistory(int keepDays = 30) noexcept;
+    [[nodiscard]] static bool pruneTelemetry(int keepDays = 90) noexcept;
+
+    // ── Integrity (Item 20) ───────────────────────────────────────────────
+    [[nodiscard]] static bool integrityCheck() noexcept;
 
 private:
     DatabaseModule() = default;
