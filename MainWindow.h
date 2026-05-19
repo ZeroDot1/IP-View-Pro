@@ -32,6 +32,7 @@
 #include "SpeedtestTab.h"
 #include "TelemetryTab.h"
 #include "AboutTab.h"
+#include "TabRegistry.h"
 // ═══════════════════════════════════════════════════════════════════════════════
 class MainWindow : public QWidget
 {
@@ -69,6 +70,9 @@ private:
     void saveSettings() noexcept;
     void loadSettings() noexcept;
 
+    // ── Tab Registry (Item 1) ─────────────────────────────────────────────
+    IPView::UI::TabRegistry mTabRegistry;
+
     // ── Tab Widget ────────────────────────────────────────────────────────
     QTabWidget *tabWidget{nullptr};
 
@@ -76,7 +80,7 @@ private:
     IPView::UI::DashboardView *dashboardView{nullptr};
     QLabel      *statusLabel{nullptr};
 
-    // ── Sub-Tabs ──────────────────────────────────────────────────────────
+    // ── Tab-Zugriff (Convenience-Zeiger, zeigen in die Registry) ────────
     WhoisTab     *whoisTab{nullptr};
     ToolsTab     *toolsTab{nullptr};
     ScannerTab   *scannerTab{nullptr};

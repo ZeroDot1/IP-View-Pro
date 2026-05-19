@@ -212,34 +212,40 @@ void MainWindow::setupUI() noexcept
     tabWidget->tabBar()->setExpanding(true);
     tabWidget->setIconSize(QSize(14, 14));
 
-    // ── Dashboard tab (extracted from MainWindow into DashboardView) ───
-    dashboardView = new IPView::UI::DashboardView();
+    // ── Tabs über Registry anlegen ────────────────────────────────────────
+    //  Die TabRegistry entkoppelt MainWindow von konkreten Tab-Klassen
+    //  und erlaubt dynamische Registrierung/Query über ID-Strings.
 
-    // ── Sub-Tabs ──────────────────────────────────────────────────────────
-    whoisTab     = new WhoisTab();
-    toolsTab     = new ToolsTab();           // Ping / iPerf3 / Traceroute
-    scannerTab   = new ScannerTab();         // Port-Scanner
-    historyTab   = new HistoryTab();         // IP history (SQLite-persistent)
-    speedtestTab = new SpeedtestTab();
-    telemetryTab = new TelemetryTab();       // Real-time network telemetry
-    aboutTab     = new AboutTab();
+    // Dashboard (Overview) — Sonderfall (eigener Namespace)
+    dashboardView = mTabRegistry.registerTab<IPView::UI::DashboardView>(
+        QStringLiteral("dashboard"), QStringLiteral(" Overview"),
+        QIcon(QStringLiteral(":/svgs/chart-bar.svg")));
 
-    tabWidget->addTab(dashboardView, QIcon(QStringLiteral(":/svgs/chart-bar.svg")),
-                      QStringLiteral(" Overview"));
-    tabWidget->addTab(whoisTab,      QIcon(QStringLiteral(":/svgs/search.svg")),
-                      QStringLiteral(" Whois Lookup"));
-    tabWidget->addTab(toolsTab,      QIcon(QStringLiteral(":/svgs/wrench.svg")),
-                      QStringLiteral(" Network Tools"));
-    tabWidget->addTab(scannerTab,    QIcon(QStringLiteral(":/svgs/compass.svg")),
-                      QStringLiteral(" Port Scanner"));
-    tabWidget->addTab(historyTab,    QIcon(QStringLiteral(":/svgs/scroll.svg")),
-                      QStringLiteral(" History"));
-    tabWidget->addTab(speedtestTab,  QIcon(QStringLiteral(":/svgs/lightning.svg")),
-                      QStringLiteral(" Speedtest"));
-    tabWidget->addTab(telemetryTab,  QIcon(QStringLiteral(":/svgs/graph.svg")),
-                      QStringLiteral(" Telemetry"));
-    tabWidget->addTab(aboutTab,      QIcon(QStringLiteral(":/svgs/info.svg")),
-                      QStringLiteral(" About"));
+    // Sub-Tabs via Registry
+    whoisTab     = mTabRegistry.registerTab<WhoisTab>(
+                       QStringLiteral("whois"),     QStringLiteral(" Whois Lookup"),
+                       QIcon(QStringLiteral(":/svgs/search.svg")));
+    toolsTab     = mTabRegistry.registerTab<ToolsTab>(
+                       QStringLiteral("tools"),     QStringLiteral(" Network Tools"),
+                       QIcon(QStringLiteral(":/svgs/wrench.svg")));
+    scannerTab   = mTabRegistry.registerTab<ScannerTab>(
+                       QStringLiteral("scanner"),   QStringLiteral(" Port Scanner"),
+                       QIcon(QStringLiteral(":/svgs/compass.svg")));
+    historyTab   = mTabRegistry.registerTab<HistoryTab>(
+                       QStringLiteral("history"),   QStringLiteral(" History"),
+                       QIcon(QStringLiteral(":/svgs/scroll.svg")));
+    speedtestTab = mTabRegistry.registerTab<SpeedtestTab>(
+                       QStringLiteral("speedtest"), QStringLiteral(" Speedtest"),
+                       QIcon(QStringLiteral(":/svgs/lightning.svg")));
+    telemetryTab = mTabRegistry.registerTab<TelemetryTab>(
+                       QStringLiteral("telemetry"), QStringLiteral(" Telemetry"),
+                       QIcon(QStringLiteral(":/svgs/graph.svg")));
+    aboutTab     = mTabRegistry.registerTab<AboutTab>(
+                       QStringLiteral("about"),     QStringLiteral(" About"),
+                       QIcon(QStringLiteral(":/svgs/info.svg")));
+
+    // Alle registrierten Tabs in den QTabWidget einfügen
+    mTabRegistry.populateTabWidget(tabWidget);
 
     mainLayout->addWidget(tabWidget);
 
