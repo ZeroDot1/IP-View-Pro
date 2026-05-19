@@ -63,6 +63,11 @@ signals:
     void telemetryUpdated(const QList<IPView::Telemetry::InterfaceInfo> &interfaces);
     void errorOccurred(const QString &message);
 
+public:
+    // ── Dynamic polling control (Item 41) ────────────────────────────────
+    void setDynamicAdjustment(bool enabled) noexcept { mDynamicAdjustment = enabled; }
+    [[nodiscard]] bool dynamicAdjustment() const noexcept { return mDynamicAdjustment; }
+
 private slots:
     void onTick() noexcept;
 
@@ -70,12 +75,21 @@ private:
     [[nodiscard]] Stats parseProcNetDev(const QString &content, std::string_view interface) noexcept;
     [[nodiscard]] bool  isValidInterface(std::string_view name) const noexcept;
 
+    // ── Dynamic polling (Item 41) ─────────────────────────────────────────
+    void adjustIntervalDynamically(double totalActivity) noexcept;
+
     // ── State ────────────────────────────────────────────────────────────────
     QTimer               *mTimer{nullptr};
     QList<InterfaceInfo>  mInterfaces;
     mutable QStringList   mCachedInterfaces;
     mutable bool          mCacheValid{false};
     bool                  mMonitoring{false};
+
+    // ── Dynamische Intervall-Grenzen (Item 41) ────────────────────────────
+    int  mBaseIntervalMs{2000};
+    int  mMinIntervalMs{500};
+    int  mMaxIntervalMs{10000};
+    bool mDynamicAdjustment{true};
 };
 
 } // namespace IPView::Telemetry

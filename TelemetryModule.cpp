@@ -165,8 +165,47 @@ void TelemetryModule::onTick() noexcept
 
     mInterfaces = updated;
     mCacheValid = false; // Reload cache on next call
+
+    // ── Dynamic interval adjustment (Item 41) ──────────────────────────
+    if (mDynamicAdjustment) {
+        double totalActivity = 0.0;
+        for (auto const &info : mInterfaces) {
+            totalActivity += info.rxSpeedBps + info.txSpeedBps;
+        }
+        adjustIntervalDynamically(totalActivity);
+    }
+
     emit telemetryUpdated(mInterfaces);
 }
+
+void TelemetryModule::adjustIntervalDynamically(double totalActivity) noexcept
+{
+    // totalActivity in bytes/sec — skaliere Intervall invers dazu
+    //   activity <   50 KB/s  →  max interval (10 s)
+    //   activity >   10 MB/s  →  min interval (500 ms)
+    //   dazwischen → linear interpoliert
+    double constexpr lowWater  =     50.0 * 1024.0;  //   50 KB/s
+    double constexpr highWater =     10.0 * 1024.0 * 1024.0;  // 10 MB/s
+    int const targetMs = static_cast<int>(
+        std::clamp(
+            mMaxIntervalMs - (totalActivity - lowWater)
+                          / (highWater - lowWater)
+                          * static_cast<double>(mMaxIntervalMs - mMinIntervalMs),
+            static_cast<double>(mMinIntervalMs),
+            static_cast<double>(mMaxIntervalMs)
+        ));
+
+    if (totalActivity <= lowWater) {
+        // Sehr geringe Aktivität → langsamstes Intervall
+        mTimer->setInterval(mMaxIntervalMs);
+    } else if (totalActivity >= highWater) {
+        // Hohe Aktivität → schnellstes Intervall
+        mTimer->setInterval(mMinIntervalMs);
+    } else {
+        mTimer->setInterval(targetMs);
+    }
+}
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Private Helpers
