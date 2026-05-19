@@ -139,9 +139,15 @@ void TracerouteTab::onStopTraceClicked()
 // ═══════════════════════════════════════════════════════════════════════════════
 void TracerouteTab::onDataReceived()
 {
-    QString const outputData = QString::fromLocal8Bit(process->readAll());
-    if (!outputData.trimmed().isEmpty()) {
-        outputArea->append(outputData.trimmed());
+    // Read both stdout and stderr — the signal may fire for either channel
+    QString const outData = QString::fromLocal8Bit(process->readAllStandardOutput());
+    QString const errData = QString::fromLocal8Bit(process->readAllStandardError());
+
+    if (!outData.trimmed().isEmpty()) {
+        outputArea->append(outData.trimmed());
+    }
+    if (!errData.trimmed().isEmpty()) {
+        outputArea->append(QStringLiteral("[stderr] ") + errData.trimmed());
     }
 }
 

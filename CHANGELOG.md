@@ -2,6 +2,57 @@
 
 All notable changes to this project are documented here.
 
+## [2.9.1] — 2026-05-19
+
+### Fixed
+
+- **FlagLoader — Async race condition (CRITICAL):** `loadFlag()` previously stored the
+  target label and country code as member variables, causing a data race when multiple
+  requests were dispatched before the first one completed. The first reply would then
+  overwrite the flag on the wrong label. Fixed by attaching per-request context
+  (`flagCountry`, `flagLabel`) directly to each `QNetworkReply` via `setProperty()`.
+  The `currentLabel` and `currentCountry` member fields have been removed.
+
+- **TracerouteTab — Wrong I/O channel on stderr signal (CRITICAL):** `onDataReceived()`
+  was connected to both `readyReadStandardOutput` and `readyReadStandardError`, but
+  called `QProcess::readAll()` which only reads stdout. When the stderr signal fired,
+  no output was displayed. Fixed by calling `readAllStandardOutput()` and
+  `readAllStandardError()` separately, with stderr text prefixed by `[stderr]`.
+
+- **Iperf3Window — Missing host validation (HIGH):** User-supplied host input was
+  passed directly to the iperf3 process without validation. Added
+  `isValidNetworkTarget()` check before launching. The binary path is now resolved
+  via `findSystemTool("iperf3")` instead of relying on a hardcoded command name,
+  preventing PATH hijacking attacks.
+
+- **WhoisTab — Inconsistent destructor:** Added explicit `override` destructor with
+  `= default` to match the RAII pattern used by all other tabs.
+
+### Changed
+
+- **Iperf3Window — Hardcoded styles → Theme.h tokens:** Replaced all inline color
+  literals (`#e94560`, `#1a1a2e`, `#00ff88`, etc.) with preprocessor constants from
+  `Theme.h` (`C_ACCENT`, `C_BG_ELEVATED`, `C_SUCCESS`, etc.). The start button now
+  uses the standard `btnAccentStyle()` helper. The output text edit received a
+  proper border and background using the unified token system.
+
+- **WhoisTab — Code-style alignment:** Refactored to use the `setupUI()` pattern
+  consistent with all other tabs. Methods annotated with `noexcept`. All string
+  literals now use `QStringLiteral`. Label widgets are explicitly styled with
+  `C_TEXT` for color consistency. Member pointers initialize to `nullptr`.
+
+- **MainWindow — Comment language:** One remaining German inline comment (`5 Minuten`)
+  translated to professional US English (`5 minutes`).
+
+### Security
+
+- **Iperf3 binary path resolution:** `findSystemTool("iperf3")` now resolves the
+  absolute path to the iperf3 binary before execution, eliminating reliance on
+  `PATH` environment variable and preventing privilege-escalation vectors through
+  PATH hijacking.
+
+---
+
 ## [2.9.0] — 2026-05-19
 
 ### Added

@@ -30,16 +30,22 @@ void FlagLoader::loadFlag(const QString &cc, QLabel *label) noexcept
     }
 
     // ── Download ─────────────────────────────────────────────────────────
-    currentLabel   = label;
-    currentCountry = cc.toLower();
+    // Store per-request context via QNetworkReply properties to avoid
+    // race conditions when multiple loadFlag() calls are in flight.
+    QString const lowerCc = cc.toLower();
 
     QUrl const url(QStringLiteral("https://flagpedia.net/data/flags/w580/%1.png")
-                       .arg(currentCountry));
+                       .arg(lowerCc));
     QNetworkRequest request(url);
     request.setRawHeader("User-Agent", QByteArrayLiteral("IPView/2.0"));
     request.setTransferTimeout(10000);
 
     QNetworkReply * const reply = manager->get(request);
+
+    // Attach context to the reply (prevents async race conditions)
+    reply->setProperty("flagCountry", lowerCc);
+    reply->setProperty("flagLabel",
+                       QVariant::fromValue(reinterpret_cast<quintptr>(label)));
 
     // ── Security: detect and abort on SSL error ────────────────┐
     enforceStrictSsl(reply);                                        //┘
@@ -60,10 +66,15 @@ void FlagLoader::onReplyFinished(QNetworkReply *reply)
 {
     if (!reply) return;
 
-    if (reply->error() != QNetworkReply::NoError || !currentLabel) {
+    // Retrieve per-request context from reply properties
+    QString const country = reply->property("flagCountry").toString();
+    auto const labelPtr = reply->property("flagLabel").value<quintptr>();
+    auto *label = reinterpret_cast<QLabel*>(labelPtr);
+
+    if (reply->error() != QNetworkReply::NoError || !label) {
         if (reply->error() != QNetworkReply::NoError) {
-            qDebug().noquote() << QStringLiteral("Flag download failed: %1")
-                                      .arg(reply->errorString());
+            qDebug().noquote() << QStringLiteral("Flag download failed for %1: %2")
+                                      .arg(country, reply->errorString());
         }
         reply->deleteLater();
         return;
@@ -74,9 +85,9 @@ void FlagLoader::onReplyFinished(QNetworkReply *reply)
 
     if (pixmap.loadFromData(raw)) {
         // Store in cache
-        flagCache.insert(currentCountry, pixmap);
-        currentLabel->setPixmap(pixmap.scaled(currentLabel->size(),
-                                Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        flagCache.insert(country, pixmap);
+        label->setPixmap(pixmap.scaled(label->size(),
+                          Qt::KeepAspectRatio, Qt::SmoothTransformation));
     }
 
     reply->deleteLater();

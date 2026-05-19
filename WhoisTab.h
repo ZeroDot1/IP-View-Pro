@@ -16,18 +16,22 @@ class WhoisTab : public QWidget
     Q_OBJECT
 public:
     explicit WhoisTab(QWidget *parent = nullptr);
-    void setIp(const QString &ip);
+    ~WhoisTab() override = default;
+
+    void setIp(const QString &ip) noexcept;
 
 private slots:
     void onLookupClicked();
     void onLookupFinished(const QString &result);
 
 private:
-    QLineEdit *ipEdit;
-    QComboBox *apiCombo;
-    QPushButton *lookupButton;
-    QTableWidget *resultArea;
-    WhoisManager *whoisManager;
+    void setupUI() noexcept;
+
+    QLineEdit    *ipEdit{nullptr};
+    QComboBox    *apiCombo{nullptr};
+    QPushButton  *lookupButton{nullptr};
+    QTableWidget *resultArea{nullptr};
+    WhoisManager *whoisManager{nullptr};
 };
 
 #endif

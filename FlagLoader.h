@@ -35,10 +35,6 @@ private:
 
     // ── Network ───────────────────────────────────────────────────────────
     QNetworkAccessManager *manager{nullptr};
-
-    // ── Current state (for async callbacks) ────────────────────────────────
-    QLabel  *currentLabel{nullptr};
-    QString  currentCountry;
 };
 
 #endif // FLAGLOADER_H

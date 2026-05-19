@@ -22,7 +22,7 @@
 // ── Compile-time constant application metadata ─────────────────────────────
 //  C++26 consteval: Guaranteed evaluation at compile time
 consteval auto appName()        noexcept { return "IPView"; }
-consteval auto appVersion()     noexcept { return "2.9.0"; }
+    consteval auto appVersion()     noexcept { return "2.9.1"; }
 consteval auto appOrgName()     noexcept { return "IPView"; }
 consteval auto appOrgDomain()   noexcept { return "ipview.local"; }
 consteval auto appDisplayName() noexcept { return "IP View Pro"; }

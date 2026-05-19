@@ -5,6 +5,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "Iperf3Window.h"
+#include "Theme.h"
+#include "SecurityUtil.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QProcess>
@@ -54,13 +56,13 @@ void Iperf3Window::setupUI()
     auto *headerFrame = new QFrame();
     headerFrame->setStyleSheet(QStringLiteral(
         "background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "stop:0 #1a1a2e, stop:1 #16213e); border-radius: 8px;"
-    ));
+        "stop:0 %1, stop:1 #16213e); border-radius: 8px;"
+    ).arg(C_BG_ELEVATED));
     headerFrame->setFixedHeight(50);
 
     auto *titleLabel = new QLabel(QStringLiteral("IPerf3 Network Test"));
     titleLabel->setFont(QFont(QStringLiteral("Segoe UI"), 14, QFont::Bold));
-    titleLabel->setStyleSheet(QStringLiteral("color: #e94560; padding: 10px;"));
+    titleLabel->setStyleSheet(QStringLiteral("color: %1; padding: 10px;").arg(C_ACCENT));
 
     auto *headerLayout = new QHBoxLayout(headerFrame);
     headerLayout->addWidget(titleLabel);
@@ -69,8 +71,8 @@ void Iperf3Window::setupUI()
     // ── Content ───────────────────────────────────────────────────────────
     auto *contentFrame = new QFrame();
     contentFrame->setStyleSheet(QStringLiteral(
-        "background-color: #0f0f1a; border-radius: 12px;"
-    ));
+        "background-color: %1; border-radius: 12px;"
+    ).arg(C_BG));
 
     auto *mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(15);
@@ -85,9 +87,9 @@ void Iperf3Window::setupUI()
     // ── IP Display ────────────────────────────────────────────────────────
     auto *topRow = new QHBoxLayout();
     auto *ipTextLabel = new QLabel(QStringLiteral("Target IP:"));
-    ipTextLabel->setStyleSheet(QStringLiteral("color: #ffffff;"));
+    ipTextLabel->setStyleSheet(QStringLiteral("color: %1;").arg(C_TEXT));
     ipLabel = new QLabel();
-    ipLabel->setStyleSheet(QStringLiteral("color: #00d4ff; font-weight: bold;"));
+    ipLabel->setStyleSheet(QStringLiteral("color: %1; font-weight: bold;").arg(C_PRIMARY));
     ipLabel->setText(QStringLiteral("(Click button to get from IP View)"));
     ipTextLabel->setFixedWidth(80);
     topRow->addWidget(ipTextLabel);
@@ -99,13 +101,14 @@ void Iperf3Window::setupUI()
     roleCombo->addItems({QStringLiteral("Client"), QStringLiteral("Server")});
     roleCombo->setFixedWidth(120);
     hostEdit = new QLineEdit();
+    hostEdit->setStyleSheet(inputStyle());
     hostEdit->setPlaceholderText(QStringLiteral("Enter server IP for client mode"));
     hostEdit->setText(QStringLiteral("localhost"));
 
     auto *modeLabel = new QLabel(QStringLiteral("Mode:"));
-    modeLabel->setStyleSheet(QStringLiteral("color: #ffffff;"));
+    modeLabel->setStyleSheet(QStringLiteral("color: %1;").arg(C_TEXT));
     auto *hostLabel = new QLabel(QStringLiteral("Host:"));
-    hostLabel->setStyleSheet(QStringLiteral("color: #ffffff;"));
+    hostLabel->setStyleSheet(QStringLiteral("color: %1;").arg(C_TEXT));
 
     controlRow->addWidget(modeLabel);
     controlRow->addWidget(roleCombo);
@@ -116,17 +119,15 @@ void Iperf3Window::setupUI()
     // ── Buttons ───────────────────────────────────────────────────────────
     auto *buttonRow = new QHBoxLayout();
     startButton = new QPushButton(QStringLiteral("Start Test"));
-    startButton->setStyleSheet(QStringLiteral(
-        "background-color: #e94560; color: white; border-radius: 6px; "
-        "padding: 8px 16px; font-weight: bold;"
-    ));
+    startButton->setProperty("accent", true);
+    startButton->setStyleSheet(btnAccentStyle());
     startButton->setFixedSize(120, 35);
 
     stopButton = new QPushButton(QStringLiteral("Stop"));
     stopButton->setStyleSheet(QStringLiteral(
-        "background-color: #1a1a2e; color: #ffffff; border: 1px solid #e94560; "
-        "border-radius: 6px; padding: 8px 16px;"
-    ));
+        "QPushButton { background-color: %1; color: %2; border: 1px solid %2; "
+        "border-radius: %3; padding: 8px 16px; }"
+    ).arg(C_BG_ELEVATED, C_ACCENT, RADIUS_MD));
     stopButton->setFixedSize(120, 35);
     stopButton->setEnabled(false);
 
@@ -140,26 +141,28 @@ void Iperf3Window::setupUI()
     speedBar->setRange(0, 1000);
     speedBar->setValue(0);
     speedBar->setStyleSheet(QStringLiteral(
-        "background-color: #1a1a2e; border: 1px solid #e94560; "
-        "border-radius: 6px; height: 20px;"
-    ));
+        "QProgressBar { background: %1; border: 1px solid %2; "
+        "border-radius: 6px; text-align: center; color: %3; font-weight: bold; }"
+        "QProgressBar::chunk { background: %2; border-radius: 5px; }"
+    ).arg(C_BG_ELEVATED, C_ACCENT, C_TEXT));
 
     speedLabel = new QLabel(QStringLiteral("Speed: 0.00 Mbps"));
     speedLabel->setStyleSheet(QStringLiteral(
-        "color: #00ff88; font-size: 12px; font-weight: bold;"
-    ));
+        "color: %1; font-size: 12px; font-weight: bold;"
+    ).arg(C_SUCCESS));
 
     transferLabel = new QLabel(QStringLiteral("Transferred: 0.00 MB"));
-    transferLabel->setStyleSheet(QStringLiteral("color: #ffffff;"));
+    transferLabel->setStyleSheet(QStringLiteral("color: %1;").arg(C_TEXT));
 
     timeLabel = new QLabel(QStringLiteral("Time: 00:00"));
-    timeLabel->setStyleSheet(QStringLiteral("color: #888888;"));
+    timeLabel->setStyleSheet(QStringLiteral("color: %1;").arg(C_TEXT_DIM));
 
     // ── Output ────────────────────────────────────────────────────────────
     outputEdit = new QTextEdit();
     outputEdit->setStyleSheet(QStringLiteral(
-        "background-color: #1a1a2e; color: #ffffff; border: none;"
-    ));
+        "QTextEdit { background: %1; color: %2; border: 1px solid %3; "
+        "border-radius: 6px; padding: 6px; }"
+    ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER));
     outputEdit->setReadOnly(true);
     outputEdit->setMinimumHeight(200);
 
@@ -182,25 +185,39 @@ void Iperf3Window::onStartClicked()
 {
     if (isRunning) return;
 
-    QString host = hostEdit->text();
-    if (host.isEmpty()) host = QStringLiteral("localhost");
+    QString host = hostEdit->text().trimmed();
+
+    // ── Security: Input validation against command injection ──────────
+    if (roleCombo->currentText() == QStringLiteral("Client")) {
+        if (host.isEmpty()) host = QStringLiteral("localhost");
+        if (!isValidNetworkTarget(host)) {
+            outputEdit->append(QStringLiteral("Invalid host. Enter a valid IP or hostname."));
+            return;
+        }
+    }
+
+    // ── Security: resolve full binary path (prevents PATH hijacking) ──
+    QString const iperfPath = findSystemTool(QStringLiteral("iperf3"));
+    if (iperfPath.isEmpty()) {
+        outputEdit->append(QStringLiteral("Error: 'iperf3' not found. Install: sudo pacman -S iperf3"));
+        return;
+    }
 
     QStringList args;
-    args << QStringLiteral("-c") << host
-         << QStringLiteral("-t") << QStringLiteral("30")
-         << QStringLiteral("-i") << QStringLiteral("1")
-         << QStringLiteral("-f") << QStringLiteral("m");
-
     if (roleCombo->currentText() == QStringLiteral("Server")) {
-        args.clear();
         args << QStringLiteral("-s") << QStringLiteral("-P") << QStringLiteral("1");
+    } else {
+        args << QStringLiteral("-c") << host
+             << QStringLiteral("-t") << QStringLiteral("30")
+             << QStringLiteral("-i") << QStringLiteral("1")
+             << QStringLiteral("-f") << QStringLiteral("m");
     }
 
     outputEdit->clear();
     outputEdit->append(QStringLiteral("Starting iperf3 test..."));
-    outputEdit->append(QStringLiteral("Command: iperf3 %1").arg(args.join(QLatin1Char(' '))));
+    outputEdit->append(QStringLiteral("Command: %1 %2").arg(iperfPath, args.join(QLatin1Char(' '))));
 
-    iperf3Process->start(QStringLiteral("iperf3"), args);
+    iperf3Process->start(iperfPath, args);
     isRunning = true;
     startButton->setEnabled(false);
     stopButton->setEnabled(true);
@@ -342,15 +359,15 @@ void Iperf3Window::updateVisualization(double speed) noexcept
     speedBar->setValue(pct);
 
     QString color;
-    if      (speed >= 100.0) color = QStringLiteral("#00ff88"); // green
-    else if (speed >= 50.0)  color = QStringLiteral("#00d4ff"); // cyan
-    else if (speed >= 10.0)  color = QStringLiteral("#ffaa00"); // orange
-    else                     color = QStringLiteral("#ff4444"); // red
+    if      (speed >= 100.0) color = C_SUCCESS; // green
+    else if (speed >= 50.0)  color = C_PRIMARY; // cyan
+    else if (speed >= 10.0)  color = C_WARNING; // orange
+    else                     color = C_ERROR;   // red
 
     speedBar->setStyleSheet(QStringLiteral(
-        "QProgressBar { background: #1a1a2e; border: 1px solid %1;"
+        "QProgressBar { background: %1; border: 1px solid %2;"
         "  border-radius: 6px; height: 20px; text-align: center;"
-        "  color: #ffffff; font-weight: bold; }"
-        "QProgressBar::chunk { background: %1; border-radius: 5px; }"
-    ).arg(color));
+        "  color: %3; font-weight: bold; }"
+        "QProgressBar::chunk { background: %2; border-radius: 5px; }"
+    ).arg(C_BG_ELEVATED, color, C_TEXT));
 }

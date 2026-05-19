@@ -320,7 +320,7 @@ void MainWindow::onIPv6Toggled(bool /*checked*/)
 void MainWindow::onAutoRefreshToggled(bool checked)
 {
     if (checked) {
-        autoRefreshTimer->start(300000);  // 5 Minuten
+        autoRefreshTimer->start(300000);  // 5 minutes
     } else {
         autoRefreshTimer->stop();
     }

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
-#  IPView Pro v2.9.0 – Build Script
+#  IPView Pro v2.9.1 – Build Script
 #  Qt 6.11 · C++26 (GCC 14+ / Clang 18+) · Arch Linux
 #  Public Domain — No License — No Restrictions
 # ═══════════════════════════════════════════════════════════════
@@ -13,7 +13,7 @@ BUILD_DIR="$SCRIPT_DIR/build"
 BINARY="$BUILD_DIR/IPView"
 
 echo "╔═══════════════════════════════════════════════╗"
-echo "║      IPView Pro v2.9.0 — C++26 · Qt 6.11     ║"
+echo "║      IPView Pro v2.9.1 — C++26 · Qt 6.11     ║"
 echo "╚═══════════════════════════════════════════════╝"
 echo ""
 echo "  Build type : $BUILD_TYPE"
