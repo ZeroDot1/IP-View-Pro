@@ -2,6 +2,54 @@
 
 All notable changes to this project are documented here.
 
+## [2.10.0] — 2026-05-19
+
+### Added
+
+- **Item 46 — TopologyTab (QGraphicsView network topology):** New tab that runs
+  `traceroute` to a target host and visualizes each hop as a color-coded node on a
+  QGraphicsView canvas. Nodes are colored by latency: green (<10 ms), blue (<50 ms),
+  orange (<150 ms), red (≥150 ms or timeout). Interactive zoom (scroll wheel) and
+  pan (click-drag). Tooltips show hop IP, hostname, and exact latency. Destination
+  node is highlighted in green and enlarged.
+  - Hop count label above each node; IP/hostname and latency below.
+  - Dashed connecting lines with direction arrow between consecutive hops.
+  - Input validation via `isValidNetworkTarget()` and system tool resolution via
+    `findSystemTool("traceroute")` for PATH-hijack prevention.
+  - New SVG icon: `svgs/topology.svg` (network-graph design with connected nodes).
+
+- **Item 47 — PacketModule (/proc/net connection parser):** Background service that
+  parses `/proc/net/tcp`, `/proc/net/tcp6`, `/proc/net/udp`, and `/proc/net/udp6`
+  into structured `ConnectionEntry` objects. Converts kernel hex-encoded addresses
+  (little-endian byte order) to standard dotted-decimal IPv4 / colon-hex IPv6 format.
+  Timer-based polling at 5-second intervals. Emits `connectionsUpdated` signal with
+  a full `ConnectionSnapshot` containing timestamped TCP and UDP connection lists.
+  - World-readable procfs entries — no root privileges required.
+  - Proper TCP state decoding (Established, Listen, TimeWait, etc.).
+  - `pollNow()` for on-demand snapshots; `startPolling()`/`stopPolling()` for lifecycle.
+
+- **FullHD window default:** Main window now defaults to 1920×1080 with a minimum
+  of 1280×720.
+
+- **Tab bar expanded to 10 tabs:** All tabs (Overview, Whois, Scanner, Tools, Speedtest,
+  TLS Auditor, Topology, Telemetry, History, About) always visible without scrolling.
+  Added `Topology Tab` between TLS Auditor and Telemetry.
+
+### Changed
+
+- **Version bumped:** `2.9.1` → `2.10.0` (`CMakeLists.txt`).
+- **Tab insertion order:** Topology tab placed at position 7 (after TLS Auditor,
+  before Telemetry).
+- **`MainWindow` extended:** New `TopologyTab *topologyTab` member, `setupPacketModule()`
+  method, `IPView::Packet::PacketModule` background service.
+
+### Build
+
+- `CMakeLists.txt` supplemented with `TopologyTab.cpp` and `PacketModule.cpp`.
+- `resources.qrc` registered `svgs/topology.svg`.
+
+---
+
 ## [2.9.1] — 2026-05-19
 
 ### Fixed

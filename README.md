@@ -50,7 +50,7 @@
 
 Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory (512×512 px native, displayed at 14×14 px inline).
 
-> **Compact Tab Bar:** All 8 tabs (Overview, Whois, Network Tools, Port Scanner, History, Speedtest, Telemetry, About) are always visible without scrolling — thanks to reduced padding (`6px 12px`), smaller font (`11px`), and `setUsesScrollButtons(false)` + `setExpanding(true)` on the QTabBar. (Eight tabs remain; `TelemetryPersistenceModule` and `ServerSelectionModule` are background services without dedicated tabs.)
+> **Compact Tab Bar:** All 10 tabs (Overview, Whois, Port Scanner, Network Tools, Speedtest, TLS Auditor, Topology, Telemetry, History, About) are always visible without scrolling — thanks to reduced padding (`6px 12px`), smaller font (`11px`), and `setUsesScrollButtons(false)` + `setExpanding(true)` on the QTabBar. (`TelemetryPersistenceModule`, `ServerSelectionModule`, `AlertEngine`, and `PacketModule` are background services without dedicated tabs.)
 
 ###  Multi-API Geolocation
 - **12+ APIs** with automatic failover, sparse data enrichment, and IPv6 support.
@@ -141,6 +141,18 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
 - Context menu: Restore Window / Exit.
 - Informative tray tooltip with IP, country flag (Unicode), ISP, ASN, and timestamp.
 
+###  Topology Tab
+- **QGraphicsView network path visualization:** Runs `traceroute` to a target host and renders each hop as a color-coded node on an interactive canvas.
+- **Color-coded by latency:** Green (<10 ms), blue (<50 ms), orange (<150 ms), red (≥150 ms or timeout). Destination node highlighted in green and enlarged.
+- **Interactive controls:** Scroll-wheel zoom, click-drag pan, tooltips with hop IP, hostname, and exact latency.
+- **Security-hardened:** Input validated via `isValidNetworkTarget()`, binary resolved via `findSystemTool("traceroute")`.
+
+###  Active Connections Monitor (PacketModule)
+- **Background service:** Parses `/proc/net/tcp`, `/proc/net/tcp6`, `/proc/net/udp`, and `/proc/net/udp6` at configurable intervals (default 5s).
+- **Hex-to-IP conversion:** Converts kernel hex-encoded addresses (little-endian byte order) to standard dotted-decimal IPv4 / colon-hex IPv6.
+- **TCP state decoding:** Established, Listen, TimeWait, CloseWait, and more.
+- **No root required:** World-readable procfs entries.
+
 ###  About Tab
 - Build information: compiler (auto-detected GCC/Clang/MSVC), system, Qt version, C++ standard, compile date.
 - Public Domain — no license, no restrictions.
@@ -204,7 +216,7 @@ sudo pacman -S speedtest-cli iperf3 traceroute
 |------|---------|---------|
 | `speedtest-cli` | SpeedtestTab, ServerSelectionModule | Internet speed tests + server list |
 | `iperf3` | ToolsTab / Iperf3Window | Network throughput measurement |
-| `traceroute` | ToolsTab / TracerouteTab | Network hop tracing |
+| `traceroute` | ToolsTab / TracerouteTab / TopologyTab | Network hop tracing + topology visualization |
 
 ---
 
@@ -267,12 +279,23 @@ cmake --build build -j"$(nproc)"
    - **Browse Servers:** Opens a dialog with a sortable table of speedtest.net servers. Double-click to select.
    - Options: single connection, secure mode, share results.
 
-7. **Telemetry** : Real-time network interface monitoring.
+7. **TLS Auditor** : Inspect TLS/SSL certificates on any host.
+   - Single or batch host audit (one per line).
+   - Certificate chain inspection with subject, issuer, validity dates, and SANs.
+   - Color-coded: green = secure, red = insecure/expired.
+
+8. **Topology** : Visualize the network path to any host.
+   - Enter a hostname/IP and click **Trace Route**.
+   - Each network hop is displayed as a node on a QGraphicsView canvas.
+   - Color indicates latency; tooltips show IP, hostname, and exact RTT.
+   - Scroll to zoom, drag to pan.
+
+9. **Telemetry** : Real-time network interface monitoring.
    - Live download/upload speed cards.
    - Per-interface table with RX/TX rates, packets, and errors.
    - Auto-refresh with configurable interval.
 
-8. **About** : View build information including compiler name/version, C++ standard, system architecture, Qt version, and compile date/time.
+10. **About** : View build information including compiler name/version, C++ standard, system architecture, Qt version, and compile date/time.
 
 ---
 
@@ -303,11 +326,16 @@ IPView/
 ├── DatabaseModule.h/.cpp               # SQLite persistence layer (singleton, thread-safe)
 ├── ServerSelectionModule.h/.cpp        # Speedtest server selection & filtering
 ├── ScannerModule.h/.cpp                # Async port scanner (QTcpSocket, non-blocking)
+├── AuditorModule.h/.cpp                # TLS certificate auditor (QSslSocket)
+├── AuditorTab.h/.cpp                   # TLS Auditor GUI
+├── AlertEngine.h/.cpp                  # Rule-based alert engine (Item 49)
+├── PacketModule.h/.cpp                 # Active connection parser (/proc/net) (Item 47)
+├── TopologyTab.h/.cpp                  # QGraphicsView network topology (Item 46)
 ├── CMakeLists.txt        # C++26, Qt 6.11, security hardening
 ├── saturate_fix.h        # C++26 polyfill (saturate_cast for GCC 16.1)
 ├── build.sh              # Build script
 ├── resources.qrc         # Qt resources (icons, SVGs)
-├── svgs/                 # 14 SVG icons (512×512, 3D gradient design)
+├── svgs/                 # 16 SVG icons (512×512, 3D gradient design)
 ├── icon.svg              # Application icon (512×512, network/fiber/IP theme)
 └── CHANGELOG.md          # Version history
 ```
@@ -384,4 +412,4 @@ This project is released under **Public Domain**. It may be freely used, copied,
 
 ---
 
-*IPView Pro v2.9.1 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*
+*IPView Pro v2.10.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*

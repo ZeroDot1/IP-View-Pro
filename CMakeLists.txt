@@ -16,7 +16,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 project(IPView
-    VERSION      2.9.1
+    VERSION      2.10.0
     DESCRIPTION  "Professional IP Monitoring & Network Analysis Tool"
     LANGUAGES    CXX
 )
