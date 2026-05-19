@@ -87,6 +87,8 @@ qt_add_executable(IPView
     DatabaseWorker.cpp
     ScannerModule.cpp
     ServerSelectionModule.cpp
+    AuditorModule.cpp
+    AuditorTab.cpp
     resources.qrc
 )
 

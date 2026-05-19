@@ -9,6 +9,7 @@
 #include "MainWindow.h"
 #include "ScannerTab.h"
 #include "TelemetryTab.h"
+#include "AuditorTab.h"
 #include "Theme.h"
 #include <QApplication>
 #include <QClipboard>
@@ -263,6 +264,11 @@ void MainWindow::setupUI() noexcept
     aboutTab     = mTabRegistry.registerTab<AboutTab>(
                        QStringLiteral("about"),     QStringLiteral(" About"),
                        QIcon(QStringLiteral(":/svgs/info.svg")));
+
+    // Item 48: TLS-Auditor Tab
+    mTabRegistry.registerTab<AuditorTab>(
+        QStringLiteral("auditor"), QStringLiteral(" TLS Auditor"),
+        QIcon(QStringLiteral(":/svgs/shield.svg")));
 
     // Alle registrierten Tabs in den QTabWidget einfügen
     mTabRegistry.populateTabWidget(tabWidget);
