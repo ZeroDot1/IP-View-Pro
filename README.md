@@ -48,7 +48,9 @@
 
 ## Features
 
-Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory (512×512 px native, displayed at 20×20 px inline).
+Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory (512×512 px native, displayed at 14×14 px inline).
+
+> **Compact Tab Bar:** All 8 tabs (Overview, Whois, Network Tools, Port Scanner, History, Speedtest, Telemetry, About) are always visible without scrolling — thanks to reduced padding (`6px 12px`), smaller font (`11px`), and `setUsesScrollButtons(false)` + `setExpanding(true)` on the QTabBar.
 
 ###  Multi-API Geolocation
 - **12+ APIs** with automatic failover, sparse data enrichment, and IPv6 support.
@@ -344,4 +346,4 @@ This project is released under **Public Domain**. It may be freely used, copied,
 
 ---
 
-*IPView Pro v2.8.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*
+*IPView Pro v2.8.1 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*

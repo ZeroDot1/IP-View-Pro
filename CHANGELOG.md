@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented here.
 
+## [2.8.1] — 2026-05-19
+
+### Changed
+- **Theme.h — Tab-Design überarbeitet:** `PADDING_TAB` von `12px 25px` auf `6px 12px`
+  reduziert, Tab-Font-Size auf `11px` gesetzt. Alle 8 Tabs passen nun ohne Scrollen
+  in die Tab-Leiste. Gradient-Hover/Selected-Effekte mit `cubic-bezier`-Transition.
+- **MainWindow — Tab-Bar-Konfiguration:** `setUsesScrollButtons(false)` und
+  `setExpanding(true)` am QTabBar, Icon-Size auf `14×14` gesetzt.
+- **Neue Konstante:** `PADDING_TAB_L = "6px 18px"` für optionale breitere Tabs.
+
+### Visual
+- Tab-Hover: Gradient von `C_BG_HOVER` → `C_BG_ELEVATED` für Tiefeneffekt.
+- Tab-Selected: Gradient von `C_ACCENT` → `C_ACCENT_ACT` für leuchtende Akzentfarbe.
+- Tab-Bar: `qproperty-drawBase: false` entfernt die Standard-Unterstrich-Linie.
+- `min-width: 0` auf Tabs erlaubt kompaktes Layout ohne Scroll-Buttons.
+
+---
+
 ## [2.8.0] — 2026-05-19
 
 ### Added

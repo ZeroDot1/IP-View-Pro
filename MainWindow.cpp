@@ -206,6 +206,11 @@ void MainWindow::setupUI() noexcept
 
     tabWidget = new QTabWidget();
 
+    // ── Tab-Bar: kein Scrollen → alle 8 Tabs immer sichtbar ──────────────
+    tabWidget->tabBar()->setUsesScrollButtons(false);
+    tabWidget->tabBar()->setExpanding(true);
+    tabWidget->setIconSize(QSize(14, 14));
+
     // ── Dashboard-Tab (ausgelagert aus MainWindow in DashboardView) ────
     dashboardView = new IPView::UI::DashboardView();
 

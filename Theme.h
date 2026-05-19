@@ -55,12 +55,14 @@ inline constexpr auto C_ERROR       = "#ff4444";
 inline constexpr auto C_INFO        = "#00d4ff";
 
 // ── Spacing ────────────────────────────────────────────────────────────────
-inline constexpr auto PADDING_TAB  = "12px 25px";
-inline constexpr auto PADDING_BTN  = "8px 20px";
+// Tabs: kompakt, damit alle 8 Tabs ohne Scrollen sichtbar sind
+inline constexpr auto PADDING_TAB   = "6px 12px";
+inline constexpr auto PADDING_TAB_L = "6px 18px";   // für einzelne breitere Tabs
+inline constexpr auto PADDING_BTN   = "8px 20px";
 inline constexpr auto PADDING_BTN_S = "6px 14px";
-inline constexpr auto PADDING_INP  = "8px 12px";
-inline constexpr auto PADDING_CRD  = "20px";
-inline constexpr auto PADDING_M   = "10px";
+inline constexpr auto PADDING_INP   = "8px 12px";
+inline constexpr auto PADDING_CRD   = "20px";
+inline constexpr auto PADDING_M     = "10px";
 
 // ── Radii ──────────────────────────────────────────────────────────────────
 inline constexpr auto RADIUS_SM   = "4px";
@@ -95,18 +97,28 @@ inline QString appStyleSheet() noexcept
         "  border: 1px solid %4; border-radius: %6; background: %1;"
         "  top: -1px;"
         "}"
+        "QTabBar {"
+        "  qproperty-drawBase: false;"
+        "}"
         "QTabBar::tab {"
         "  background: %3; color: %7; padding: %8;"
         "  border-top-left-radius: %6; border-top-right-radius: %6;"
-        "  font-weight: bold; border: none;"
-        "  margin-right: 2px;"
-        "  transition: background 0.15s ease, color 0.15s ease;"
+        "  font-weight: bold; font-size: 11px; border: none;"
+        "  margin-right: 1px; margin-left: 0;"
+        "  transition: background 0.12s cubic-bezier(0.4,0,0.2,1),"
+        "              color 0.12s cubic-bezier(0.4,0,0.2,1),"
+        "              border-bottom 0.12s cubic-bezier(0.4,0,0.2,1);"
+        "  min-width: 0;"  // erlaubt schrumpfen, kein Scrollen
         "}"
         "QTabBar::tab:selected {"
-        "  background: %4; color: %2;"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "    stop:0 %4, stop:1 %19);"
+        "  color: %2;"
         "}"
         "QTabBar::tab:hover:!selected {"
-        "  background: %9; color: %2;"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "    stop:0 %9, stop:1 %3);"
+        "  color: %2;"
         "}"
         // ── QPushButton ─────────────────────────────────────────────────
         "QPushButton {"
