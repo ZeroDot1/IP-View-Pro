@@ -84,6 +84,7 @@ qt_add_executable(IPView
     TelemetryModule.cpp
     TelemetryPersistenceModule.cpp
     DatabaseModule.cpp
+    DatabaseWorker.cpp
     ScannerModule.cpp
     ServerSelectionModule.cpp
     resources.qrc

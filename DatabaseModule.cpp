@@ -7,6 +7,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "DatabaseModule.h"
+#include "DatabaseWorker.h"
 #include "Logger.h"
 
 #include <QSqlQuery>
@@ -25,6 +26,7 @@ bool                               IPView::Storage::DatabaseModule::sInitialized
 QString                            IPView::Storage::DatabaseModule::sDbPath;
 IPView::Storage::DatabaseModule::StatusCallback
                                    IPView::Storage::DatabaseModule::sStatusCallback;
+IPView::Storage::DatabaseWorker   *IPView::Storage::DatabaseModule::sWorker{nullptr};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Storage {
@@ -419,6 +421,56 @@ void DatabaseModule::emitStatusMsg(const QString &msg) noexcept
 
 // Hilfsmakro für einheitliche Status-Meldungen
 #define DB_STATUS(msg)  DatabaseModule::emitStatusMsg(QStringLiteral(msg))
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Async Worker (Item 14)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void DatabaseModule::startWorker() noexcept
+{
+    if (sWorker) return;
+    sWorker = new DatabaseWorker();
+    sWorker->start();
+    IPView::Logger::info("DatabaseWorker: Started");
+}
+
+void DatabaseModule::stopWorker() noexcept
+{
+    if (!sWorker) return;
+    IPView::Logger::info("DatabaseWorker: Stopping...");
+    sWorker->shutdown();
+    delete sWorker;
+    sWorker = nullptr;
+}
+
+bool DatabaseModule::isWorkerRunning() noexcept
+{
+    return sWorker && sWorker->isRunning();
+}
+
+void DatabaseModule::asyncStoreResult(const QJsonObject &data) noexcept
+{
+    if (!sWorker) { startWorker(); }
+    WriteJob job;
+    job.op   = WriteOp::StoreResult;
+    job.data = data;
+    sWorker->enqueue(std::move(job));
+}
+
+void DatabaseModule::asyncStoreTelemetry(const QString &interfaceName,
+                                          quint64 rxBytes, quint64 txBytes,
+                                          double rxSpeed, double txSpeed) noexcept
+{
+    if (!sWorker) { startWorker(); }
+    WriteJob job;
+    job.op     = WriteOp::StoreTelemetry;
+    job.iface  = interfaceName;
+    job.rxBytes = rxBytes;
+    job.txBytes = txBytes;
+    job.rxSpeed = rxSpeed;
+    job.txSpeed = txSpeed;
+    sWorker->enqueue(std::move(job));
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Transaction Support (Item 11)

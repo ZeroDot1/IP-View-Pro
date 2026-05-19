@@ -25,6 +25,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Storage {
 
+class DatabaseWorker; // Forward (Item 14)
+
 // ── Database entry for IP history ────────────────────────────────────────
 struct HistoryEntry {
     qint64    id{-1};
@@ -74,6 +76,13 @@ public:
     static bool storeTelemetry(const QString &interfaceName,
                                quint64 rxBytes, quint64 txBytes,
                                double rxSpeed, double txSpeed) noexcept;
+
+    // ── Async Write Operations (Item 14) ─────────────────────────────────
+    //  Delegieren an DatabaseWorker → non-blocking.
+    static void asyncStoreResult(const QJsonObject &data) noexcept;
+    static void asyncStoreTelemetry(const QString &interfaceName,
+                                    quint64 rxBytes, quint64 txBytes,
+                                    double rxSpeed, double txSpeed) noexcept;
 
     // ── Read Operations ────────────────────────────────────────────────────
     [[nodiscard]] static std::vector<HistoryEntry> getHistory(int limit = 100) noexcept;
@@ -131,6 +140,11 @@ public:
     [[nodiscard]] static QString dataDirectory() noexcept;
     [[nodiscard]] static QString configDirectory() noexcept;
 
+    // ── Worker Lifecycle (Item 14) ─────────────────────────────────────
+    static void startWorker() noexcept;
+    static void stopWorker() noexcept;
+    [[nodiscard]] static bool isWorkerRunning() noexcept;
+
 private:
     DatabaseModule() = default;
     ~DatabaseModule() = default;
@@ -148,6 +162,9 @@ private:
 
     // ── Internes Status-Forwarding ───────────────────────────────────────
     static void emitStatusMsg(const QString &msg) noexcept;
+
+    // ── Worker (Item 14) ──────────────────────────────────────────────────
+    static DatabaseWorker *sWorker;
 };
 
 } // namespace IPView::Storage
