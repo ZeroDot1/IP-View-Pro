@@ -89,6 +89,7 @@ qt_add_executable(IPView
     ServerSelectionModule.cpp
     AuditorModule.cpp
     AuditorTab.cpp
+    AlertEngine.cpp
     resources.qrc
 )
 
