@@ -50,8 +50,8 @@ ui_*.h
 *.moc
 
 # ── SVGs (source assets, not generated) ───────────────────
-# svgs/ ist ein Quellverzeichnis, wird versioniert
-# Nur SVGs von Drittanbietern hier ausschließen falls nötig
+# svgs/ is a source directory, tracked by git
+# Only exclude third-party SVGs here if needed
 
 # ── Arch Linux package ────────────────────────────────────
 *.pkg.tar.zst
