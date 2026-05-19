@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="IPView Pro" width="128" height="128">
+  <img src="icon.svg" alt="IPView Pro" width="128" height="128">
 </p>
 
 <h1 align="center">IP View Pro</h1>
