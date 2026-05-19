@@ -16,6 +16,7 @@
 #include <expected>     // C++26: std::expected
 #include <string>
 #include <cstdint>
+#include <chrono>
 
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Telemetry {
@@ -28,6 +29,11 @@ struct Stats {
     std::uint64_t txPackets{0}; // Transmitted packets
     std::uint64_t rxErrors{0};  // Receive errors
     std::uint64_t txErrors{0};  // Transmit errors
+
+    // ── Nanosekunden-Präzision (Item 39) ───────────────────────────────
+    std::chrono::steady_clock::time_point nsTimestamp{
+        std::chrono::steady_clock::now()
+    };
 };
 
 // ── Interface list ──────────────────────────────────────────────────────────
