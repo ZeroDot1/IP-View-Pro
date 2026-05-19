@@ -29,106 +29,9 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace DataNormalizer {
 
-    // ── Main normalization method ──────────────────────────────────────
-    //  Accepts raw data (JSON string or plain text) and returns a
-    //  unified QJsonObject with all 18 standard fields.
-    //  On complete failure, an empty QJsonObject is returned.
-    [[nodiscard]]
-    QJsonObject normalize(const QByteArray &rawData) noexcept
-    {
-        using namespace detail;
-        QJsonObject normalized;
-        QJsonDocument const doc = QJsonDocument::fromJson(rawData);
-
-        if (doc.isNull() || !doc.isObject()) {
-            // Fallback: plain IP address (e.g. "1.2.3.4")
-            QString const possibleIp = QString::fromUtf8(rawData).trimmed();
-            if (isValidIp(possibleIp)) {
-                normalized[QStringLiteral("ip")] = possibleIp;
-            }
-        } else {
-            QJsonObject obj = doc.object();
-            processNestedJson(obj);
-
-            if (isErrorResponse(obj)) {
-                return QJsonObject();
-            }
-
-            // ── Core mapping ─────────────────────────────────────────
-            //  C++26 std::array for compile-time constants
-            //  Each entry: (API key, {list of alternative names})
-            normalized[QStringLiteral("ip")]             = getString(obj, std::to_array<std::string_view>({"ipAddress", "ip", "query", "origin", "address", "ip_address"}));
-            normalized[QStringLiteral("city")]           = getString(obj, std::to_array<std::string_view>({"cityName", "city", "city_name"}));
-            normalized[QStringLiteral("region")]         = getString(obj, std::to_array<std::string_view>({"regionName", "region_name", "region", "region_code"}));
-            normalized[QStringLiteral("country_name")]   = getString(obj, std::to_array<std::string_view>({"countryName", "country_name", "country"}));
-            normalized[QStringLiteral("country_code")]   = getString(obj, std::to_array<std::string_view>({"countryCode", "country_code", "cc"}));
-            normalized[QStringLiteral("continent")]      = getString(obj, std::to_array<std::string_view>({"continent", "continent_name", "continentCode", "continent_code"}));
-            normalized[QStringLiteral("org")]            = getString(obj, std::to_array<std::string_view>({"asnOrganization", "org", "isp", "as", "organization", "asname"}));
-            normalized[QStringLiteral("asn")]            = getString(obj, std::to_array<std::string_view>({"asn", "as", "as_number", "asn_number"}));
-            normalized[QStringLiteral("postal")]         = getString(obj, std::to_array<std::string_view>({"zipCode", "postal", "zip", "zip_code", "postal_code"}));
-            normalized[QStringLiteral("timezone")]       = getString(obj, std::to_array<std::string_view>({"timeZones", "timezone", "time_zone", "timezone_name"}));
-            normalized[QStringLiteral("currency")]       = getString(obj, std::to_array<std::string_view>({"currencies", "currency", "currency_name", "currency_code"}));
-            normalized[QStringLiteral("calling_code")]   = getString(obj, std::to_array<std::string_view>({"phoneCodes", "calling_code", "country_calling_code", "country_prefix", "country_phone"}));
-            normalized[QStringLiteral("languages")]      = getString(obj, std::to_array<std::string_view>({"languages", "language"}));
-            normalized[QStringLiteral("hostname")]       = getString(obj, std::to_array<std::string_view>({"hostname", "host"}));
-            normalized[QStringLiteral("type")]           = getString(obj, std::to_array<std::string_view>({"type", "connection_type", "net_type"}));
-            normalized[QStringLiteral("latitude")]       = getString(obj, std::to_array<std::string_view>({"latitude", "lat"}));
-            normalized[QStringLiteral("longitude")]      = getString(obj, std::to_array<std::string_view>({"longitude", "lon"}));
-
-            // Security
-            QString const isProxy = getString(obj, std::to_array<std::string_view>({"isProxy", "proxy", "is_proxy", "is_vpn", "vpn", "tor", "is_tor", "hosting", "is_hosting"}));
-            normalized[QStringLiteral("security")] =
-                (isProxy.isEmpty() || isProxy == QStringLiteral("false") || isProxy == QStringLiteral("0"))
-                    ? QStringLiteral("None / Clear")
-                    : QStringLiteral("Detected (") + isProxy + QLatin1Char(')');
-        }
-
-        // Final IP fallback: if no structured JSON,
-        // attempt to interpret raw data string as IP
-        if (normalized[QStringLiteral("ip")].toString().isEmpty()) {
-            QString const possibleIp = QString::fromUtf8(rawData).trimmed();
-            if (isValidIp(possibleIp)) {
-                normalized[QStringLiteral("ip")] = possibleIp;
-            }
-        }
-
-        fillMissingFields(normalized);
-        return normalized;
-    }
-
-    // ── JSON-to-HTML formatting ─────────────────────────────────────────
-    //  Generates an HTML view with syntax highlighting from a QJsonObject.
-    [[nodiscard]]
-    QString formatJsonHtml(const QJsonObject &obj) noexcept
-    {
-        QString const json = QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Indented));
-        QString html = QStringLiteral("<pre style='color: #ffffff; line-height: 1.4;'>");
-
-        // C++26: structured bindings in range-based for (C++17 already)
-        QStringList const lines = json.split(QLatin1Char('\n'));
-        for (QString const& line : lines) {
-            // Highlight keys
-            static QRegularExpression const keyRegex(QStringLiteral("\"(.*)\":"));
-            QString formatted = line;
-            formatted.replace(keyRegex, QStringLiteral("<span style='color: #e94560;'>\"\\1\"</span>:"));
-
-            // Highlight string values
-            static QRegularExpression const valRegex(QStringLiteral(": \"(.*)\""));
-            formatted.replace(valRegex, QStringLiteral(": <span style='color: #00ff88;'>\"\\1\"</span>"));
-
-            // Highlight numeric values
-            static QRegularExpression const numRegex(QStringLiteral(": (\\d+\\.?\\d*)"));
-            formatted.replace(numRegex, QStringLiteral(": <span style='color: #00d4ff;'>\\1</span>"));
-
-            html += formatted + QLatin1Char('\n');
-        }
-
-        html += QStringLiteral("</pre>");
-        return html;
-    }
-
-// ── Detail helpers (intern, nicht Teil des öffentlichen API) ────────────
-namespace detail {
+// ── Internal helpers (nicht Teil des öffentlichen API) ─────────────────
+//  Diese Funktionen sind im selben Namespace, aber als Implementierungsdetails
+//  zu betrachten. Nur normalize() und formatJsonHtml() sind öffentliches API.
 
     //  Used for the list of 18 standard field names in fillMissingFields()
     using FieldList = std::vector<QString>;
@@ -243,7 +146,103 @@ namespace detail {
             }
         }
     }
-} // namespace detail
+
+    // ── Main normalization method ──────────────────────────────────────
+    //  Accepts raw data (JSON string or plain text) and returns a
+    //  unified QJsonObject with all 18 standard fields.
+    //  On complete failure, an empty QJsonObject is returned.
+    [[nodiscard]]
+    QJsonObject normalize(const QByteArray &rawData) noexcept
+    {
+        QJsonObject normalized;
+        QJsonDocument const doc = QJsonDocument::fromJson(rawData);
+
+        if (doc.isNull() || !doc.isObject()) {
+            // Fallback: plain IP address (e.g. "1.2.3.4")
+            QString const possibleIp = QString::fromUtf8(rawData).trimmed();
+            if (isValidIp(possibleIp)) {
+                normalized[QStringLiteral("ip")] = possibleIp;
+            }
+        } else {
+            QJsonObject obj = doc.object();
+            processNestedJson(obj);
+
+            if (isErrorResponse(obj)) {
+                return QJsonObject();
+            }
+
+            // ── Core mapping ─────────────────────────────────────────
+            //  C++26 std::array for compile-time constants
+            //  Each entry: (API key, {list of alternative names})
+            normalized[QStringLiteral("ip")]             = getString(obj, std::to_array<std::string_view>({"ipAddress", "ip", "query", "origin", "address", "ip_address"}));
+            normalized[QStringLiteral("city")]           = getString(obj, std::to_array<std::string_view>({"cityName", "city", "city_name"}));
+            normalized[QStringLiteral("region")]         = getString(obj, std::to_array<std::string_view>({"regionName", "region_name", "region", "region_code"}));
+            normalized[QStringLiteral("country_name")]   = getString(obj, std::to_array<std::string_view>({"countryName", "country_name", "country"}));
+            normalized[QStringLiteral("country_code")]   = getString(obj, std::to_array<std::string_view>({"countryCode", "country_code", "cc"}));
+            normalized[QStringLiteral("continent")]      = getString(obj, std::to_array<std::string_view>({"continent", "continent_name", "continentCode", "continent_code"}));
+            normalized[QStringLiteral("org")]            = getString(obj, std::to_array<std::string_view>({"asnOrganization", "org", "isp", "as", "organization", "asname"}));
+            normalized[QStringLiteral("asn")]            = getString(obj, std::to_array<std::string_view>({"asn", "as", "as_number", "asn_number"}));
+            normalized[QStringLiteral("postal")]         = getString(obj, std::to_array<std::string_view>({"zipCode", "postal", "zip", "zip_code", "postal_code"}));
+            normalized[QStringLiteral("timezone")]       = getString(obj, std::to_array<std::string_view>({"timeZones", "timezone", "time_zone", "timezone_name"}));
+            normalized[QStringLiteral("currency")]       = getString(obj, std::to_array<std::string_view>({"currencies", "currency", "currency_name", "currency_code"}));
+            normalized[QStringLiteral("calling_code")]   = getString(obj, std::to_array<std::string_view>({"phoneCodes", "calling_code", "country_calling_code", "country_prefix", "country_phone"}));
+            normalized[QStringLiteral("languages")]      = getString(obj, std::to_array<std::string_view>({"languages", "language"}));
+            normalized[QStringLiteral("hostname")]       = getString(obj, std::to_array<std::string_view>({"hostname", "host"}));
+            normalized[QStringLiteral("type")]           = getString(obj, std::to_array<std::string_view>({"type", "connection_type", "net_type"}));
+            normalized[QStringLiteral("latitude")]       = getString(obj, std::to_array<std::string_view>({"latitude", "lat"}));
+            normalized[QStringLiteral("longitude")]      = getString(obj, std::to_array<std::string_view>({"longitude", "lon"}));
+
+            // Security
+            QString const isProxy = getString(obj, std::to_array<std::string_view>({"isProxy", "proxy", "is_proxy", "is_vpn", "vpn", "tor", "is_tor", "hosting", "is_hosting"}));
+            normalized[QStringLiteral("security")] =
+                (isProxy.isEmpty() || isProxy == QStringLiteral("false") || isProxy == QStringLiteral("0"))
+                    ? QStringLiteral("None / Clear")
+                    : QStringLiteral("Detected (") + isProxy + QLatin1Char(')');
+        }
+
+        // Final IP fallback: if no structured JSON,
+        // attempt to interpret raw data string as IP
+        if (normalized[QStringLiteral("ip")].toString().isEmpty()) {
+            QString const possibleIp = QString::fromUtf8(rawData).trimmed();
+            if (isValidIp(possibleIp)) {
+                normalized[QStringLiteral("ip")] = possibleIp;
+            }
+        }
+
+        fillMissingFields(normalized);
+        return normalized;
+    }
+
+    // ── JSON-to-HTML formatting ─────────────────────────────────────────
+    //  Generates an HTML view with syntax highlighting from a QJsonObject.
+    [[nodiscard]]
+    QString formatJsonHtml(const QJsonObject &obj) noexcept
+    {
+        QString const json = QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Indented));
+        QString html = QStringLiteral("<pre style='color: #ffffff; line-height: 1.4;'>");
+
+        // C++26: structured bindings in range-based for (C++17 already)
+        QStringList const lines = json.split(QLatin1Char('\n'));
+        for (QString const& line : lines) {
+            // Highlight keys
+            static QRegularExpression const keyRegex(QStringLiteral("\"(.*)\":"));
+            QString formatted = line;
+            formatted.replace(keyRegex, QStringLiteral("<span style='color: #e94560;'>\"\\1\"</span>:"));
+
+            // Highlight string values
+            static QRegularExpression const valRegex(QStringLiteral(": \"(.*)\""));
+            formatted.replace(valRegex, QStringLiteral(": <span style='color: #00ff88;'>\"\\1\"</span>"));
+
+            // Highlight numeric values
+            static QRegularExpression const numRegex(QStringLiteral(": (\\d+\\.?\\d*)"));
+            formatted.replace(numRegex, QStringLiteral(": <span style='color: #00d4ff;'>\\1</span>"));
+
+            html += formatted + QLatin1Char('\n');
+        }
+
+        html += QStringLiteral("</pre>");
+        return html;
+    }
 
 } // namespace DataNormalizer
 
