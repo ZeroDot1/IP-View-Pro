@@ -9,13 +9,13 @@
       <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="rgba(0,85,204,0.4)"/>
     </filter>
   </defs>
-  <!-- Lupe - Glas -->
+  <!-- Magnifier - glass -->
   <circle cx="44" cy="42" r="32" fill="none" stroke="url(#search-grad)" stroke-width="10" filter="url(#search-shadow)"/>
-  <!-- Glas-Füllung -->
+  <!-- Glass fill -->
   <circle cx="44" cy="42" r="27" fill="rgba(255,255,255,0.12)"/>
-  <!-- Highlight auf Glas -->
+  <!-- Highlight on glass -->
   <ellipse cx="36" cy="32" rx="10" ry="6" fill="rgba(255,255,255,0.35)" transform="rotate(-20,36,32)"/>
-  <!-- Griff -->
+  <!-- Handle -->
   <rect x="60" y="62" width="28" height="10" rx="5" fill="url(#search-grad)" filter="url(#search-shadow)" transform="rotate(45,74,67)"/>
   <rect x="62" y="64" width="18" height="4" rx="2" fill="rgba(255,255,255,0.3)" transform="rotate(45,74,67)"/>
 </svg>

@@ -9,12 +9,12 @@
       <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.35)"/>
     </filter>
   </defs>
-  <!-- Schraubenschlüssel - Maul -->
+  <!-- Wrench - jaw -->
   <path d="M12 30 L12 16 C12 12 16 8 20 8 L26 8 C30 8 34 12 34 16 L34 22 L58 46 C60 44 62 42 64 42 L76 42 C80 42 84 46 84 50 L84 58 C84 62 80 66 76 66 L68 66 C64 66 60 62 60 58 L32 30 Z"
         fill="url(#wrench-body)" filter="url(#wrench-shadow)"/>
-  <!-- Schaft -->
+  <!-- Shaft -->
   <rect x="38" y="48" width="12" height="44" rx="4" fill="url(#wrench-body)" filter="url(#wrench-shadow)"/>
-  <!-- Maul-Aussparung -->
+  <!-- Jaw opening -->
   <rect x="18" y="18" width="12" height="12" rx="2" fill="#2A2A34" opacity="0.6"/>
   <!-- Highlight -->
   <rect x="40" y="50" width="4" height="30" rx="2" fill="rgba(255,255,255,0.3)"/>

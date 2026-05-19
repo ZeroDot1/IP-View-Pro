@@ -14,10 +14,10 @@
   </defs>
   <!-- Clipboard body -->
   <rect x="22" y="24" width="56" height="66" rx="6" fill="url(#cb-body)" filter="url(#cb-shadow)"/>
-  <!-- Klemme oben -->
+  <!-- Clip top -->
   <rect x="36" y="16" width="28" height="14" rx="4" fill="url(#cb-clip)"/>
   <circle cx="50" cy="28" r="4" fill="#3A3A44"/>
-  <!-- Text-Linien -->
+  <!-- Text lines -->
   <line x1="34" y1="44" x2="66" y2="44" stroke="#A0A0A8" stroke-width="2.5" stroke-linecap="round"/>
   <line x1="34" y1="54" x2="62" y2="54" stroke="#A0A0A8" stroke-width="2.5" stroke-linecap="round"/>
   <line x1="34" y1="64" x2="64" y2="64" stroke="#A0A0A8" stroke-width="2.5" stroke-linecap="round"/>

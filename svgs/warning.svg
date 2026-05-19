@@ -13,12 +13,12 @@
       <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="rgba(200,150,0,0.4)"/>
     </filter>
   </defs>
-  <!-- Dreieck -->
+  <!-- Triangle -->
   <path d="M50 10 L94 88 L6 88 Z" fill="url(#warn-body)" filter="url(#warn-shadow)"/>
-  <!-- Highlight auf Dreieck -->
+  <!-- Highlight on triangle -->
   <path d="M50 18 L26 72 L40 72" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="4" stroke-linecap="round"/>
-  <!-- Ausrufezeichen - senkrechter Strich -->
+  <!-- Exclamation - vertical bar -->
   <rect x="44" y="40" width="12" height="30" rx="4" fill="url(#warn-symbol)" filter="url(#warn-shadow)"/>
-  <!-- Ausrufezeichen - Punkt -->
+  <!-- Exclamation - dot -->
   <circle cx="50" cy="80" r="7" fill="url(#warn-symbol)"/>
 </svg>

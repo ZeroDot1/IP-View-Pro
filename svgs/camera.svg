@@ -17,17 +17,17 @@
       <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.4)"/>
     </filter>
   </defs>
-  <!-- Kamerakörper -->
+  <!-- Camera body -->
   <rect x="10" y="32" width="80" height="54" rx="12" fill="url(#cam-body)" filter="url(#cam-shadow)"/>
-  <!-- Oberer Aufsatz -->
+  <!-- Top mount -->
   <rect x="26" y="22" width="48" height="14" rx="4" fill="url(#cam-body)"/>
-  <!-- Blitz -->
+  <!-- Flash -->
   <rect x="66" y="36" width="16" height="12" rx="3" fill="url(#cam-flash)"/>
-  <!-- Linse - Außenring -->
+  <!-- Lens - outer ring -->
   <circle cx="42" cy="58" r="18" fill="#1A1A24"/>
-  <!-- Linse -->
+  <!-- Lens -->
   <circle cx="42" cy="58" r="14" fill="url(#cam-lens)"/>
-  <!-- Linsen-Reflexion -->
+  <!-- Lens reflection -->
   <ellipse cx="38" cy="52" rx="6" ry="4" fill="rgba(255,255,255,0.3)" transform="rotate(-20,38,52)"/>
   <circle cx="46" cy="62" r="2" fill="rgba(255,255,255,0.15)"/>
   <!-- Highlight -->

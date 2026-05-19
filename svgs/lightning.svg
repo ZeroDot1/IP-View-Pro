@@ -14,12 +14,12 @@
       </feMerge>
     </filter>
   </defs>
-  <!-- Leuchtender Blitz -->
+  <!-- Glowing bolt -->
   <path d="M56 8 L22 54 L44 54 L38 92 L78 42 L54 42 L62 8 Z"
         fill="url(#bolt-grad)" filter="url(#bolt-effect)"/>
   <!-- Highlight -->
   <path d="M52 14 L26 50 L44 50 L40 80" fill="none"
         stroke="rgba(255,255,255,0.45)" stroke-width="2.5" stroke-linecap="round"/>
-  <!-- Kleiner Glanzpunkt -->
+  <!-- Small shine dot -->
   <ellipse cx="48" cy="20" rx="6" ry="3" fill="rgba(255,255,255,0.3)" transform="rotate(-30,48,20)"/>
 </svg>

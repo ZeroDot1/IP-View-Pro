@@ -9,13 +9,13 @@
       <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="rgba(33,154,70,0.45)"/>
     </filter>
   </defs>
-  <!-- Kreis -->
+  <!-- Circle -->
   <circle cx="50" cy="52" r="44" fill="url(#check-bg)" filter="url(#check-shadow)"/>
-  <!-- Haken -->
+  <!-- Checkmark -->
   <path d="M24 52 L42 70 L76 34"
         fill="none" stroke="white" stroke-width="9"
         stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Glanz -->
+  <!-- Shine -->
   <ellipse cx="36" cy="30" rx="14" ry="9" fill="rgba(255,255,255,0.4)"
            transform="rotate(-20,36,30)"/>
 </svg>
