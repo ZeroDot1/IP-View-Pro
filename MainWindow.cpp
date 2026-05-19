@@ -29,6 +29,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     setupUI();
     setupAlertEngine();
+    setupPacketModule();
     setupTray();
 
     networkManager   = new NetworkManager(this);
@@ -241,9 +242,10 @@ void MainWindow::setupUI() noexcept
     //  4. Tools       – Ping, Traceroute, iPerf3
     //  5. Speedtest   – Bandwidth
     //  6. TLS Auditor – Security check
-    //  7. Telemetry   – Live monitoring
-    //  8. History     – History
-    //  9. About       – App info
+    //  7. Topology    – Network path visualization
+    //  8. Telemetry   – Live monitoring
+    //  9. History     – History
+    // 10. About       – App info
 
     // Dashboard (Overview) — special case (own namespace)
     dashboardView = mTabRegistry.registerTab<IPView::UI::DashboardView>(
@@ -265,6 +267,9 @@ void MainWindow::setupUI() noexcept
     mTabRegistry.registerTab<AuditorTab>(
         QStringLiteral("auditor"), QStringLiteral(" TLS Auditor"),
         QIcon(QStringLiteral(":/svgs/shield.svg")));
+    topologyTab = mTabRegistry.registerTab<TopologyTab>(
+        QStringLiteral("topology"), QStringLiteral(" Topology"),
+        QIcon(QStringLiteral(":/svgs/topology.svg")));
     telemetryTab = mTabRegistry.registerTab<TelemetryTab>(
                        QStringLiteral("telemetry"), QStringLiteral(" Telemetry"),
                        QIcon(QStringLiteral(":/svgs/graph.svg")));
@@ -459,6 +464,16 @@ void MainWindow::loadSettings() noexcept
     if (autoRefresh) {
         autoRefreshTimer->start(300000);
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Item 47: PacketModule — active connection monitoring
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void MainWindow::setupPacketModule() noexcept
+{
+    mPacketModule = new IPView::Packet::PacketModule(this);
+    mPacketModule->startPolling(5000);  // poll every 5 seconds
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

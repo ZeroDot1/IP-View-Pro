@@ -33,7 +33,9 @@
 #include "TelemetryTab.h"
 #include "AboutTab.h"
 #include "AuditorTab.h"
+#include "TopologyTab.h"
 #include "AlertEngine.h"
+#include "PacketModule.h"
 #include "TabRegistry.h"
 // ═══════════════════════════════════════════════════════════════════════════════
 class MainWindow : public QWidget
@@ -95,6 +97,7 @@ private:
     SpeedtestTab *speedtestTab{nullptr};
     TelemetryTab *telemetryTab{nullptr};
     AboutTab     *aboutTab{nullptr};
+    TopologyTab  *topologyTab{nullptr};
 
     // ── Network & Data ──────────────────────────────────────────────────
     NetworkManager *networkManager{nullptr};
@@ -111,6 +114,10 @@ private:
     QTimer              *autoRefreshTimer{nullptr};
     QList<QJsonObject>   history;
     QJsonObject          currentData;
+
+    // ── Packet Module (Item 47) ────────────────────────────────────────────
+    IPView::Packet::PacketModule *mPacketModule{nullptr};
+    void setupPacketModule() noexcept;
 
     // ── Alert Engine (Item 49) ─────────────────────────────────────────────
     IPView::Alert::AlertEngine *mAlertEngine{nullptr};

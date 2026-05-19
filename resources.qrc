@@ -17,5 +17,6 @@
         <file>svgs/compass.svg</file>
         <file>svgs/graph.svg</file>
         <file>svgs/shield.svg</file>
+        <file>svgs/topology.svg</file>
     </qresource>
 </RCC>
