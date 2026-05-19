@@ -2,8 +2,8 @@
 //  IPView Pro v2.8.0 — MainWindow.h
 //  C++26: [[nodiscard]], default member init, structured bindings
 //  Main window der IPView-Anwendung mit Tab-Schnittstelle und System Tray.
-//  Die Dashboard-Übersicht wurde in die eigenständige Klasse DashboardView
-//  ausgelagert (siehe IPView::UI::DashboardView).
+//  Features: Dashboard, Whois, Tools (Ping/Traceroute/Scanner),
+//  History (SQLite-persistent), Speedtest, Telemetry, About.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -27,8 +27,10 @@
 #include "DashboardView.h"
 #include "WhoisTab.h"
 #include "ToolsTab.h"
+#include "ScannerTab.h"
 #include "HistoryTab.h"
 #include "SpeedtestTab.h"
+#include "TelemetryTab.h"
 #include "AboutTab.h"
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -78,8 +80,10 @@ private:
     // ── Sub-Tabs ──────────────────────────────────────────────────────────
     WhoisTab     *whoisTab{nullptr};
     ToolsTab     *toolsTab{nullptr};
+    ScannerTab   *scannerTab{nullptr};
     HistoryTab   *historyTab{nullptr};
     SpeedtestTab *speedtestTab{nullptr};
+    TelemetryTab *telemetryTab{nullptr};
     AboutTab     *aboutTab{nullptr};
 
     // ── Network & Data ──────────────────────────────────────────────────

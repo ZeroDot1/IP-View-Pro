@@ -76,8 +76,10 @@ qt_add_executable(IPView
     WhoisTab.cpp
     ToolsTab.cpp
     TracerouteTab.cpp
+    ScannerTab.cpp
     HistoryTab.cpp
     SpeedtestTab.cpp
+    TelemetryTab.cpp
     AboutTab.cpp
     TelemetryModule.cpp
     DatabaseModule.cpp

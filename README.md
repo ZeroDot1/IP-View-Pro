@@ -86,7 +86,7 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
 
 ###  Database Persistence (SQLite)
 - **Automatic History Logging:** Every IP lookup is persisted to a local SQLite database
-  (`~/.local/share/IPView/ipview_history.db`) with WAL journal mode for concurrent access.
+  (`~/.config/IPView/ipview_history.db`) with WAL journal mode for concurrent access.
 - **Tables:** `ip_history` (IP, country, city, org, ASN, full JSON payload, timestamp) and
   `telemetry` (interface stats with RX/TX speeds).
 - **Thread-Safe:** All database operations are serialized via `QMutex`. Uses parameterized
@@ -216,14 +216,25 @@ cmake --build build -j"$(nproc)"
    - **iPerf3:** Measure network throughput between client and server. Real-time color-coded speed display.
    - **Traceroute:** Trace network hops to any target. Cross-platform (Linux/Windows).
 
-4. **History** : View all IP changes recorded during your session with accurate timestamps. Clear with one click.
+4. **Port Scanner** : Scan open ports on any target host.
+   - **Quick Scan:** 28 well-known ports (SSH, HTTP, HTTPS, MySQL, etc.).
+   - **Custom Range:** Scan any port range (e.g. `80,443,3000-3100`).
+   - Real-time results table with port, state, service name, and latency.
+   - Cancel scanning at any time.
 
-5. **Speedtest** : Run internet speed tests using `speedtest-cli`.
+5. **History** : View all IP changes recorded during your session with accurate timestamps and SQLite persistence. History survives restarts. Clear with one click.
+
+6. **Speedtest** : Run internet speed tests using `speedtest-cli`.
    - Real-time ping, download, and upload metrics with animated progress.
    - **Browse Servers:** Opens a dialog with a sortable table of speedtest.net servers. Double-click to select.
    - Options: single connection, secure mode, share results.
 
-6. **About** : View build information including compiler name/version, C++ standard, system architecture, Qt version, and compile date/time.
+7. **Telemetry** : Real-time network interface monitoring.
+   - Live download/upload speed cards.
+   - Per-interface table with RX/TX rates, packets, and errors.
+   - Auto-refresh with configurable interval.
+
+8. **About** : View build information including compiler name/version, C++ standard, system architecture, Qt version, and compile date/time.
 
 ---
 
@@ -245,7 +256,9 @@ IPView/
 ├── ToolsTab.h/.cpp       # Ping / iPerf3 tools
 ├── TracerouteTab.h/.cpp  # Traceroute (cross-platform)
 ├── Iperf3Window.h/.cpp   # iPerf3 dialog (client/server mode)
-├── HistoryTab.h/.cpp     # IP change history with timestamps
+├── HistoryTab.h/.cpp     # IP change history with SQLite persistence
+├── ScannerTab.h/.cpp     # Port scanner GUI (Quick Scan + custom range)
+├── TelemetryTab.h/.cpp   # Network telemetry live display
 ├── SpeedtestTab.h/.cpp   # Speedtest with server browser
 ├── TelemetryModule.h/.cpp# Real-time network telemetry (/proc/net/dev)
 ├── DatabaseModule.h/.cpp # SQLite persistence layer (singleton, thread-safe)
@@ -254,7 +267,7 @@ IPView/
 ├── saturate_fix.h        # C++26 polyfill (saturate_cast for GCC 16.1)
 ├── build.sh              # Build script
 ├── resources.qrc         # Qt resources (icons, SVGs)
-├── svgs/                 # 12 SVG icons (512×512, 3D gradient design)
+├── svgs/                 # 14 SVG icons (512×512, 3D gradient design)
 ├── icon.svg              # Application icon (512×512, network/fiber/IP theme)
 └── CHANGELOG.md          # Version history
 ```

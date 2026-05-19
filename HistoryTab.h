@@ -1,7 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.0 — HistoryTab.h
+//  IPView Pro v2.8.0 — HistoryTab.h
 //  C++26: default member init, structured bindings
 //  Records IP changes during the session (max. 50 entries).
+//  Persistenz via DatabaseModule (SQLite) – laden beim Start, speichern bei
+//  jedem neuen Eintrag.
+//  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #ifndef HISTORYTAB_H
@@ -9,11 +12,14 @@
 
 #include <QWidget>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QTextEdit>
 #include <QJsonObject>
 #include <QList>
 #include <QPushButton>
 #include <QDateTime>
+#include <QLabel>
+#include <QCheckBox>
 
 #include <utility>  // std::pair
 
@@ -30,9 +36,12 @@ private slots:
     void onClearHistory();
 
 private:
+    void loadPersistedHistory() noexcept;
+
     // ── UI ─────────────────────────────────────────────────────────────────
     QTextEdit   *historyArea{nullptr};
     QPushButton *clearButton{nullptr};
+    QCheckBox   *persistCheckBox{nullptr};
 
     // ── Data ──────────────────────────────────────────────────────────────
     QList<QPair<QDateTime, QJsonObject>> historyWithTime;

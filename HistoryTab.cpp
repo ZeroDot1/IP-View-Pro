@@ -1,14 +1,20 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.0 — HistoryTab.cpp
+//  IPView Pro v2.8.0 — HistoryTab.cpp
 //  C++26: structured bindings, auto, QStringLiteral, const-correctness
 //  Displays IP changes with correct timestamps.
+//  Neu: Persistenz via DatabaseModule (SQLite) – Historie bleibt über Sitzungen
+//  hinweg erhalten und wird beim Start geladen.
+//  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "HistoryTab.h"
+#include "DatabaseModule.h"
+#include "Theme.h"
+
 #include <QDateTime>
-#include <QHBoxLayout>
 #include <QLabel>
 #include <QTextCursor>
+#include <QJsonDocument>
 
 // ═══════════════════════════════════════════════════════════════════════════════
 HistoryTab::HistoryTab(QWidget *parent)
@@ -24,34 +30,100 @@ HistoryTab::HistoryTab(QWidget *parent)
     titleIcon->setPixmap(QPixmap(QStringLiteral(":/svgs/scroll.svg"))
                              .scaled(18, 18, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     auto *title = new QLabel(QStringLiteral("IP Change History"));
-    title->setStyleSheet(QStringLiteral(
-        "color: #e94560; font-size: 14px; font-weight: bold;"
-    ));
-    headerRow->addWidget(titleIcon);
-    headerRow->addWidget(title);
+    title->setStyleSheet(QStringLiteral("color: %1; font-size: 14px; font-weight: bold;").arg(C_ACCENT));
+
+    // ── Info-Label: Einträge aus DB ────────────────────────────────────────
+    auto *countLabel = new QLabel();
+    countLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 11px;").arg(C_TEXT_DIM));
+
+    // ── Persistenz-Toggle ──────────────────────────────────────────────────
+    persistCheckBox = new QCheckBox(QStringLiteral("SQLite persist"));
+    persistCheckBox->setChecked(true);
+    persistCheckBox->setStyleSheet(QStringLiteral("color: %1;").arg(C_TEXT_SEC));
+
+    // ── Clear Button ──────────────────────────────────────────────────────
     clearButton = new QPushButton(QIcon(QStringLiteral(":/svgs/wastebasket.svg")),
                                   QStringLiteral(" Clear"));
-    clearButton->setStyleSheet(QStringLiteral(
-        "background-color: #1a1a2e; color: #888888; border: 1px solid #333; "
-        "border-radius: 4px; padding: 4px 10px; font-size: 11px;"
-    ));
+    clearButton->setStyleSheet(btnSmallStyle());
+
+    headerRow->addWidget(titleIcon);
     headerRow->addWidget(title);
+    headerRow->addSpacing(8);
+    headerRow->addWidget(countLabel);
     headerRow->addStretch();
+    headerRow->addWidget(persistCheckBox);
     headerRow->addWidget(clearButton);
 
     // ── History View ───────────────────────────────────────────────────────
     historyArea = new QTextEdit();
     historyArea->setReadOnly(true);
-    historyArea->setStyleSheet(QStringLiteral(
-        "background-color: #1a1a2e; color: #ffffff; border: none; "
-        "border-radius: 8px; padding: 10px; font-family: monospace; font-size: 12px;"
-    ));
+    historyArea->setStyleSheet(monoStyle());
     historyArea->setPlaceholderText(QStringLiteral("IP changes will appear here..."));
 
     layout->addLayout(headerRow);
     layout->addWidget(historyArea);
 
     connect(clearButton, &QPushButton::clicked, this, &HistoryTab::onClearHistory);
+
+    // ── Beim Start: Historie aus SQLite laden ───────────────────────────
+    loadPersistedHistory();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+void HistoryTab::loadPersistedHistory() noexcept
+{
+    if (!IPView::Storage::DatabaseModule::isInitialized()) return;
+
+    auto const entries = IPView::Storage::DatabaseModule::getHistory(50);
+    if (entries.empty()) return;
+
+    // Gespeicherte History in historyWithTime übernehmen
+    QString text;
+    int idx = 1;
+
+    for (auto const &entry : entries) {
+        QPair<QDateTime, QJsonObject> pair;
+        pair.first = entry.timestamp;
+
+        // JSON-Payload parsen
+        QJsonDocument const doc = QJsonDocument::fromJson(entry.jsonPayload.toUtf8());
+        if (doc.isObject()) {
+            pair.second = doc.object();
+        } else {
+            // Fallback: minimale Daten aus den DB-Feldern
+            QJsonObject fallback;
+            fallback[QStringLiteral("ip")]           = entry.ip;
+            fallback[QStringLiteral("country_name")] = entry.countryName;
+            fallback[QStringLiteral("country_code")] = entry.countryCode;
+            fallback[QStringLiteral("city")]         = entry.city;
+            fallback[QStringLiteral("org")]           = entry.org;
+            fallback[QStringLiteral("asn")]           = entry.asn;
+            pair.second = fallback;
+        }
+
+        historyWithTime.append(pair);
+
+        // Text aufbauen
+        QString const ip  = entry.ip;
+        QString const org = entry.org;
+        QString const city = entry.city;
+
+        text += QStringLiteral("  #%1  %2\n")
+                    .arg(idx++, 2)
+                    .arg(entry.timestamp.toString(QStringLiteral("yyyy-MM-dd hh:mm:ss")));
+        text += QStringLiteral("       IP:     %1\n")
+                    .arg(ip.isEmpty()  ? QStringLiteral("N/A") : ip);
+        text += QStringLiteral("       Org:    %1\n")
+                    .arg(org.isEmpty() ? QStringLiteral("N/A") : org);
+        text += QStringLiteral("       City:   %1\n")
+                    .arg(city.isEmpty() ? QStringLiteral("N/A") : city);
+        text += QStringLiteral("       CC:     %1\n")
+                    .arg(entry.countryCode.isEmpty() ? QStringLiteral("N/A") : entry.countryCode);
+        text += QStringLiteral("       ") + QString(50, QChar(0x2500)) + QStringLiteral("\n");
+    }
+
+    historyArea->setPlainText(text);
+    historyArea->moveCursor(QTextCursor::Start);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -59,6 +131,12 @@ void HistoryTab::onClearHistory()
 {
     historyWithTime.clear();
     historyArea->clear();
+
+    // Auch SQLite leeren, falls Persistenz aktiv
+    if (IPView::Storage::DatabaseModule::isInitialized()) {
+        IPView::Storage::DatabaseModule::clearHistory();
+        IPView::Storage::DatabaseModule::vacuum();
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -68,6 +146,11 @@ void HistoryTab::updateHistory(const QList<QJsonObject> &history)
     if (!history.isEmpty()) {
         QDateTime const now = QDateTime::currentDateTime();
         historyWithTime.prepend(qMakePair(now, history.first()));
+
+        // In SQLite speichern (falls aktiviert)
+        if (persistCheckBox->isChecked() && IPView::Storage::DatabaseModule::isInitialized()) {
+            IPView::Storage::DatabaseModule::storeResult(history.first());
+        }
 
         // Keep maximum of 50 entries
         static constexpr int MAX_ENTRIES = 50;

@@ -195,6 +195,13 @@ void DashboardView::setAutoRefresh(bool enabled) noexcept
     autoRefreshCheckBox->setChecked(enabled);
 }
 
+void DashboardView::setApiIndex(int index) noexcept
+{
+    if (index >= 0 && index < apiCombo->count()) {
+        apiCombo->setCurrentIndex(index);
+    }
+}
+
 void DashboardView::setApiNames(const QStringList &names) noexcept
 {
     apiCombo->clear();

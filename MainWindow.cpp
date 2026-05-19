@@ -7,6 +7,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "MainWindow.h"
+#include "ScannerTab.h"
+#include "TelemetryTab.h"
 #include "Theme.h"
 #include <QApplication>
 #include <QClipboard>
@@ -209,9 +211,11 @@ void MainWindow::setupUI() noexcept
 
     // ── Sub-Tabs ──────────────────────────────────────────────────────────
     whoisTab     = new WhoisTab();
-    toolsTab     = new ToolsTab();
-    historyTab   = new HistoryTab();
+    toolsTab     = new ToolsTab();           // Ping / iPerf3 / Traceroute
+    scannerTab   = new ScannerTab();         // Port-Scanner
+    historyTab   = new HistoryTab();         // IP-Verlauf (SQLite-persistent)
     speedtestTab = new SpeedtestTab();
+    telemetryTab = new TelemetryTab();       // Netzwerk-Echtzeit-Telemetrie
     aboutTab     = new AboutTab();
 
     tabWidget->addTab(dashboardView, QIcon(QStringLiteral(":/svgs/chart-bar.svg")),
@@ -220,10 +224,14 @@ void MainWindow::setupUI() noexcept
                       QStringLiteral(" Whois Lookup"));
     tabWidget->addTab(toolsTab,      QIcon(QStringLiteral(":/svgs/wrench.svg")),
                       QStringLiteral(" Network Tools"));
+    tabWidget->addTab(scannerTab,    QIcon(QStringLiteral(":/svgs/compass.svg")),
+                      QStringLiteral(" Port Scanner"));
     tabWidget->addTab(historyTab,    QIcon(QStringLiteral(":/svgs/scroll.svg")),
                       QStringLiteral(" History"));
     tabWidget->addTab(speedtestTab,  QIcon(QStringLiteral(":/svgs/lightning.svg")),
                       QStringLiteral(" Speedtest"));
+    tabWidget->addTab(telemetryTab,  QIcon(QStringLiteral(":/svgs/graph.svg")),
+                      QStringLiteral(" Telemetry"));
     tabWidget->addTab(aboutTab,      QIcon(QStringLiteral(":/svgs/info.svg")),
                       QStringLiteral(" About"));
 
@@ -412,7 +420,7 @@ void MainWindow::loadSettings() noexcept
     int const apiIndex = Manager::loadApiIndex();
     if (apiIndex >= 0) {
         networkManager->setSelectedAPI(apiIndex);
-        // DashboardView-ComboBox muss mitlaufen (falls schon befüllt)
+        dashboardView->setApiIndex(apiIndex);  // ComboBox-Sync
     }
 
     bool const ipv6 = Manager::loadIPv6Mode();

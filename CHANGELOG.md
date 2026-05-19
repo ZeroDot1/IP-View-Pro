@@ -5,6 +5,20 @@ All notable changes to this project are documented here.
 ## [2.8.0] — 2026-05-19
 
 ### Added
+- **`ScannerTab`** — GUI-Tab für `ScannerModule`: Quick-Scan (28 Ports), benutzerdefinierte
+  Port-Bereiche, Ergebnistabelle mit Port/State/Service/Latenz. Wird als eigener Tab
+  `Port Scanner` unter dem Icon `compass.svg` angezeigt.
+- **`TelemetryTab`** — GUI-Tab für `TelemetryModule`: Echtzeit-Monitoring von Netzwerk-
+  interfaces. Zeigt Gesamt-Download/Upload (Karten oben) und pro-Interface-Tabelle mit
+  RX/TX-Raten, Paketen und Fehlern. Wird als eigener Tab `Telemetry` unter `graph.svg`
+  angezeigt.
+- **`HistoryTab`-Persistenz:** Lädt IP-Historie beim Start aus SQLite (`DatabaseModule::getHistory()`).
+  Neue `SQLite persist`-Checkbox steuert, ob neue Einträge in die DB geschrieben werden.
+  `Clear` löscht auch die SQLite-Tabelle.
+- **`DashboardView::setApiIndex()`** — Neue Methode zum programmatischen Setzen des
+  API-ComboBox-Index (wichtig für Config-Wiederherstellung).
+- **SVG-Icons:** `svgs/compass.svg` (Scanner), `svgs/graph.svg` (Telemetry) erstellt
+  und in `resources.qrc` registriert.
 - **Modular architecture:** UI components extracted into separate classes.
 - **`DashboardView`** — Standalone overview widget (API selection, IP card, data table,
   flag display, copy/export buttons). Replaces the inline overview tab in MainWindow.
@@ -45,6 +59,13 @@ All notable changes to this project are documented here.
 - **`DashboardView`:** Neue Methoden `setIPv6Mode(bool)` und `setAutoRefresh(bool)`
   zum Wiederherstellen der gespeicherten Einstellungen.
 - **`NetworkManager`:** Neue Methode `getSelectedApiIndex()` für Config-Persistence.
+- **MainWindow-Tabs:** `ScannerTab` und `TelemetryTab` als neue Tabs registriert.
+  `ToolsTab` bleibt als Ping/Traceroute-Tab erhalten, Scanner bekommt eigenen Tab.
+- **`HistoryTab` mit SQLite-Persistenz:** Beim Start wird `loadPersistedHistory()`
+  aufgerufen, um gespeicherte Einträge aus `ipview_history.db` zu laden.
+  Neue Methoden: `loadPersistedHistory()`, persistCheckBox.
+- **Build-System:** `CMakeLists.txt` um `ScannerTab.cpp` und `TelemetryTab.cpp` ergänzt.
+  `resources.qrc` um `compass.svg` und `graph.svg` erweitert.
 - **Version bumped:** `2.7.1` → `2.8.0` (`CMakeLists.txt`).
 - **CMake updated:** Added `DashboardView`, `TelemetryModule`, `DatabaseModule`,
   `ScannerModule`, `ConfigManager` source files. Added `Qt6::Sql` dependency.

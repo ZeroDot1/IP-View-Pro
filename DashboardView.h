@@ -43,6 +43,7 @@ public:
     void setStatusMessage(const QString &msg) noexcept;
     void setIPv6Mode(bool enabled) noexcept;
     void setAutoRefresh(bool enabled) noexcept;
+    void setApiIndex(int index) noexcept;
     [[nodiscard]] QString selectedApiName() const noexcept;
     [[nodiscard]] bool     isIPv6Mode()      const noexcept;
     [[nodiscard]] QLabel*  flagLabelWidget() const noexcept;
