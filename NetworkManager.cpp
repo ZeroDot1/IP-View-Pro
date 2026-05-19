@@ -75,6 +75,11 @@ void NetworkManager::setSelectedAPI(int index) noexcept
     }
 }
 
+int NetworkManager::getSelectedApiIndex() const noexcept
+{
+    return currentApiIndex;
+}
+
 [[nodiscard]]
 QStringList NetworkManager::getApiNames() const noexcept
 {

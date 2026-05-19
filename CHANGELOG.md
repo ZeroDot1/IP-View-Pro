@@ -21,16 +21,33 @@ All notable changes to this project are documented here.
   Batch processing with configurable concurrency (default 100 parallel connections).
   Supports port lists and ranges. Service name resolution for 28+ well-known ports.
   Emits `portFound`, `scanCompleted`, `scanCancelled`, and `scanProgress` signals.
+- **`ConfigManager`** — Per-user configuration via `QSettings` (INI-Format).
+  Speichert in `~/.config/IPView/IPView.conf` (XDG Base Directory Specification).
+  Jeder Benutzer hat seine eigene Konfigurationsdatei mit Fenstergeometrie,
+  API-Auswahl, IPv6-Modus, Auto-Refresh-Einstellungen.
+  Methoden: `saveWindowGeometry/State`, `saveLastTab`, `saveApiIndex`,
+  `saveIPv6Mode`, `saveAutoRefresh`, `saveNetworkSettings` uvm.
 - **`main.cpp`:** Database initialized at startup via `DatabaseModule::init()`.
+  ConfigManager initialized at startup via `IPView::Config::Manager::initialize()`.
 
 ### Changed
 - **MainWindow refactored:** Now uses `DashboardView` as the Overview tab instead of
   inline widget creation. All overview-related widgets (apiCombo, ipLabel, ipTable,
   flagLabel, buttons) moved to `DashboardView`. Data display delegated to
   `DashboardView::updateDisplay()`. Flag loading uses `flagLabelWidget()` getter.
+- **Config persistence:** MainWindow speichert/lädt Fenstergeometrie, API-Index,
+  IPv6-Modus und Auto-Refresh automatisch via `saveSettings()`/`loadSettings()`.
+  Die Config liegt pro Benutzer in `~/.config/IPView/IPView.conf`.
+- **Database path:** `DatabaseModule::defaultDbPath()` verwendet jetzt
+  `QStandardPaths::AppConfigLocation` → `~/.config/IPView/ipview_history.db`
+  (vorher: `~/.local/share/`). Config und Datenbank liegen nun im selben
+  Verzeichnis für jeden Benutzer.
+- **`DashboardView`:** Neue Methoden `setIPv6Mode(bool)` und `setAutoRefresh(bool)`
+  zum Wiederherstellen der gespeicherten Einstellungen.
+- **`NetworkManager`:** Neue Methode `getSelectedApiIndex()` für Config-Persistence.
 - **Version bumped:** `2.7.1` → `2.8.0` (`CMakeLists.txt`).
 - **CMake updated:** Added `DashboardView`, `TelemetryModule`, `DatabaseModule`,
-  `ScannerModule` source files. Added `Qt6::Sql` dependency for SQLite support.
+  `ScannerModule`, `ConfigManager` source files. Added `Qt6::Sql` dependency.
 - **`Theme.h`:** Comments updated to reflect v2.8.0.
 
 ### Security

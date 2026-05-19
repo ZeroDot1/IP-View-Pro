@@ -57,6 +57,9 @@ MainWindow::MainWindow(QWidget *parent)
         dashboardView->setStatusMessage(err);
     });
 
+    // ── Per-User-Konfiguration wiederherstellen (XDG: ~/.config/IPView/) ─
+    loadSettings();
+
     onRefreshClicked();
 }
 
@@ -109,12 +112,16 @@ void MainWindow::onExitRequested()
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     if (!reallyQuit && trayIcon->isVisible()) {
+        // In den Tray minimieren – Einstellungen dennoch speichern
+        saveSettings();
         hide();
         event->ignore();
         trayIcon->showMessage(QStringLiteral("IP View Pro"),
                               QStringLiteral("Application running in tray."),
                               QSystemTrayIcon::Information, 2000);
     } else {
+        // Wirklich beenden – vorher alles speichern
+        saveSettings();
         event->accept();
     }
 }
@@ -360,4 +367,60 @@ void MainWindow::onExportJsonRequested()
     file.close();
 
     statusLabel->setText(QStringLiteral("Data exported to: %1").arg(fileName));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Per-User-Konfiguration (XDG Base Directory: ~/.config/IPView/IPView.conf)
+//  Jeder Benutzer hat seine eigene Config + SQLite-Datenbank.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void MainWindow::saveSettings() noexcept
+{
+    using namespace IPView::Config;
+
+    // ── Window ──────────────────────────────────────────────────────────────
+    Manager::saveWindowGeometry(saveGeometry());
+    Manager::saveLastTab(tabWidget->currentIndex());
+
+    // ── Network ─────────────────────────────────────────────────────────────
+    Manager::saveNetworkSettings(
+        networkManager->getSelectedApiIndex(),
+        dashboardView->isIPv6Mode(),
+        autoRefreshTimer->isActive()
+    );
+
+    Manager::sync();
+}
+
+void MainWindow::loadSettings() noexcept
+{
+    using namespace IPView::Config;
+
+    // ── Window-Geometrie wiederherstellen ───────────────────────────────────
+    QByteArray const geom = Manager::loadWindowGeometry();
+    if (!geom.isEmpty()) {
+        restoreGeometry(geom);
+    }
+
+    // ── Letzten Tab wiederherstellen ────────────────────────────────────────
+    int const lastTab = Manager::loadLastTab();
+    if (lastTab >= 0 && lastTab < tabWidget->count()) {
+        tabWidget->setCurrentIndex(lastTab);
+    }
+
+    // ── Network-Einstellungen wiederherstellen ──────────────────────────────
+    int const apiIndex = Manager::loadApiIndex();
+    if (apiIndex >= 0) {
+        networkManager->setSelectedAPI(apiIndex);
+        // DashboardView-ComboBox muss mitlaufen (falls schon befüllt)
+    }
+
+    bool const ipv6 = Manager::loadIPv6Mode();
+    dashboardView->setIPv6Mode(ipv6);
+
+    bool const autoRefresh = Manager::loadAutoRefresh();
+    dashboardView->setAutoRefresh(autoRefresh);
+    if (autoRefresh) {
+        autoRefreshTimer->start(300000);
+    }
 }

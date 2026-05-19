@@ -185,6 +185,16 @@ void DashboardView::setStatusMessage(const QString &msg) noexcept
     Q_UNUSED(msg)
 }
 
+void DashboardView::setIPv6Mode(bool enabled) noexcept
+{
+    ipv6CheckBox->setChecked(enabled);
+}
+
+void DashboardView::setAutoRefresh(bool enabled) noexcept
+{
+    autoRefreshCheckBox->setChecked(enabled);
+}
+
 void DashboardView::setApiNames(const QStringList &names) noexcept
 {
     apiCombo->clear();

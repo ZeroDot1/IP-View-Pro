@@ -23,6 +23,7 @@
 
 #include "NetworkManager.h"
 #include "FlagLoader.h"
+#include "ConfigManager.h"
 #include "DashboardView.h"
 #include "WhoisTab.h"
 #include "ToolsTab.h"
@@ -62,6 +63,10 @@ private:
 
     void updateTrayTooltip(const QJsonObject &data) noexcept;
     void updateHistory(const QJsonObject &data) noexcept;
+
+    // ── Config (per-user, XDG-konform) ─────────────────────────────────
+    void saveSettings() noexcept;
+    void loadSettings() noexcept;
 
     // ── Tab Widget ────────────────────────────────────────────────────────
     QTabWidget *tabWidget{nullptr};

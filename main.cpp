@@ -17,6 +17,7 @@
 #include "MainWindow.h"
 #include "Theme.h"
 #include "DatabaseModule.h"
+#include "ConfigManager.h"
 
 // ── Compile-time constant application metadata ─────────────────────────────
 //  C++26 consteval: Guaranteed evaluation at compile time
@@ -60,6 +61,11 @@ int main(int argc, char* argv[])
     // ── Fusion theme + global stylesheet ──────────────────────────────
     app.setStyle(QStyleFactory::create("Fusion"));
     app.setStyleSheet(appStyleSheet());
+
+    // ════════════════════════════════════════════════════════════════════
+    //  CONFIG MANAGER (per-user, XDG-konform ~/.config/IPView/IPView.conf)
+    // ════════════════════════════════════════════════════════════════════
+    IPView::Config::Manager::initialize();
 
     // ════════════════════════════════════════════════════════════════════
     //  SINGLE INSTANCE CHECK

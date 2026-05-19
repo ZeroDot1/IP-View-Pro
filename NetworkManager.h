@@ -39,6 +39,7 @@ public:
     void fetchIPv6Data() noexcept;
 
     void setSelectedAPI(int index) noexcept;
+    [[nodiscard]] int getSelectedApiIndex() const noexcept;
 
     [[nodiscard]] QStringList  getApiNames()  const noexcept;
     [[nodiscard]] QJsonObject  getLastData()  const noexcept;

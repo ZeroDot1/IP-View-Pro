@@ -68,6 +68,7 @@ qt_add_executable(IPView
     main.cpp
     MainWindow.cpp
     DashboardView.cpp
+    ConfigManager.cpp
     NetworkManager.cpp
     FlagLoader.cpp
     Iperf3Window.cpp

@@ -340,8 +340,10 @@ bool DatabaseModule::vacuum() noexcept
 
 QString DatabaseModule::defaultDbPath() noexcept
 {
-    QString const dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    return dataDir + QStringLiteral("/ipview_history.db");
+    // Nutzt das XDG-Config-Verzeichnis (~/.config/IPView/),
+    // sodass Config und Datenbank für jeden Benutzer zusammen liegen.
+    QString const configDir = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+    return configDir + QStringLiteral("/ipview_history.db");
 }
 
 } // namespace IPView::Storage
