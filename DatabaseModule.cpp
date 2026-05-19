@@ -19,10 +19,12 @@
 //  Statische Member
 // ═══════════════════════════════════════════════════════════════════════════════
 
-QSqlDatabase IPView::Storage::DatabaseModule::sDb;
-QMutex       IPView::Storage::DatabaseModule::sMutex;
-bool         IPView::Storage::DatabaseModule::sInitialized{false};
-QString      IPView::Storage::DatabaseModule::sDbPath;
+QSqlDatabase                       IPView::Storage::DatabaseModule::sDb;
+QMutex                             IPView::Storage::DatabaseModule::sMutex;
+bool                               IPView::Storage::DatabaseModule::sInitialized{false};
+QString                            IPView::Storage::DatabaseModule::sDbPath;
+IPView::Storage::DatabaseModule::StatusCallback
+                                   IPView::Storage::DatabaseModule::sStatusCallback;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Storage {
@@ -335,6 +337,30 @@ int DatabaseModule::getHistoryCount() noexcept
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+//  Status-Callback (Item 5)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void DatabaseModule::setStatusCallback(StatusCallback cb) noexcept
+{
+    sStatusCallback = std::move(cb);
+}
+
+void DatabaseModule::clearStatusCallback() noexcept
+{
+    sStatusCallback = nullptr;
+}
+
+void DatabaseModule::emitStatusMsg(const QString &msg) noexcept
+{
+    if (sStatusCallback) {
+        sStatusCallback(msg);
+    }
+}
+
+// Hilfsmakro für einheitliche Status-Meldungen
+#define DB_STATUS(msg)  DatabaseModule::emitStatusMsg(QStringLiteral(msg))
+
+// ═══════════════════════════════════════════════════════════════════════════════
 //  Transaction Support (Item 11)
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -371,13 +397,14 @@ bool DatabaseModule::clearHistory() noexcept
     QMutexLocker lock(&sMutex);
     if (!sInitialized) return false;
 
+    DB_STATUS("Clearing IP history...");
     QSqlQuery query(sDb);
     if (!query.exec(QStringLiteral("DELETE FROM ip_history"))) {
-        IPView::Logger::warn("DatabaseModule: clearHistory failed: {}",
-                 query.lastError().text().toStdString());
+        DB_STATUS("Failed to clear IP history");
         return false;
     }
 
+    DB_STATUS("IP history cleared");
     return true;
 }
 
@@ -734,13 +761,14 @@ bool DatabaseModule::clearTelemetryAggregated() noexcept
     QMutexLocker lock(&sMutex);
     if (!sInitialized) return false;
 
+    DB_STATUS("Clearing telemetry history...");
     QSqlQuery query(sDb);
     if (!query.exec(QStringLiteral("DELETE FROM telemetry_aggregated"))) {
-        IPView::Logger::warn("DatabaseModule: clearTelemetryAggregated failed: {}",
-                 query.lastError().text().toStdString());
+        DB_STATUS("Failed to clear telemetry history");
         return false;
     }
 
+    DB_STATUS("Telemetry history cleared");
     return true;
 }
 

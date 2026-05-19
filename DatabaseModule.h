@@ -20,6 +20,7 @@
 #include <optional>   // C++17/26: std::optional
 #include <vector>
 #include <cstdint>
+#include <functional>  // C++26: Callback für Status-Feedback (Item 5)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Storage {
@@ -120,6 +121,12 @@ public:
     // ── Integrity (Item 20) ───────────────────────────────────────────────
     [[nodiscard]] static bool integrityCheck() noexcept;
 
+    // ── Status-Callback (Item 5) ─────────────────────────────────────────
+    //  Ermöglicht UI-Feedback für DB-Hintergrundoperationen
+    using StatusCallback = std::function<void(const QString &)>;
+    static void setStatusCallback(StatusCallback cb) noexcept;
+    static void clearStatusCallback() noexcept;
+
 private:
     DatabaseModule() = default;
     ~DatabaseModule() = default;
@@ -133,6 +140,10 @@ private:
     static QMutex         sMutex;
     static bool           sInitialized;
     static QString        sDbPath;
+    static StatusCallback sStatusCallback;
+
+    // ── Internes Status-Forwarding ───────────────────────────────────────
+    static void emitStatusMsg(const QString &msg) noexcept;
 };
 
 } // namespace IPView::Storage
