@@ -195,6 +195,33 @@ ServerSelectionModule::findClosestServer(const std::vector<ServerInfo> &servers)
     return *it;
 }
 
+// ── Auto-Select: Nächsten Server mit kombinierter Distanz- + Latenz-Wertung (Item 44) ──
+std::optional<ServerInfo>
+ServerSelectionModule::selectBestServer(const std::vector<ServerInfo> &servers) noexcept
+{
+    if (servers.empty()) return std::nullopt;
+
+    // Scoring: niedrige Distanz + niedrige Latenz = bester Server
+    double const minDist = std::min_element(servers.begin(), servers.end(),
+        [](const ServerInfo &a, const ServerInfo &b) { return a.distanceKm < b.distanceKm; })->distanceKm;
+    double const maxDist = std::max_element(servers.begin(), servers.end(),
+        [](const ServerInfo &a, const ServerInfo &b) { return a.distanceKm < b.distanceKm; })->distanceKm;
+    double const distRange = std::max(maxDist - minDist, 1.0);
+
+    auto bestIt = std::min_element(servers.begin(), servers.end(),
+        [minDist, distRange](const ServerInfo &a, const ServerInfo &b) noexcept {
+            // Normalisierte Punktzahl (0..1): Distanz + Latenz
+            double const scoreA = (a.distanceKm - minDist) / distRange
+                                + (a.latencyMs > 0.0 ? a.latencyMs / 100.0 : 0.0);
+            double const scoreB = (b.distanceKm - minDist) / distRange
+                                + (b.latencyMs > 0.0 ? b.latencyMs / 100.0 : 0.0);
+            return scoreA < scoreB;
+        });
+
+    if (bestIt == servers.end()) return std::nullopt;
+    return *bestIt;
+}
+
 std::optional<ServerInfo>
 ServerSelectionModule::findServerById(const std::vector<ServerInfo> &servers,
                                        int serverId) noexcept
