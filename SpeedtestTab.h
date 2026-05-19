@@ -49,7 +49,7 @@ private slots:
     void onProgressTick();
 
 private:
-    // ── UI-Aufbau ─────────────────────────────────────────────────────────
+    // ── UI setup ───────────────────────────────────────────────────────────
     void setupUI();
 
     [[nodiscard]] QFrame *createMetricCard(const QString &title,
@@ -59,20 +59,20 @@ private:
 
     [[nodiscard]] QString appStyleSheet() const noexcept;
 
-    // ── Steuerung ─────────────────────────────────────────────────────────
+    // ── Controls ───────────────────────────────────────────────────────────
     void setControlsEnabled(bool enabled) noexcept;
     void resetDisplay() noexcept;
     void updateDisplayFromJson(const QJsonObject &obj) noexcept;
 
-    // ── Server-Verwaltung ─────────────────────────────────────────────────
+    // ── Server management ──────────────────────────────────────────────────
     void parseServerList(const QString &raw);
     void setSelectedServer(int serverId);
 
-    // ── Prozess-Management ────────────────────────────────────────────────
+    // ── Process management ─────────────────────────────────────────────────
     [[nodiscard]] QString findSpeedtest() const noexcept;
     void startProcess(const QStringList &args);
 
-    // ── UI-Elemente ───────────────────────────────────────────────────────
+    // ── UI elements ────────────────────────────────────────────────────────
     QPushButton *startButton{nullptr};
     QPushButton *stopButton{nullptr};
     QPushButton *browseServersButton{nullptr};
@@ -93,7 +93,7 @@ private:
     QProgressBar *progressGauge{nullptr};
     QTextEdit    *logArea{nullptr};
 
-    // ── Prozess & Zustand ─────────────────────────────────────────────────
+    // ── Process & state ────────────────────────────────────────────────────
     QProcess     *process{nullptr};
     QTimer       *progressTimer{nullptr};
     QElapsedTimer elapsedTimer;

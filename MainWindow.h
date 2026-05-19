@@ -32,6 +32,7 @@
 #include "SpeedtestTab.h"
 #include "TelemetryTab.h"
 #include "AboutTab.h"
+#include "TelemetryPersistenceModule.h"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 class MainWindow : public QWidget
@@ -89,6 +90,9 @@ private:
     // ── Network & Data ──────────────────────────────────────────────────
     NetworkManager *networkManager{nullptr};
     FlagLoader     *flagLoader{nullptr};
+
+    // ── Telemetry Persistence (background aggregation) ──────────────────
+    IPView::Telemetry::TelemetryPersistenceModule *telemetryPersistence{nullptr};
 
     // ─── System Tray ──────────────────────────────────────────────────────
     QSystemTrayIcon *trayIcon{nullptr};

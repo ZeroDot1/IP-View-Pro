@@ -2,7 +2,7 @@
 //  IPView Pro v2.8.0 — ConfigManager.cpp
 //  C++26: [[nodiscard]], noexcept, const-correctness
 //  Per-user configuration via QSettings (INI format).
-//  Ablageort (XDG Base Directory):
+//  Storage location (XDG Base Directory):
 //    Linux:   ~/.config/IPView/IPView.conf
 //    Windows: ~/AppData/Roaming/IPView/IPView.ini
 //    macOS:   ~/Library/Preferences/com.IPView.plist
@@ -17,12 +17,12 @@
 #include <QFileInfo>
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Statische Member
+//  Static members
 // ═══════════════════════════════════════════════════════════════════════════════
 
 QSettings IPView::Config::Manager::sSettings(
     QStringLiteral("IPView"),   // Organisation
-    QStringLiteral("IPView")    // Applikation
+    QStringLiteral("IPView")    // Application
 );
 bool IPView::Config::Manager::sInitialized{false};
 
@@ -170,6 +170,30 @@ void Manager::saveTelemetryInterval(int ms) noexcept
 int Manager::loadTelemetryInterval(int defaultMs) noexcept
 {
     return settings().value(QLatin1StringView(Key::TELEMETRY_INTERVAL), defaultMs).toInt();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Telemetry — Auto-Start & Window Size
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void Manager::saveTelemetryAutoStart(bool enabled) noexcept
+{
+    settings().setValue(QLatin1StringView(Key::TELEMETRY_AUTO_START), enabled);
+}
+
+bool Manager::loadTelemetryAutoStart(bool defaultEnabled) noexcept
+{
+    return settings().value(QLatin1StringView(Key::TELEMETRY_AUTO_START), defaultEnabled).toBool();
+}
+
+void Manager::saveTelemetryWindowSize(int seconds) noexcept
+{
+    settings().setValue(QLatin1StringView(Key::TELEMETRY_WINDOW_SIZE), seconds);
+}
+
+int Manager::loadTelemetryWindowSize(int defaultSeconds) noexcept
+{
+    return settings().value(QLatin1StringView(Key::TELEMETRY_WINDOW_SIZE), defaultSeconds).toInt();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

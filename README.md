@@ -28,7 +28,7 @@
 </p>
 
 <p align="center">
-  All source code comments are in professional US English. No <code>TODO</code>, <code>FIXME</code>, or <code>Q_UNUSED</code> stubs remain.
+  All source code comments are in professional US English. No <code>TODO</code> or <code>FIXME</code> stubs remain.
 </p>
 
 ---
@@ -50,7 +50,7 @@
 
 Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory (512×512 px native, displayed at 14×14 px inline).
 
-> **Compact Tab Bar:** All 8 tabs (Overview, Whois, Network Tools, Port Scanner, History, Speedtest, Telemetry, About) are always visible without scrolling — thanks to reduced padding (`6px 12px`), smaller font (`11px`), and `setUsesScrollButtons(false)` + `setExpanding(true)` on the QTabBar.
+> **Compact Tab Bar:** All 8 tabs (Overview, Whois, Network Tools, Port Scanner, History, Speedtest, Telemetry, About) are always visible without scrolling — thanks to reduced padding (`6px 12px`), smaller font (`11px`), and `setUsesScrollButtons(false)` + `setExpanding(true)` on the QTabBar. (Eight tabs remain; `TelemetryPersistenceModule` and `ServerSelectionModule` are background services without dedicated tabs.)
 
 ###  Multi-API Geolocation
 - **12+ APIs** with automatic failover, sparse data enrichment, and IPv6 support.
@@ -95,6 +95,26 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
   queries — no SQL injection possible.
 - **Maintenance:** `vacuum()`, `clearHistory()`, and configurable query limits.
 
+###  Telemetry Persistence (Historical Aggregation)
+- **Periodic Aggregation:** Background timer-driven engine (`TelemetryPersistenceModule`)
+  records interface statistics into the `telemetry_aggregated` SQLite table at configurable
+  intervals (default 60 seconds).
+- **Aggregated Stats:** Each record stores min/avg/max RX/TX speeds, total bytes transferred,
+  and the time window of the sample.
+- **Historical Queries:** Retrieve aggregation history per interface, get a summary for any
+  time range (`getStatsForWindow`), or fetch the latest snapshot.
+- **Auto-Start:** Persistence engine auto-starts at launch if previously enabled (setting
+  saved in `~/.config/IPView/IPView.conf`).
+- **Maintenance:** Clear all aggregated history with `clearAggregatedHistory()`.
+
+###  Speedtest Server Selection Module
+- **`ServerSelectionModule`** — Modular server browser extracted from SpeedtestTab.
+  `getAvailableServers()` fetches and parses the speedtest.net server list.
+- **Filtering:** `filterByDistance()` and `filterByQuery()` for smart server discovery.
+- **Sorting:** `sortServers()` by ID, sponsor, location, or distance (ascending/descending).
+- **Lookup:** `findClosestServer()` and `findServerById()` for quick server selection.
+- Uses `std::expected` for type-safe error propagation with structured error messages.
+
 ###  Real-Time Network Telemetry
 - **`/proc/net/dev` Monitoring:** Background timer-driven polling (default 2s interval).
 - **Per-Interface Stats:** RX/TX bytes, packets, errors, and real-time transfer speeds (bytes/s).
@@ -138,7 +158,7 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
 | `[[nodiscard]]` | 45× across the project | Compiler warns on discarded return values |
 | `noexcept` | 55× across the project | Exceptions stopped at API boundaries |
 | Structured bindings | 8 files | `auto const& [key, value]` — more readable, type-safe |
-| `std::expected` | TelemetryModule | Type-safe error propagation without exceptions |
+| `std::expected` | TelemetryModule, ServerSelectionModule | Type-safe error propagation without exceptions |
 | `std::from_chars` | TelemetryModule, ScannerModule | Performant string-to-integer conversion |
 | `std::optional` | DatabaseModule | Nullable return values for database queries |
 | `std::unique_ptr` | ScannerModule | RAII socket pool management |
@@ -151,9 +171,19 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
 ## Requirements
 
 ### Qt 6 Dependencies (Arch Linux)
+
+The application requires the following packages to build and run:
+
 ```bash
 sudo pacman -S qt6-base qt6-svg cmake base-devel
 ```
+
+| Package | Provides |
+|---------|----------|
+| `qt6-base` | Qt6Core, Qt6Widgets, Qt6Network, Qt6Sql (with SQLite plugin) |
+| `qt6-svg`  | Qt6Svg — SVG icon rendering |
+| `cmake`    | Build system generator |
+| `base-devel` | GCC/Clang, make, and other build essentials |
 
 ### C++26 Compiler
 ```bash
@@ -169,6 +199,12 @@ sudo pacman -S clang     # Clang 18+
 ```bash
 sudo pacman -S speedtest-cli iperf3 traceroute
 ```
+
+| Tool | Used By | Purpose |
+|------|---------|---------|
+| `speedtest-cli` | SpeedtestTab, ServerSelectionModule | Internet speed tests + server list |
+| `iperf3` | ToolsTab / Iperf3Window | Network throughput measurement |
+| `traceroute` | ToolsTab / TracerouteTab | Network hop tracing |
 
 ---
 
@@ -262,9 +298,11 @@ IPView/
 ├── ScannerTab.h/.cpp     # Port scanner GUI (Quick Scan + custom range)
 ├── TelemetryTab.h/.cpp   # Network telemetry live display
 ├── SpeedtestTab.h/.cpp   # Speedtest with server browser
-├── TelemetryModule.h/.cpp# Real-time network telemetry (/proc/net/dev)
-├── DatabaseModule.h/.cpp # SQLite persistence layer (singleton, thread-safe)
-├── ScannerModule.h/.cpp  # Async port scanner (QTcpSocket, non-blocking)
+├── TelemetryModule.h/.cpp              # Real-time network telemetry (/proc/net/dev)
+├── TelemetryPersistenceModule.h/.cpp   # Periodic telemetry aggregation & persistence
+├── DatabaseModule.h/.cpp               # SQLite persistence layer (singleton, thread-safe)
+├── ServerSelectionModule.h/.cpp        # Speedtest server selection & filtering
+├── ScannerModule.h/.cpp                # Async port scanner (QTcpSocket, non-blocking)
 ├── CMakeLists.txt        # C++26, Qt 6.11, security hardening
 ├── saturate_fix.h        # C++26 polyfill (saturate_cast for GCC 16.1)
 ├── build.sh              # Build script
@@ -346,4 +384,4 @@ This project is released under **Public Domain**. It may be freely used, copied,
 
 ---
 
-*IPView Pro v2.8.1 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*
+*IPView Pro v2.9.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*

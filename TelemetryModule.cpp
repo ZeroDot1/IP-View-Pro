@@ -88,7 +88,7 @@ void TelemetryModule::startMonitoring(int intervalMs) noexcept
 {
     if (mMonitoring) return;
 
-    // Initiale Messwerte erfassen
+    // Capture initial measurement values
     onTick();
     mTimer->start(intervalMs);
     mMonitoring = true;
@@ -190,7 +190,7 @@ Stats TelemetryModule::parseProcNetDev(const QString &content,
         if (!line.contains(searchStr, Qt::CaseInsensitive)) continue;
 
         // Format: "   eth0:  rx_bytes rx_packets rx_errs ...  tx_bytes ..."
-        // Nach dem Doppelpunkt splitten
+        // Split after the colon
         qsizetype const colonPos = line.indexOf(QLatin1Char(':'));
         if (colonPos < 0) break;
 

@@ -25,7 +25,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  DataNormalizer — namespace (instead of class) for JSON normalization.
 //  Idiomatic C++26: pure "namespace" instead of a static class.
-//  Normalisiert JSON-Responses von 12+ Geo-IP-APIs in ein einheitliches Format.
+//  Normalizes JSON responses from 12+ Geo-IP APIs into a unified format.
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace DataNormalizer {
 

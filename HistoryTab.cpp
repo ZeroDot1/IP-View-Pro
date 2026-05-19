@@ -90,7 +90,7 @@ void HistoryTab::loadPersistedHistory() noexcept
         if (doc.isObject()) {
             pair.second = doc.object();
         } else {
-            // Fallback: minimale Daten aus den DB-Feldern
+            // Fallback: minimal data from DB fields
             QJsonObject fallback;
             fallback[QStringLiteral("ip")]           = entry.ip;
             fallback[QStringLiteral("country_name")] = entry.countryName;

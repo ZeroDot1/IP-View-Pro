@@ -158,7 +158,7 @@ void TelemetryTab::onRefreshInterfaces()
     if (mMonitoring) {
         // Manual refresh triggers the next telemetry update
         statusLabel->setText(QStringLiteral("Refreshing..."));
-        // Das TelemetryModule aktualisiert automatisch via Timer
+        // TelemetryModule updates automatically via timer
         // We can reset the timer briefly for an immediate update
         mTelemetry->stopMonitoring();
         mTelemetry->startMonitoring(2000);

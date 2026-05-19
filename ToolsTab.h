@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.0 — ToolsTab.h
 //  C++26: default member init, [[nodiscard]]
-//  Ping & iPerf3-Tools mit QProcess-Integration.
+//  Ping & iPerf3 tools with QProcess integration.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #ifndef TOOLSTAB_H

@@ -159,6 +159,35 @@ bool DatabaseModule::createSchema() noexcept
         "ON telemetry(interface, timestamp DESC)"
     ));
 
+    // ── telemetry_aggregated table (for TelemetryPersistenceModule) ────────
+    bool const aggTable = query.exec(QStringLiteral(
+        "CREATE TABLE IF NOT EXISTS telemetry_aggregated ("
+        "  id           INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "  interface    TEXT NOT NULL,"
+        "  avg_rx_speed REAL DEFAULT 0.0,"
+        "  avg_tx_speed REAL DEFAULT 0.0,"
+        "  min_rx_speed REAL DEFAULT 0.0,"
+        "  min_tx_speed REAL DEFAULT 0.0,"
+        "  max_rx_speed REAL DEFAULT 0.0,"
+        "  max_tx_speed REAL DEFAULT 0.0,"
+        "  total_rx_bytes INTEGER DEFAULT 0,"
+        "  total_tx_bytes INTEGER DEFAULT 0,"
+        "  window_start DATETIME,"
+        "  window_end   DATETIME DEFAULT CURRENT_TIMESTAMP"
+        ")"
+    ));
+
+    if (!aggTable) {
+        qWarning("DatabaseModule: Failed to create telemetry_aggregated table: %s",
+                 qPrintable(query.lastError().text()));
+        return false;
+    }
+
+    query.exec(QStringLiteral(
+        "CREATE INDEX IF NOT EXISTS idx_agg_telemetry_iface_time "
+        "ON telemetry_aggregated(interface, window_end DESC)"
+    ));
+
     return true;
 }
 
@@ -332,6 +361,245 @@ bool DatabaseModule::vacuum() noexcept
 
     QSqlQuery query(sDb);
     return query.exec(QStringLiteral("VACUUM"));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Aggregated Telemetry Write
+// ═══════════════════════════════════════════════════════════════════════════════
+
+bool DatabaseModule::storeTelemetryAggregated(
+    const QString &interfaceName,
+    double avgRxSpeed, double avgTxSpeed,
+    double minRxSpeed, double minTxSpeed,
+    double maxRxSpeed, double maxTxSpeed,
+    quint64 totalRxBytes, quint64 totalTxBytes,
+    const QDateTime &windowStart,
+    const QDateTime &windowEnd) noexcept
+{
+    QMutexLocker lock(&sMutex);
+    if (!sInitialized) return false;
+
+    QSqlQuery query(sDb);
+    query.prepare(QStringLiteral(
+        "INSERT INTO telemetry_aggregated "
+        "(interface, avg_rx_speed, avg_tx_speed, "
+        " min_rx_speed, min_tx_speed, max_rx_speed, max_tx_speed, "
+        " total_rx_bytes, total_tx_bytes, window_start, window_end) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ));
+
+    query.addBindValue(interfaceName);
+    query.addBindValue(avgRxSpeed);
+    query.addBindValue(avgTxSpeed);
+    query.addBindValue(minRxSpeed);
+    query.addBindValue(minTxSpeed);
+    query.addBindValue(maxRxSpeed);
+    query.addBindValue(maxTxSpeed);
+    query.addBindValue(static_cast<qint64>(totalRxBytes));
+    query.addBindValue(static_cast<qint64>(totalTxBytes));
+    query.addBindValue(windowStart);
+    query.addBindValue(windowEnd);
+
+    if (!query.exec()) {
+        qWarning("DatabaseModule: storeTelemetryAggregated failed: %s",
+                 qPrintable(query.lastError().text()));
+        return false;
+    }
+
+    return true;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Aggregated Telemetry Read
+// ═══════════════════════════════════════════════════════════════════════════════
+
+std::vector<AggregatedTelemetryEntry>
+DatabaseModule::getTelemetryAggregated(int limit) noexcept
+{
+    QMutexLocker lock(&sMutex);
+    std::vector<AggregatedTelemetryEntry> entries;
+
+    if (!sInitialized) return entries;
+
+    QSqlQuery query(sDb);
+    query.prepare(QStringLiteral(
+        "SELECT id, interface, avg_rx_speed, avg_tx_speed, "
+        "       min_rx_speed, min_tx_speed, max_rx_speed, max_tx_speed, "
+        "       total_rx_bytes, total_tx_bytes, window_start, window_end "
+        "FROM telemetry_aggregated "
+        "ORDER BY window_end DESC LIMIT ?"
+    ));
+    query.addBindValue(limit);
+
+    if (!query.exec()) {
+        qWarning("DatabaseModule: getTelemetryAggregated failed: %s",
+                 qPrintable(query.lastError().text()));
+        return entries;
+    }
+
+    while (query.next()) {
+        AggregatedTelemetryEntry e;
+        e.id             = query.value(0).toLongLong();
+        e.interfaceName  = query.value(1).toString();
+        e.avgRxSpeed     = query.value(2).toDouble();
+        e.avgTxSpeed     = query.value(3).toDouble();
+        e.minRxSpeed     = query.value(4).toDouble();
+        e.minTxSpeed     = query.value(5).toDouble();
+        e.maxRxSpeed     = query.value(6).toDouble();
+        e.maxTxSpeed     = query.value(7).toDouble();
+        e.totalRxBytes   = static_cast<quint64>(query.value(8).toLongLong());
+        e.totalTxBytes   = static_cast<quint64>(query.value(9).toLongLong());
+        e.windowStart    = query.value(10).toDateTime();
+        e.windowEnd      = query.value(11).toDateTime();
+        entries.push_back(std::move(e));
+    }
+
+    return entries;
+}
+
+std::vector<AggregatedTelemetryEntry>
+DatabaseModule::getTelemetryAggregatedForInterface(
+    const QString &interfaceName, int limit) noexcept
+{
+    QMutexLocker lock(&sMutex);
+    std::vector<AggregatedTelemetryEntry> entries;
+
+    if (!sInitialized) return entries;
+
+    QSqlQuery query(sDb);
+    query.prepare(QStringLiteral(
+        "SELECT id, interface, avg_rx_speed, avg_tx_speed, "
+        "       min_rx_speed, min_tx_speed, max_rx_speed, max_tx_speed, "
+        "       total_rx_bytes, total_tx_bytes, window_start, window_end "
+        "FROM telemetry_aggregated "
+        "WHERE interface = ? "
+        "ORDER BY window_end DESC LIMIT ?"
+    ));
+    query.addBindValue(interfaceName);
+    query.addBindValue(limit);
+
+    if (!query.exec()) {
+        qWarning("DatabaseModule: getTelemetryAggregatedForInterface failed: %s",
+                 qPrintable(query.lastError().text()));
+        return entries;
+    }
+
+    while (query.next()) {
+        AggregatedTelemetryEntry e;
+        e.id             = query.value(0).toLongLong();
+        e.interfaceName  = query.value(1).toString();
+        e.avgRxSpeed     = query.value(2).toDouble();
+        e.avgTxSpeed     = query.value(3).toDouble();
+        e.minRxSpeed     = query.value(4).toDouble();
+        e.minTxSpeed     = query.value(5).toDouble();
+        e.maxRxSpeed     = query.value(6).toDouble();
+        e.maxTxSpeed     = query.value(7).toDouble();
+        e.totalRxBytes   = static_cast<quint64>(query.value(8).toLongLong());
+        e.totalTxBytes   = static_cast<quint64>(query.value(9).toLongLong());
+        e.windowStart    = query.value(10).toDateTime();
+        e.windowEnd      = query.value(11).toDateTime();
+        entries.push_back(std::move(e));
+    }
+
+    return entries;
+}
+
+std::optional<AggregatedTelemetryEntry>
+DatabaseModule::getLatestTelemetryAggregated() noexcept
+{
+    QMutexLocker lock(&sMutex);
+    if (!sInitialized) return std::nullopt;
+
+    QSqlQuery query(sDb);
+    query.prepare(QStringLiteral(
+        "SELECT id, interface, avg_rx_speed, avg_tx_speed, "
+        "       min_rx_speed, min_tx_speed, max_rx_speed, max_tx_speed, "
+        "       total_rx_bytes, total_tx_bytes, window_start, window_end "
+        "FROM telemetry_aggregated "
+        "ORDER BY window_end DESC LIMIT 1"
+    ));
+
+    if (!query.exec()) return std::nullopt;
+
+    if (query.next()) {
+        AggregatedTelemetryEntry e;
+        e.id             = query.value(0).toLongLong();
+        e.interfaceName  = query.value(1).toString();
+        e.avgRxSpeed     = query.value(2).toDouble();
+        e.avgTxSpeed     = query.value(3).toDouble();
+        e.minRxSpeed     = query.value(4).toDouble();
+        e.minTxSpeed     = query.value(5).toDouble();
+        e.maxRxSpeed     = query.value(6).toDouble();
+        e.maxTxSpeed     = query.value(7).toDouble();
+        e.totalRxBytes   = static_cast<quint64>(query.value(8).toLongLong());
+        e.totalTxBytes   = static_cast<quint64>(query.value(9).toLongLong());
+        e.windowStart    = query.value(10).toDateTime();
+        e.windowEnd      = query.value(11).toDateTime();
+        return e;
+    }
+
+    return std::nullopt;
+}
+
+std::optional<AggregatedTelemetryEntry>
+DatabaseModule::getTelemetryStatsForWindow(
+    const QDateTime &from, const QDateTime &to) noexcept
+{
+    QMutexLocker lock(&sMutex);
+    if (!sInitialized) return std::nullopt;
+
+    QSqlQuery query(sDb);
+    query.prepare(QStringLiteral(
+        "SELECT "
+        "  0 AS id, '' AS interface, "
+        "  AVG(avg_rx_speed) AS avg_rx, AVG(avg_tx_speed) AS avg_tx, "
+        "  MIN(min_rx_speed) AS min_rx, MIN(min_tx_speed) AS min_tx, "
+        "  MAX(max_rx_speed) AS max_rx, MAX(max_tx_speed) AS max_tx, "
+        "  SUM(total_rx_bytes) AS total_rx, SUM(total_tx_bytes) AS total_tx, "
+        "  ? AS ws, ? AS we "
+        "FROM telemetry_aggregated "
+        "WHERE window_end >= ? AND window_end <= ?"
+    ));
+    query.addBindValue(from);
+    query.addBindValue(to);
+    query.addBindValue(from);
+    query.addBindValue(to);
+
+    if (!query.exec()) return std::nullopt;
+
+    if (query.next()) {
+        AggregatedTelemetryEntry e;
+        e.id             = 0;
+        e.interfaceName  = QStringLiteral("*ALL*");
+        e.avgRxSpeed     = query.value(2).toDouble();
+        e.avgTxSpeed     = query.value(3).toDouble();
+        e.minRxSpeed     = query.value(4).toDouble();
+        e.minTxSpeed     = query.value(5).toDouble();
+        e.maxRxSpeed     = query.value(6).toDouble();
+        e.maxTxSpeed     = query.value(7).toDouble();
+        e.totalRxBytes   = static_cast<quint64>(query.value(8).toLongLong());
+        e.totalTxBytes   = static_cast<quint64>(query.value(9).toLongLong());
+        e.windowStart    = query.value(10).toDateTime();
+        e.windowEnd      = query.value(11).toDateTime();
+        return e;
+    }
+
+    return std::nullopt;
+}
+
+bool DatabaseModule::clearTelemetryAggregated() noexcept
+{
+    QMutexLocker lock(&sMutex);
+    if (!sInitialized) return false;
+
+    QSqlQuery query(sDb);
+    if (!query.exec(QStringLiteral("DELETE FROM telemetry_aggregated"))) {
+        qWarning("DatabaseModule: clearTelemetryAggregated failed: %s",
+                 qPrintable(query.lastError().text()));
+        return false;
+    }
+
+    return true;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

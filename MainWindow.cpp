@@ -28,16 +28,17 @@ MainWindow::MainWindow(QWidget *parent)
     setupUI();
     setupTray();
 
-    networkManager   = new NetworkManager(this);
-    flagLoader       = new FlagLoader(this);
-    autoRefreshTimer = new QTimer(this);
+    networkManager        = new NetworkManager(this);
+    flagLoader            = new FlagLoader(this);
+    autoRefreshTimer      = new QTimer(this);
+    telemetryPersistence  = new IPView::Telemetry::TelemetryPersistenceModule(this);
 
     connect(autoRefreshTimer, &QTimer::timeout, this, &MainWindow::onRefreshClicked);
 
     // ── Pass API names to DashboardView ─────────────────────────────────
     dashboardView->setApiNames(networkManager->getApiNames());
 
-    // ── Dashboard-Signale mit MainWindow verbinden ──────────────────────
+    // ── Connect Dashboard signals to MainWindow ─────────────────────────
     connect(dashboardView, &IPView::UI::DashboardView::refreshRequested,
             this, &MainWindow::onRefreshClicked);
     connect(dashboardView, &IPView::UI::DashboardView::apiChanged,
@@ -61,6 +62,13 @@ MainWindow::MainWindow(QWidget *parent)
 
     // ── Restore per-user configuration (XDG: ~/.config/IPView/) ──────────
     loadSettings();
+
+    // ── Auto-start telemetry persistence if previously enabled ──────────
+    if (IPView::Config::Manager::loadTelemetryAutoStart()) {
+        int const interval = IPView::Config::Manager::loadTelemetryInterval(60000);
+        telemetryPersistence->start(interval);
+        qInfo("TelemetryPersistence: Auto-started (interval=%d ms)", interval);
+    }
 
     onRefreshClicked();
 }
@@ -122,7 +130,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
                               QStringLiteral("Application running in tray."),
                               QSystemTrayIcon::Information, 2000);
     } else {
-        // Wirklich beenden – vorher alles speichern
+        // Really quit — save everything first
         saveSettings();
         event->accept();
     }
@@ -206,12 +214,12 @@ void MainWindow::setupUI() noexcept
 
     tabWidget = new QTabWidget();
 
-    // ── Tab-Bar: kein Scrollen → alle 8 Tabs immer sichtbar ──────────────
+    // ── Tab bar: no scrolling → all 8 tabs always visible ────────────────
     tabWidget->tabBar()->setUsesScrollButtons(false);
     tabWidget->tabBar()->setExpanding(true);
     tabWidget->setIconSize(QSize(14, 14));
 
-    // ── Dashboard-Tab (ausgelagert aus MainWindow in DashboardView) ────
+    // ── Dashboard tab (extracted from MainWindow into DashboardView) ───
     dashboardView = new IPView::UI::DashboardView();
 
     // ── Sub-Tabs ──────────────────────────────────────────────────────────
@@ -262,7 +270,7 @@ void MainWindow::onDataReceived(const QJsonObject &jsonData)
     // Update history only on IP change
     updateHistory(jsonData);
 
-    // DashboardView aktualisieren
+    // Update DashboardView
     dashboardView->updateDisplay(jsonData);
 
     // Trigger flag loading (delegated to DashboardView)
@@ -271,11 +279,11 @@ void MainWindow::onDataReceived(const QJsonObject &jsonData)
         flagLoader->loadFlag(cc, dashboardView->flagLabelWidget());
     }
 
-    // IP an Sub-Tabs weiterreichen
+    // Forward IP to sub-tabs
     whoisTab->setIp(jsonData[QStringLiteral("ip")].toString());
     toolsTab->setTargetIp(jsonData[QStringLiteral("ip")].toString());
 
-    // Tray-Tooltip aktualisieren
+    // Update tray tooltip
     updateTrayTooltip(jsonData);
 
     statusLabel->setText(QStringLiteral("Last update successful"));
@@ -402,6 +410,9 @@ void MainWindow::saveSettings() noexcept
         autoRefreshTimer->isActive()
     );
 
+    // ── Telemetry persistence ─────────────────────────────────────────────
+    Manager::saveTelemetryAutoStart(telemetryPersistence->isRunning());
+
     Manager::sync();
 }
 
@@ -425,7 +436,7 @@ void MainWindow::loadSettings() noexcept
     int const apiIndex = Manager::loadApiIndex();
     if (apiIndex >= 0) {
         networkManager->setSelectedAPI(apiIndex);
-        dashboardView->setApiIndex(apiIndex);  // ComboBox-Sync
+            dashboardView->setApiIndex(apiIndex);  // Sync ComboBox
     }
 
     bool const ipv6 = Manager::loadIPv6Mode();

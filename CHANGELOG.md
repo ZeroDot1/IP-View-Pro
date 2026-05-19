@@ -2,6 +2,50 @@
 
 All notable changes to this project are documented here.
 
+## [2.9.0] — 2026-05-19
+
+### Added
+- **`ServerSelectionModule`** — Modular server selection for Speedtest with `ServerInfo` struct,
+  `getAvailableServers()` method, filtering (`filterByDistance`, `filterByQuery`),
+  sorting (`sortServers`), and lookup helpers (`findClosestServer`, `findServerById`).
+  Extracted from SpeedtestTab for modular reuse. Uses `std::expected` for error handling.
+  Emits `serverFetchStarted`, `serverFetchProgress`, `serverFetchFinished`, `serverFetchError` signals.
+- **`TelemetryPersistenceModule`** — Periodic telemetry aggregation engine that stores interface
+  statistics into the new `telemetry_aggregated` SQLite table. Configurable aggregation interval
+  (default 60 s). Supports historical queries (`getHistory`, `getHistoryForInterface`,
+  `getLatestAggregation`, `getStatsForWindow`). Auto-start configurable via QSettings.
+  Emits `aggregationStored`, `aggregationError`, `aggregationStarted`, `aggregationCompleted` signals.
+- **`DatabaseModule` — Aggregated telemetry table:** New `telemetry_aggregated` table with
+  columns for min/max/avg RX/TX speeds, total bytes, and time window. New methods:
+  `storeTelemetryAggregated()`, `getTelemetryAggregated()`, `getTelemetryAggregatedForInterface()`,
+  `getLatestTelemetryAggregated()`, `getTelemetryStatsForWindow()`, `clearTelemetryAggregated()`.
+- **`ConfigManager` — Telemetry auto-start keys:** `TELEMETRY_AUTO_START` and
+  `TELEMETRY_WINDOW_SIZE` keys added. New methods `saveTelemetryAutoStart()`,
+  `loadTelemetryAutoStart()`, `saveTelemetryWindowSize()`, `loadTelemetryWindowSize()`.
+- **Auto-start at launch:** `MainWindow` now checks `ConfigManager::loadTelemetryAutoStart()`
+  on startup and auto-starts `TelemetryPersistenceModule` if previously enabled.
+- **Build system:** `CMakeLists.txt` updated with `ServerSelectionModule.cpp` and
+  `TelemetryPersistenceModule.cpp`.
+
+### Changed
+- **Version bumped:** `2.8.1` → `2.9.0`
+- **ServerInfo struct** moved from `SpeedtestTab.h` into `IPView::Speedtest::ServerInfo`
+  with additional `latencyMs` field.
+- **MainWindow** saves/loads telemetry persistence auto-start state.
+
+### Maintenance
+- **German→English comment cleanup:** All remaining German-language comments in source
+  files translated to professional US English (14 files, ~40 comment lines).
+  This includes `ScannerModule`, `MainWindow`, `ConfigManager`, `DatabaseModule`,
+  `HistoryTab`, `TelemetryModule`, `TelemetryTab`, `TracerouteTab`, `ToolsTab`,
+  `SpeedtestTab`, `DataNormalizer`, and `DashboardView`.
+- **`Q_UNUSED` replaced:** `DashboardView::setStatusMessage` now uses `(void)msg` cast
+  instead of `Q_UNUSED` macro.
+- **README dependencies expanded:** Added dependency table with package-to-module mapping,
+  optional tools table, and explicit `qt6-svg` documentation.
+
+---
+
 ## [2.8.1] — 2026-05-19
 
 ### Changed

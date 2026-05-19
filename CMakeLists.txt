@@ -16,7 +16,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 project(IPView
-    VERSION      2.8.1
+    VERSION      2.9.0
     DESCRIPTION  "Professional IP Monitoring & Network Analysis Tool"
     LANGUAGES    CXX
 )
@@ -82,8 +82,10 @@ qt_add_executable(IPView
     TelemetryTab.cpp
     AboutTab.cpp
     TelemetryModule.cpp
+    TelemetryPersistenceModule.cpp
     DatabaseModule.cpp
     ScannerModule.cpp
+    ServerSelectionModule.cpp
     resources.qrc
 )
 

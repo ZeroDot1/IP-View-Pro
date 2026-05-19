@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — ScannerModule.h
 //  C++26: [[nodiscard]], noexcept, const-correctness
-//  Asynchroner Port-Scanner mit QTcpSocket (non-blocking).
+//  Async port scanner using QTcpSocket (non-blocking).
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -21,7 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Scanner {
 
-// ── Ergebnis eines einzelnen Port-Scans ──────────────────────────────────────
+    // ── Result of a single port scan ─────────────────────────────────────────────
 struct ScanResult {
     int      port{0};
     bool     open{false};
@@ -90,7 +90,7 @@ private:
     QVector<ScanResult>  mResults;
     QVector<ScanResult>  mOpenPorts;       // Only open ports (for portFound signal)
 
-    // ── Concurrency-Management ──────────────────────────────────────────────
+    // ── Concurrency management ────────────────────────────────────────────────
     int                   mActiveSockets{0};
     int                   mTotalPorts{0};
     int                   mCompletedPorts{0};
@@ -98,7 +98,7 @@ private:
     bool                  mCancelled{false};
     QTimer               *mBatchTimer{nullptr};
 
-    // ── Socket-Pool ─────────────────────────────────────────────────────────
+    // ── Socket pool ───────────────────────────────────────────────────────────
     struct SocketContext {
         std::unique_ptr<QTcpSocket> socket;
         int                         port;

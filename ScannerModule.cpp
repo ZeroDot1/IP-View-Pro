@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.8.0 — ScannerModule.cpp
 //  C++26: structured bindings, std::array, constexpr, [[nodiscard]]
-//  Asynchroner Port-Scanner mit QTcpSocket (non-blocking).
-//  Batch-Verarbeitung mit max. 100 gleichzeitigen Verbindungen.
+//  Async port scanner using QTcpSocket (non-blocking).
+//  Batch processing with max. 100 concurrent connections.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -46,7 +46,7 @@ void ScannerModule::runScan(const QString &ip, const QVector<int> &ports) noexce
         return;
     }
 
-    // Duplikate entfernen und sortieren
+    // Remove duplicates and sort
     QSet<int> uniquePorts(ports.begin(), ports.end());
     mPendingPorts = QVector<int>(uniquePorts.begin(), uniquePorts.end());
     std::sort(mPendingPorts.begin(), mPendingPorts.end());
@@ -67,7 +67,7 @@ void ScannerModule::runScan(const QString &ip, const QVector<int> &ports) noexce
 
     emit scanProgress(0, mTotalPorts);
 
-    // Ersten Batch starten
+        // Start first batch
     startNextBatch();
 }
 
@@ -151,7 +151,7 @@ void ScannerModule::onSocketError(QAbstractSocket::SocketError /*error*/)
     auto *socket = qobject_cast<QTcpSocket*>(sender());
     if (!socket) return;
 
-    // Socket als "nicht offen" markieren (nur wenn nicht bereits als offen gemeldet)
+        // Mark socket as "not open" (only if not already reported as open)
     for (auto &ctx : mSocketContexts) {
         if (ctx && ctx->socket.get() == socket && !ctx->emitted) {
             ctx->emitted = true;
@@ -171,7 +171,7 @@ void ScannerModule::onSocketError(QAbstractSocket::SocketError /*error*/)
 
 void ScannerModule::onScanTimeout()
 {
-    // Timeout: Alle Sockets, die noch nicht geantwortet haben, als geschlossen markieren
+        // Timeout: mark all unresponsive sockets as closed
     for (auto &ctx : mSocketContexts) {
         if (ctx && !ctx->emitted) {
             ctx->emitted = true;
@@ -194,7 +194,7 @@ void ScannerModule::onBatchComplete()
 {
     if (mCancelled || !mScanning) return;
 
-    // Ergebnisse des vorherigen Batches konsolidieren
+        // Consolidate results from the previous batch
     mCompletedPorts += static_cast<int>(mSocketContexts.size());
     emit scanProgress(mCompletedPorts, mTotalPorts);
 
@@ -231,7 +231,7 @@ void ScannerModule::startNextBatch() noexcept
         ctx->socket  = std::make_unique<QTcpSocket>(this);
         ctx->emitted = false;
 
-        // Verbindung mit dem Socket herstellen
+        // Connect to the socket
         connect(ctx->socket.get(), &QTcpSocket::connected,
                 this, &ScannerModule::onSocketConnected);
         connect(ctx->socket.get(), &QTcpSocket::errorOccurred,
@@ -251,7 +251,7 @@ void ScannerModule::finalizeResults() noexcept
 {
     mScanning = false;
 
-    // Sortieren: offene Ports zuerst, dann nach Portnummer
+        // Sort: open ports first, then by port number
     std::sort(mResults.begin(), mResults.end(),
         [](const ScanResult &a, const ScanResult &b) {
             if (a.open != b.open) return a.open > b.open;

@@ -74,7 +74,7 @@ QString TracerouteTab::findTraceroute() const noexcept
     if (QFileInfo::exists(tracertPath)) return tracertPath;
     return QStringLiteral("tracert");
 #else
-    // Security: vollen Pfad ermitteln (PATH-Hijacking-Schutz)
+        // Security: resolve full path (PATH hijacking protection)
     QString prog = findSystemTool(QStringLiteral("traceroute"));
     if (prog.isEmpty()) {
         prog = findSystemTool(QStringLiteral("tracepath"));

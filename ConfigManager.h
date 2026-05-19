@@ -2,7 +2,7 @@
 //  IPView Pro v2.8.0 — ConfigManager.h
 //  C++26: [[nodiscard]], noexcept, const-correctness
 //  Per-user configuration via QSettings (INI format).
-//  Speichert in ~/.config/IPView/IPView.conf (XDG Base Directory).
+//  Stores in ~/.config/IPView/IPView.conf (XDG Base Directory).
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -42,9 +42,11 @@ namespace Key {
     inline constexpr auto AUTO_REFRESH      = "Network/AutoRefresh";
 
     inline constexpr auto DB_PATH           = "Database/CustomPath";
-    inline constexpr auto TELEMETRY_INTERVAL = "Telemetry/IntervalMs";
-    inline constexpr auto SCAN_TIMEOUT      = "Scanner/TimeoutMs";
-    inline constexpr auto SCAN_CONCURRENCY  = "Scanner/MaxConcurrent";
+    inline constexpr auto TELEMETRY_INTERVAL    = "Telemetry/IntervalMs";
+    inline constexpr auto TELEMETRY_AUTO_START  = "Telemetry/AutoStart";
+    inline constexpr auto TELEMETRY_WINDOW_SIZE = "Telemetry/AggregationWindowSec";
+    inline constexpr auto SCAN_TIMEOUT         = "Scanner/TimeoutMs";
+    inline constexpr auto SCAN_CONCURRENCY     = "Scanner/MaxConcurrent";
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -84,6 +86,12 @@ public:
     // ── Telemetry ─────────────────────────────────────────────────────────
     static void saveTelemetryInterval(int ms) noexcept;
     [[nodiscard]] static int loadTelemetryInterval(int defaultMs = 2000) noexcept;
+
+    static void saveTelemetryAutoStart(bool enabled) noexcept;
+    [[nodiscard]] static bool loadTelemetryAutoStart(bool defaultEnabled = false) noexcept;
+
+    static void saveTelemetryWindowSize(int seconds) noexcept;
+    [[nodiscard]] static int loadTelemetryWindowSize(int defaultSeconds = 3600) noexcept;
 
     // ── Scanner ────────────────────────────────────────────────────────────
     static void saveScanTimeout(int ms) noexcept;

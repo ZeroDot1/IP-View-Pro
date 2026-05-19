@@ -182,7 +182,7 @@ void DashboardView::setFlagPixmap(const QPixmap &pixmap) noexcept
 void DashboardView::setStatusMessage(const QString &msg) noexcept
 {
     // Is supplemented by MainWindow via status bar
-    Q_UNUSED(msg)
+    (void)msg;  // Unused — signature required by callback compatibility
 }
 
 void DashboardView::setIPv6Mode(bool enabled) noexcept
