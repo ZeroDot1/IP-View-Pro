@@ -208,7 +208,7 @@ IPView/
 ├── SecurityUtil.h        # Security: input validation, SSL enforcement, path resolution
 ├── MainWindow.h/.cpp     # Main window with tab widget + system tray
 ├── NetworkManager.h/.cpp # Async API failover (12+ Geo-IP services)
-├── DataNormalizer.h      # Header-only: JSON normalization (18-field unified format)
+├── DataNormalizer.h      # Namespace-based: JSON normalization (18-field unified format)
 ├── FlagLoader.h/.cpp     # Country flag download with in-memory caching
 ├── WhoisManager.h/.cpp   # Whois/RDAP queries with API-specific normalization
 ├── WhoisTab.h/.cpp       # Whois UI
@@ -298,4 +298,4 @@ This project is released under **Public Domain**. It may be freely used, copied,
 
 ---
 
-*IPView Pro v2.7.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*
+*IPView Pro v2.7.1 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*

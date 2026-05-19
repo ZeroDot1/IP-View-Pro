@@ -2,7 +2,6 @@
 //  IPView Pro v2.0 — DataNormalizer.h
 //  C++26 (ISO/IEC 14882:2026)
 //  Features:
-//    • std::inplace_vector — stack-allocated, size-limited arrays
 //    • std::array         — compile-time constants for field names
 //    • [[nodiscard]]      — prevent loss of return values
 //    • constexpr/consteval — compile-time evaluation of lookup tables
@@ -19,26 +18,25 @@
 #include <QVariant>
 #include <QRegularExpression>
 
-#include <array>             // C++11 / C++26: constexpr std::array
-#include <vector>    // C++26: stack-based dynamic container
+#include <array>             // C++26: constexpr std::array
+#include <vector>            // C++26: stack-based dynamic container
 #include <string_view>       // C++17 / C++26: lightweight string views
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  DataNormalizer — purely static utility class (no instances needed)
-//  Normalizes JSON responses from 12+ Geo-IP APIs into a unified format.
+//  DataNormalizer — namespace (statt Klasse) für JSON-Normalisierung.
+//  Idiomatisches C++26: reine "namespace" anstelle einer statischen Klasse.
+//  Normalisiert JSON-Responses von 12+ Geo-IP-APIs in ein einheitliches Format.
 // ═══════════════════════════════════════════════════════════════════════════════
-class DataNormalizer {
-public:
-    // ── Prevent instantiation ─────────────────────────────────────────
-    DataNormalizer() = delete;
+namespace DataNormalizer {
 
     // ── Main normalization method ──────────────────────────────────────
     //  Accepts raw data (JSON string or plain text) and returns a
     //  unified QJsonObject with all 18 standard fields.
     //  On complete failure, an empty QJsonObject is returned.
     [[nodiscard]]
-    static QJsonObject normalize(const QByteArray &rawData) noexcept
+    QJsonObject normalize(const QByteArray &rawData) noexcept
     {
+        using namespace detail;
         QJsonObject normalized;
         QJsonDocument const doc = QJsonDocument::fromJson(rawData);
 
@@ -101,7 +99,7 @@ public:
     // ── JSON-to-HTML formatting ─────────────────────────────────────────
     //  Generates an HTML view with syntax highlighting from a QJsonObject.
     [[nodiscard]]
-    static QString formatJsonHtml(const QJsonObject &obj) noexcept
+    QString formatJsonHtml(const QJsonObject &obj) noexcept
     {
         QString const json = QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Indented));
         QString html = QStringLiteral("<pre style='color: #ffffff; line-height: 1.4;'>");
@@ -129,24 +127,22 @@ public:
         return html;
     }
 
-private:
-    // ── Helper structures ────────────────────────────────────────────────────
+// ── Detail helpers (intern, nicht Teil des öffentlichen API) ────────────
+namespace detail {
 
-    //  C++26 std::inplace_vector: stack-based container with max capacity
     //  Used for the list of 18 standard field names in fillMissingFields()
-    static constexpr std::size_t FIELD_COUNT = 18;
     using FieldList = std::vector<QString>;
 
     // ── IP validation ────────────────────────────────────────────────────
     [[nodiscard]]
-    static bool isValidIp(const QString &ip) noexcept
+    bool isValidIp(const QString &ip) noexcept
     {
         return ip.contains(QLatin1Char('.')) || ip.contains(QLatin1Char(':'));
     }
 
     // ── Error detection ───────────────────────────────────────────────────
     [[nodiscard]]
-    static bool isErrorResponse(const QJsonObject &obj) noexcept
+    bool isErrorResponse(const QJsonObject &obj) noexcept
     {
         if (obj.contains(QStringLiteral("success")) && !obj[QStringLiteral("success")].toBool()) return true;
         if (obj.contains(QStringLiteral("status")) && obj[QStringLiteral("status")].toString() == QStringLiteral("fail")) return true;
@@ -161,7 +157,7 @@ private:
     // ── Resolve nested JSON ─────────────────────────────────────
     //  APIs like ipapi.co sometimes provide JSON-as-string in fields.
     //  This method extracts nested values to the top level.
-    static void processNestedJson(QJsonObject &obj) noexcept
+    void processNestedJson(QJsonObject &obj) noexcept
     {
         QStringList const keys = obj.keys();
         for (QString const& k : keys) {
@@ -188,8 +184,8 @@ private:
     //  for compile-time key lists without heap allocation.
     template<std::size_t N>
     [[nodiscard]]
-    static QString getString(const QJsonObject &obj,
-                             const std::array<std::string_view, N> &keys) noexcept
+    QString getString(const QJsonObject &obj,
+                      const std::array<std::string_view, N> &keys) noexcept
     {
         for (std::string_view const keySv : keys) {
             QString const key = QString::fromUtf8(keySv.data(), static_cast<qsizetype>(keySv.size()));
@@ -226,7 +222,7 @@ private:
 
     // ── Initialize fields ─────────────────────────────────────────────
     //  Ensures all 18 standard fields exist (even if empty).
-    static void fillMissingFields(QJsonObject &normalized) noexcept
+    void fillMissingFields(QJsonObject &normalized) noexcept
     {
         // C++26 std::inplace_vector: stack-allocated, max. 18 entries
         FieldList const fields = {
@@ -247,6 +243,8 @@ private:
             }
         }
     }
-};
+} // namespace detail
+
+} // namespace DataNormalizer
 
 #endif // DATANORMALIZER_H

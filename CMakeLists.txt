@@ -16,13 +16,13 @@
 cmake_minimum_required(VERSION 3.28)
 
 project(IPView
-    VERSION      2.7.0
+    VERSION      2.7.1
     DESCRIPTION  "Professional IP Monitoring & Network Analysis Tool"
     LANGUAGES    CXX
 )
 
 # ── C++26 Standard ─────────────────────────────────────────────
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
