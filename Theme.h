@@ -355,6 +355,17 @@ inline QString appStyleSheet() noexcept
           C_PRIMARY, C_ACCENT);
 }
 
+// ── Input field (error state) ────────────────────────────────────────────
+[[nodiscard]] inline QString inputStyleError() noexcept
+{
+    return QStringLiteral(
+        "QLineEdit { background-color: %1; color: %2;"
+        "  border: 1px solid %3; border-radius: %4; padding: %5;"
+        "  transition: border-color 0.12s ease; }"
+        "QLineEdit:focus { border-color: %3; }"
+    ).arg(C_BG_ELEVATED, C_TEXT, C_ERROR, RADIUS_MD, PADDING_INP);
+}
+
 // ── ComboBox ──────────────────────────────────────────────────────────────
 [[nodiscard]] inline QString comboStyle() noexcept
 {

@@ -172,8 +172,19 @@ void ScannerTab::onStartScan()
     QString const target = targetEdit->text().trimmed();
     if (target.isEmpty()) {
         statusLabel->setText(QStringLiteral("Please enter a target IP or hostname."));
+        targetEdit->setStyleSheet(inputStyleError());
         return;
     }
+
+    // Basic hostname/IP validation (non-empty, no spaces)
+    if (target.contains(QLatin1Char(' ')) || target.contains(QLatin1Char('\t'))) {
+        statusLabel->setText(QStringLiteral("Invalid target: must not contain whitespace."));
+        targetEdit->setStyleSheet(inputStyleError());
+        return;
+    }
+
+    // Reset to normal style on valid input
+    targetEdit->setStyleSheet(inputStyle());
 
     QVector<int> ports = collectPorts();
     if (ports.isEmpty()) {

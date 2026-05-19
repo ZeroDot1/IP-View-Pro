@@ -14,6 +14,7 @@
 #include <QClipboard>
 #include <QDateTime>
 #include <QMessageBox>
+#include "ErrorDialog.h"
 #include <QFileDialog>
 #include <QJsonDocument>
 #include <QFile>
@@ -368,10 +369,10 @@ void MainWindow::onExportJsonRequested()
 
     QFile file(fileName);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this,
-                             QStringLiteral("Export Error"),
-                             QStringLiteral("Could not open file for writing:\n%1")
-                                 .arg(file.errorString()));
+        IPView::UI::ErrorDialog::showError(this,
+                                           QStringLiteral("Export Error"),
+                                           QStringLiteral("Could not open file for writing:\n%1")
+                                               .arg(file.errorString()));
         return;
     }
 
