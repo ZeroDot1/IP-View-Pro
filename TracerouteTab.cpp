@@ -88,7 +88,7 @@ void TracerouteTab::onTraceClicked()
 {
     QString const target = targetEdit->text().trimmed();
 
-    // ── Security: Input-Validierung gegen Command Injection ──────────
+    // ── Security: Input validation against command injection ──────────
     if (!isValidNetworkTarget(target)) {
         outputArea->append(QStringLiteral("Invalid target. Enter a valid IP or hostname."));
         return;

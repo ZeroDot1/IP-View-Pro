@@ -64,7 +64,7 @@ void Manager::initialize() noexcept
 
     sInitialized = true;
 
-    // Automatische Validierung beim Start
+    // Automatic validation on startup
     static_cast<void>(validateAll());
 }
 
@@ -239,7 +239,7 @@ bool Manager::validateAll() noexcept
 
     bool valid = true;
 
-    // Window/LastTab — muss im Bereich der Tabs liegen (0..7)
+    // Window/LastTab — must be within tab range (0..7)
     {
         int const tab = loadLastTab(-1);
         if (tab < 0 || tab > 7) {

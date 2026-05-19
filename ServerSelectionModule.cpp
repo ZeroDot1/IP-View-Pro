@@ -195,13 +195,13 @@ ServerSelectionModule::findClosestServer(const std::vector<ServerInfo> &servers)
     return *it;
 }
 
-// ── Auto-Select: Nächsten Server mit kombinierter Distanz- + Latenz-Wertung (Item 44) ──
+// ── Auto-Select: Find best server with combined distance + latency scoring (Item 44) ──
 std::optional<ServerInfo>
 ServerSelectionModule::selectBestServer(const std::vector<ServerInfo> &servers) noexcept
 {
     if (servers.empty()) return std::nullopt;
 
-    // Scoring: niedrige Distanz + niedrige Latenz = bester Server
+    // Scoring: low distance + low latency = best server
     double const minDist = std::min_element(servers.begin(), servers.end(),
         [](const ServerInfo &a, const ServerInfo &b) { return a.distanceKm < b.distanceKm; })->distanceKm;
     double const maxDist = std::max_element(servers.begin(), servers.end(),

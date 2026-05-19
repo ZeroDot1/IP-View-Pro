@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.9.3 — Concepts.h
 //  C++26: concepts, requires, type-traits
-//  Typ-Constraints für Netzwerkoperationen (NetworkTarget, etc.)
+//  Type constraints for network operations (NetworkTarget, etc.)
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -17,7 +17,7 @@
 namespace IPView::Concepts {
 
 // ── NetworkTarget (Item 28) ──────────────────────────────────────────────
-//  Akzeptiert std::string_view, const char*, QString (über Umweg)
+//  Accepts std::string_view, const char*, QString (via conversion)
 //  und alle Typen, die sich in string_view konvertieren lassen.
 template <typename T>
 concept NetworkTarget = std::convertible_to<T, std::string_view>
@@ -26,7 +26,7 @@ concept NetworkTarget = std::convertible_to<T, std::string_view>
                         };
 
 // ── NumericPort ─────────────────────────────────────────────────────────
-//  Gültiger Port-Bereich (1..65535)
+//  Valid port range (1..65535)
 template <typename T>
 concept NumericPort = std::integral<T> && (sizeof(T) <= 2);
 

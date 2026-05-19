@@ -77,7 +77,7 @@ private:
     QPushButton *copyAllButton{nullptr};
     QPushButton *exportJsonButton{nullptr};
 
-    // ── Daten ───────────────────────────────────────────────────────────────
+    // ── Data ───────────────────────────────────────────────────────────────
     QJsonObject  currentData;
 };
 

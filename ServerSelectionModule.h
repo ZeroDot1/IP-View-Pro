@@ -70,7 +70,7 @@ public:
     [[nodiscard]] static std::optional<ServerInfo>
     findClosestServer(const std::vector<ServerInfo> &servers) noexcept;
 
-    // ── Auto-Select (Item 44): bester Server via Distanz+Latenz-Scoring ──
+    // ── Auto-Select (Item 44): best server via distance+latency scoring ──
     [[nodiscard]] static std::optional<ServerInfo>
     selectBestServer(const std::vector<ServerInfo> &servers) noexcept;
 

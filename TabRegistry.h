@@ -3,7 +3,7 @@
 //  C++26: std::unordered_map, std::string_view, constexpr
 //  Zentrale Tab-Registrierung — Tabs werden als Key-Value-Paare verwaltet.
 //  Entkoppelt MainWindow von konkreten Tab-Klassen (Registry Pattern).
-//  Garantiert Insertion-Order für populateTabWidget() (Item: Tab-Reihenfolge).
+//  Guarantees insertion order for populateTabWidget() (Item: Tab-Reihenfolge).
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -26,10 +26,10 @@ namespace IPView::UI {
 
 // ── Eintrag in der Tab-Registry ──────────────────────────────────────────
 struct TabEntry {
-    QString  id;        // Eindeutiger Schlüssel (z.B. "dashboard", "whois")
-    QString  title;     // Anzeigetitel
-    QIcon    icon;      // Optionales Icon
-    QWidget *widget{nullptr}; // Zeiger auf das Tab-Widget
+    QString  id;        // Unique key (e.g. "dashboard", "whois")
+    QString  title;     // Display title
+    QIcon    icon;      // Optional icon
+    QWidget *widget{nullptr}; // Pointer to the tab widget
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -40,8 +40,8 @@ public:
     ~TabRegistry() = default;
 
     // ── Registry-Operationen ─────────────────────────────────────────────
-    /// Einen Tab registrieren (Key muss eindeutig sein).
-    /// Garantiert Insertion-Order für populateTabWidget().
+    /// Register a tab (key must be unique).
+    /// Guarantees insertion order for populateTabWidget().
     template <typename T, typename... Args>
     T* registerTab(const QString &id, const QString &title,
                    const QIcon &icon = QIcon(), Args&&... args)
@@ -49,7 +49,7 @@ public:
         static_assert(std::is_base_of_v<QWidget, T>,
                       "Tab type must inherit QWidget");
 
-        // Bereits registriert? → existierenden Tab zurückgeben
+        // Already registered? → return existing tab
         if (auto it = mIndex.find(id); it != mIndex.end()) {
             return static_cast<T*>(mOrder[static_cast<qsizetype>(it->second)].widget);
         }
@@ -63,7 +63,7 @@ public:
         return widget;
     }
 
-    /// Alle registrierten Tabs in der Insertion-Reihenfolge einfügen.
+    /// Insert all registered tabs into a tab widget in insertion order.
     void populateTabWidget(QTabWidget *tabWidget) noexcept
     {
         if (!tabWidget) return;
@@ -75,7 +75,7 @@ public:
         }
     }
 
-    /// Tab anhand des Keys suchen.
+    /// Find a tab by key.
     [[nodiscard]] QWidget* find(const QString &id) const noexcept
     {
         auto it = mIndex.find(id);
@@ -83,14 +83,14 @@ public:
         return mOrder[static_cast<qsizetype>(it->second)].widget;
     }
 
-    /// Typisierten Tab-Zugriff.
+    /// Typed tab access.
     template <typename T>
     [[nodiscard]] T* findAs(const QString &id) const noexcept
     {
         return qobject_cast<T*>(find(id));
     }
 
-    /// Alle registrierten IDs in der Insertion-Reihenfolge abfragen.
+    /// Query all registered IDs in insertion order.
     [[nodiscard]] QStringList ids() const noexcept
     {
         QStringList result;
@@ -100,19 +100,19 @@ public:
         return result;
     }
 
-    /// Anzahl registrierter Tabs.
+    /// Number of registered tabs.
     [[nodiscard]] std::size_t count() const noexcept
     {
         return static_cast<std::size_t>(mOrder.size());
     }
 
-    /// Prüfen, ob ein Tab registriert ist.
+    /// Check if a tab is registered.
     [[nodiscard]] bool contains(const QString &id) const noexcept
     {
         return mIndex.contains(id);
     }
 
-    /// Alle Tabs entfernen (aber nicht löschen — Qt übernimmt Parent).
+    /// Remove all tabs (but do not delete — Qt handles parent ownership).
     void clear() noexcept
     {
         mOrder.clear();

@@ -201,10 +201,10 @@ void TelemetryModule::adjustIntervalDynamically(double totalActivity) noexcept
         ));
 
     if (totalActivity <= lowWater) {
-        // Sehr geringe Aktivität → langsamstes Intervall
+        // Very low activity → slowest interval
         mTimer->setInterval(mMaxIntervalMs);
     } else if (totalActivity >= highWater) {
-        // Hohe Aktivität → schnellstes Intervall
+        // High activity → fastest interval
         mTimer->setInterval(mMinIntervalMs);
     } else {
         mTimer->setInterval(targetMs);
@@ -226,7 +226,7 @@ Stats TelemetryModule::parseProcNetDev(std::string_view buf,
     //  face |bytes    packets errs drop fifo ...     |bytes    packets errs ...
     //    lo: 12345    678    0    0    0 ...         98765    432    0 ...
 
-    // ── Zero-Copy: Zeilen-weise aus std::string_view (Item 40) ───────────
+    // ── Zero-Copy: parse lines from std::string_view (Item 40) ───────────
     std::size_t pos = 0;
     while (pos < buf.size()) {
         std::size_t const nl = buf.find('\n', pos);
@@ -236,7 +236,7 @@ Stats TelemetryModule::parseProcNetDev(std::string_view buf,
 
         if (line.empty()) continue;
 
-        // Interface-Namen in der Zeile suchen
+        // Search for interface name in the line
         if (line.find(interface) == std::string_view::npos) continue;
 
         // Format: "   eth0:  rx_bytes rx_packets ..."
@@ -250,7 +250,7 @@ Stats TelemetryModule::parseProcNetDev(std::string_view buf,
             std::size_t start = 0;
             int tokenIdx = 0;
             while (start < values.size()) {
-                // Whitespace überspringen
+                // Skip whitespace
                 while (start < values.size() && (values[start] == ' ' || values[start] == '\t'))
                     ++start;
                 if (start >= values.size()) break;

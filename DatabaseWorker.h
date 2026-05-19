@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.9.4 — DatabaseWorker.h
 //  C++26: std::jthread, std::stop_token, std::queue
-//  Asynchroner DB-Worker: Write-Operationen werden in eine Queue gelegt
-//  und sequentiell in einem Hintergrund-Thread verarbeitet (Item 14).
+//  Async DB worker: write operations are queued
+//  and processed sequentially in a background thread (Item 14).
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -25,7 +25,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Storage {
 
-// ── Auftragstypen ───────────────────────────────────────────────────────────
+// ── Job types ───────────────────────────────────────────────────────────
 enum class WriteOp {
     StoreResult,
     StoreTelemetry,
@@ -36,7 +36,7 @@ enum class WriteOp {
     PruneTelemetry
 };
 
-// ── Ein Auftrag in der Write-Queue ─────────────────────────────────────────
+// ── A job in the write queue ─────────────────────────────────────────
 struct WriteJob {
     WriteOp op;
     QJsonObject    data;        // für storeResult
@@ -61,10 +61,10 @@ public:
     explicit DatabaseWorker(QObject *parent = nullptr);
     ~DatabaseWorker() override;
 
-    /// Write-Job in die Queue einreihen (wird asynchron verarbeitet).
+    /// Enqueue a write job (processed asynchronously).
     void enqueue(WriteJob job) noexcept;
 
-    /// Queue leeren und Worker beenden.
+    /// Clear the queue and stop the worker.
     void shutdown() noexcept;
 
     /// Anzahl wartender Jobs.
@@ -80,7 +80,7 @@ protected:
 private:
     void processJob(const WriteJob &job) noexcept;
 
-    // ── Synchronisation ──────────────────────────────────────────────────
+    // ── Synchronization ──────────────────────────────────────────────────
     mutable QMutex         mMutex;
     QWaitCondition         mCond;
     std::queue<WriteJob>   mQueue;

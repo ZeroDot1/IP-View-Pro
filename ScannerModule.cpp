@@ -39,7 +39,7 @@ void ScannerModule::runScan(const QString &ip, const QVector<int> &ports) noexce
         return;
     }
 
-    // Input validieren: SecurityUtil-Richtlinien beachten
+    // Validate input: SecurityUtil policy
     mTargetIp = ip.trimmed();
     if (mTargetIp.isEmpty()) {
         emit scanError(QStringLiteral("No target IP specified"));

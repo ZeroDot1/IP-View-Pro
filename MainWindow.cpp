@@ -56,14 +56,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     // ── Event-basierte Tab-Verteilung (Item 2) ──────────────────────────
     //  Statt direkter Methodenaufrufe werden Signale emittiert,
-    //  an die sich Tabs eigenständig anhängen können.
+    //  to which tabs can attach themselves independently.
     connect(this, &MainWindow::dataRefreshed, this, [this](const QJsonObject &d) {
         dashboardView->updateDisplay(d);
         QString const cc = d[QStringLiteral("country_code")].toString();
         if (!cc.isEmpty()) {
             flagLoader->loadFlag(cc, dashboardView->flagLabelWidget());
         }
-        // Sub-Tabs über Signale statt Direktaufrufe
+        // Sub-tabs via signals instead of direct calls
         whoisTab->setIp(d[QStringLiteral("ip")].toString());
         toolsTab->setTargetIp(d[QStringLiteral("ip")].toString());
         updateTrayTooltip(d);
@@ -235,17 +235,17 @@ void MainWindow::setupUI() noexcept
     tabWidget->setIconSize(QSize(14, 14));
 
     // ── Tabs in logischer Reihenfolge ──────────────────────────────────────
-    //  1. Overview    – Einstieg & Status
-    //  2. Whois       – IP/Host-Informationen
-    //  3. Scanner     – Port-Scan
+    //  1. Overview    – Entry point & status
+    //  2. Whois       – IP/host information
+    //  3. Scanner     – Port scan
     //  4. Tools       – Ping, Traceroute, iPerf3
-    //  5. Speedtest   – Bandbreite
-    //  6. TLS Auditor – Sicherheits-Check
-    //  7. Telemetry   – Live-Überwachung
-    //  8. History     – Verlauf
-    //  9. About       – App-Info
+    //  5. Speedtest   – Bandwidth
+    //  6. TLS Auditor – Security check
+    //  7. Telemetry   – Live monitoring
+    //  8. History     – History
+    //  9. About       – App info
 
-    // Dashboard (Overview) — Sonderfall (eigener Namespace)
+    // Dashboard (Overview) — special case (own namespace)
     dashboardView = mTabRegistry.registerTab<IPView::UI::DashboardView>(
         QStringLiteral("dashboard"), QStringLiteral(" Overview"),
         QIcon(QStringLiteral(":/svgs/chart-bar.svg")));
@@ -275,7 +275,7 @@ void MainWindow::setupUI() noexcept
                        QStringLiteral("about"),     QStringLiteral(" About"),
                        QIcon(QStringLiteral(":/svgs/info.svg")));
 
-    // Alle registrierten Tabs in den QTabWidget einfügen
+    // Insert all registered tabs into the tab widget
     mTabRegistry.populateTabWidget(tabWidget);
 
     mainLayout->addWidget(tabWidget);

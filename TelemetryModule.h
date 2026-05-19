@@ -30,7 +30,7 @@ struct Stats {
     std::uint64_t rxErrors{0};  // Receive errors
     std::uint64_t txErrors{0};  // Transmit errors
 
-    // ── Nanosekunden-Präzision (Item 39) ───────────────────────────────
+    // ── Nanosecond precision (Item 39) ───────────────────────────────
     std::chrono::steady_clock::time_point nsTimestamp{
         std::chrono::steady_clock::now()
     };

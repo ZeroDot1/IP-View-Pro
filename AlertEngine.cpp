@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.9.0 — AlertEngine.cpp
 //  C++26: std::ranges, std::erase_if, noexcept, [[nodiscard]]
-//  Alert/Notification Engine — Regel-basierte Überwachung.
-//  Item 49: Alert-Engine mit Default-Regeln für Bandbreite + TLS.
+//  Alert/Notification Engine — rule-based monitoring.
+//  Item 49: Alert Engine with default rules for bandwidth + TLS.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -17,7 +17,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Alert {
 
-// ── Helper: Bytes formatieren ────────────────────────────────────────────
+// ── Helper: Format bytes ────────────────────────────────────────────
 static QString formatBytes(double bytes) noexcept
 {
     if (bytes < 1024.0)
@@ -37,15 +37,15 @@ AlertEngine::AlertEngine(QObject *parent)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Regel-Verwaltung
+//  Rule Management
 // ═══════════════════════════════════════════════════════════════════════════════
 
 void AlertEngine::addRule(const Rule &rule) noexcept
 {
-    // Doppelte Regeln vermeiden
+    // Avoid duplicate rules
     auto it = std::ranges::find_if(mRules, [&](const Rule &r) { return r.name == rule.name; });
     if (it != mRules.end()) {
-        *it = rule; // Aktualisieren
+        *it = rule; // Update
     } else {
         mRules.push_back(rule);
     }
@@ -68,7 +68,7 @@ std::vector<Rule> AlertEngine::rules() const noexcept
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Alert-Management
+//  Alert Management
 // ═══════════════════════════════════════════════════════════════════════════════
 
 std::vector<Alert> AlertEngine::activeAlerts() const noexcept
@@ -101,7 +101,7 @@ void AlertEngine::clearAcknowledged() noexcept
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Cooldown-Prüfung
+//  Cooldown Check
 // ═══════════════════════════════════════════════════════════════════════════════
 
 bool AlertEngine::isOnCooldown(const QString &ruleName) const noexcept
@@ -111,7 +111,7 @@ bool AlertEngine::isOnCooldown(const QString &ruleName) const noexcept
     if (it == mCooldowns.end()) return false;
 
     auto const elapsed = it->lastFired.secsTo(QDateTime::currentDateTimeUtc());
-    return elapsed < 0; // negativ = noch in Cooldown (wird beim Fire aktualisiert)
+    return elapsed < 0; // negative = still in cooldown (updated on fire)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -123,7 +123,7 @@ void AlertEngine::feedTelemetry(
 {
     if (interfaces.isEmpty()) return;
 
-    // ── Regel: Hohe Bandbreitenauslastung ────────────────────────────────
+    // ── Rule: High Bandwidth ────────────────────────────────
     auto const bwRule = std::ranges::find_if(mRules,
         [](const Rule &r) { return r.name == QStringLiteral("high_bandwidth"); });
 
@@ -132,7 +132,7 @@ void AlertEngine::feedTelemetry(
             double const totalSpeed = iface.rxSpeedBps + iface.txSpeedBps;
 
             if (totalSpeed >= bwRule->criticalThreshold) {
-                // Critical: Bandbreite überschreitet kritische Schwelle
+                // Critical: bandwidth exceeds critical threshold
                 Alert alert;
                 alert.id = QStringLiteral("bw_critical_%1").arg(iface.name);
                 alert.title = QStringLiteral("Critical Bandwidth: %1").arg(iface.name);
@@ -168,7 +168,7 @@ void AlertEngine::feedTelemetry(
         }
     }
 
-    // ── Regel: Interface-Fehler ──────────────────────────────────────────
+    // ── Rule: Interface Errors ──────────────────────────────────────────
     auto const errRule = std::ranges::find_if(mRules,
         [](const Rule &r) { return r.name == QStringLiteral("interface_errors"); });
 
@@ -202,7 +202,7 @@ void AlertEngine::feedTelemetry(
 
 void AlertEngine::feedAuditResult(const IPView::Auditor::AuditResult &result) noexcept
 {
-    // ── Regel: Zertifikatsablauf ─────────────────────────────────────────
+    // ── Rule: Certificate Expiry ─────────────────────────────────────────
     auto const certRule = std::ranges::find_if(mRules,
         [](const Rule &r) { return r.name == QStringLiteral("cert_expiry"); });
 
@@ -237,7 +237,7 @@ void AlertEngine::feedAuditResult(const IPView::Auditor::AuditResult &result) no
         }
     }
 
-    // ── Regel: Unsicheres Zertifikat ─────────────────────────────────────
+    // ── Rule: Insecure Certificate ─────────────────────────────────────
     auto const secureRule = std::ranges::find_if(mRules,
         [](const Rule &r) { return r.name == QStringLiteral("insecure_cert"); });
 
@@ -259,7 +259,7 @@ void AlertEngine::feedAuditResult(const IPView::Auditor::AuditResult &result) no
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Manueller Alert
+//  Manual Alert
 // ═══════════════════════════════════════════════════════════════════════════════
 
 void AlertEngine::triggerAlert(const QString &title, const QString &message,
@@ -282,14 +282,14 @@ void AlertEngine::triggerAlert(const QString &title, const QString &message,
 
 void AlertEngine::fireAlert(Alert &&alert) noexcept
 {
-    // Cooldown-Prüfung: Gleiche ID innerhalb der Sperrfrist?
+    // Cooldown Check: Same ID within cooldown period?
     auto cdIt = std::ranges::find_if(mCooldowns,
         [&](const CooldownEntry &e) { return e.ruleName == alert.id; });
 
     QDateTime const now = QDateTime::currentDateTimeUtc();
     if (cdIt != mCooldowns.end()) {
         auto const elapsed = cdIt->lastFired.secsTo(now);
-        if (elapsed < 300) return; // 5 Minuten Default-Cooldown
+        if (elapsed < 300) return; // 5 min default cooldown
         cdIt->lastFired = now;
     } else {
         mCooldowns.push_back(CooldownEntry{alert.id, now});
@@ -305,10 +305,10 @@ void AlertEngine::fireAlert(Alert &&alert) noexcept
 // ═══════════════════════════════════════════════════════════════════════════════
 void AlertEngine::registerDefaultRules() noexcept
 {
-    // ── Regel: Hohe Bandbreite ─────────────────────────────────────────
+    // ── Rule: High Bandwidth ─────────────────────────────────────────
     Rule bwRule;
     bwRule.name             = QStringLiteral("high_bandwidth");
-    bwRule.description      = QStringLiteral("Alarm bei hoher Bandbreitenauslastung");
+    bwRule.description      = QStringLiteral("Alert on high bandwidth usage");
     bwRule.category         = Category::Telemetry;
     bwRule.severity         = Severity::Warning;
     bwRule.warningThreshold = 100.0 * 1024.0 * 1024.0;     // 100 MB/s
@@ -317,36 +317,36 @@ void AlertEngine::registerDefaultRules() noexcept
     bwRule.enabled          = true;
     mRules.push_back(bwRule);
 
-    // ── Regel: Interface-Fehler ───────────────────────────────────────
+    // ── Rule: Interface Errors ───────────────────────────────────────
     Rule errRule;
     errRule.name             = QStringLiteral("interface_errors");
-    errRule.description      = QStringLiteral("Alarm bei vielen Interface-Fehlern");
+    errRule.description      = QStringLiteral("Alert on many interface errors");
     errRule.category         = Category::Telemetry;
     errRule.severity         = Severity::Warning;
-    errRule.warningThreshold = 100.0;     // 100 Fehler
-    errRule.criticalThreshold= 1000.0;    // 1000 Fehler
+    errRule.warningThreshold = 100.0;     // 100 errors
+    errRule.criticalThreshold= 1000.0;    // 1000 errors
     errRule.cooldownSec      = 300;
     errRule.enabled          = true;
     mRules.push_back(errRule);
 
-    // ── Regel: Zertifikatsablauf ──────────────────────────────────────
+    // ── Rule: Certificate Expiry ──────────────────────────────────────
     Rule certRule;
     certRule.name             = QStringLiteral("cert_expiry");
-    certRule.description      = QStringLiteral("Alarm bei bald ablaufenden TLS-Zertifikaten");
+    certRule.description      = QStringLiteral("Alert on expiring TLS certificates");
     certRule.category         = Category::Security;
     certRule.severity         = Severity::Warning;
-    certRule.warningThreshold = 30.0;     // 30 Tage vor Ablauf
-    certRule.cooldownSec      = 86400;    // 1x pro Tag
+    certRule.warningThreshold = 30.0;     // 30 days before expiry
+    certRule.cooldownSec      = 86400;    // once per day
     certRule.enabled          = true;
     mRules.push_back(certRule);
 
-    // ── Regel: Unsicheres Zertifikat ──────────────────────────────────
+    // ── Rule: Insecure Certificate ──────────────────────────────────
     Rule insecureRule;
     insecureRule.name        = QStringLiteral("insecure_cert");
-    insecureRule.description = QStringLiteral("Alarm bei unsicheren/self-signed Zertifikaten");
+    insecureRule.description = QStringLiteral("Alert on insecure/self-signed certificates");
     insecureRule.category    = Category::Security;
     insecureRule.severity    = Severity::Warning;
-    insecureRule.cooldownSec = 3600;      // 1x pro Stunde
+    insecureRule.cooldownSec = 3600;      // once per hour
     insecureRule.enabled     = true;
     mRules.push_back(insecureRule);
 }

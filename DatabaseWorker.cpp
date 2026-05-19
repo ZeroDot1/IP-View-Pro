@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.9.4 — DatabaseWorker.cpp
-//  Asynchroner DB-Hintergrund-Thread (Item 14).
+//  Async DB worker — background thread for database writes (Item 14).
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -57,7 +57,7 @@ void DatabaseWorker::run()
             QMutexLocker lock(&mMutex);
             if (mQueue.empty()) {
                 emit allJobsCompleted();
-                mCond.wait(&mMutex, 1000); // 1s Wakeup-Intervall
+                mCond.wait(&mMutex, 1000); // 1s wakeup interval
                 if (mQueue.empty()) continue;
             }
             job = mQueue.front();
@@ -72,7 +72,7 @@ void DatabaseWorker::run()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Job-Verarbeitung (Delegation an DatabaseModule)
+//  Job processing (delegates to DatabaseModule)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 void DatabaseWorker::processJob(const WriteJob &job) noexcept

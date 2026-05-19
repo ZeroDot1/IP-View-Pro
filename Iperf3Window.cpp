@@ -51,11 +51,11 @@ void Iperf3Window::setEmbeddedMode(bool embedded) noexcept
 {
     mEmbedded = embedded;
     if (embedded) {
-        // Als Widget ohne Fenster-Dekoration einbetten
+        // Embed as widget without window decorations
         setWindowFlags(Qt::Widget);
         setParent(parentWidget());
     } else {
-        // Als normales Dialog-Fenster
+        // Show as normal dialog window
         setWindowFlags(Qt::Dialog);
     }
 }

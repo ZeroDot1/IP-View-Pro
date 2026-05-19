@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.9.1 — Logger.h
 //  C++26: std::format, std::source_location, consteval
-//  Zentrales Logging-System — einheitlich, performant, format-basiert.
+//  Centralized logging system — consistent, performant, format-based.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 

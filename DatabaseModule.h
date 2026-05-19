@@ -20,7 +20,7 @@
 #include <optional>   // C++17/26: std::optional
 #include <vector>
 #include <cstdint>
-#include <functional>  // C++26: Callback für Status-Feedback (Item 5)
+#include <functional>  // C++26: Callback for status feedback (Item 5)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Storage {
@@ -131,12 +131,12 @@ public:
     [[nodiscard]] static bool integrityCheck() noexcept;
 
     // ── Status-Callback (Item 5) ─────────────────────────────────────────
-    //  Ermöglicht UI-Feedback für DB-Hintergrundoperationen
+    //  Enables UI feedback for DB background operations
     using StatusCallback = std::function<void(const QString &)>;
     static void setStatusCallback(StatusCallback cb) noexcept;
     static void clearStatusCallback() noexcept;
 
-    // ── Cross-Platform-Datenverzeichnis (Item 16) ──────────────────────
+    // ── Cross-platform data directory (Item 16) ──────────────────────
     [[nodiscard]] static QString dataDirectory() noexcept;
     [[nodiscard]] static QString configDirectory() noexcept;
 

@@ -110,7 +110,7 @@ bool DatabaseModule::createSchema() noexcept
 {
     QSqlQuery query(sDb);
 
-    // ── Tabelle: ip_history ────────────────────────────────────────────────
+    // ── Table: ip_history ────────────────────────────────────────────────
     bool const historyTable = query.exec(QStringLiteral(
         "CREATE TABLE IF NOT EXISTS ip_history ("
         "  id         INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -137,7 +137,7 @@ bool DatabaseModule::createSchema() noexcept
         "ON ip_history(timestamp DESC)"
     ));
 
-    // ── Tabelle: telemetry ─────────────────────────────────────────────────
+    // ── Table: telemetry ─────────────────────────────────────────────────
     bool const telemetryTable = query.exec(QStringLiteral(
         "CREATE TABLE IF NOT EXISTS telemetry ("
         "  id         INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -191,7 +191,7 @@ bool DatabaseModule::createSchema() noexcept
         "ON telemetry_aggregated(interface, window_end DESC)"
     ));
 
-    // ── Schema-Version-Tabelle (Item 13) ───────────────────────────────
+    // ── Schema version table (Item 13) ───────────────────────────────
     query.exec(QStringLiteral(
         "CREATE TABLE IF NOT EXISTS schema_version ("
         "  version   INTEGER PRIMARY KEY,"
@@ -199,7 +199,7 @@ bool DatabaseModule::createSchema() noexcept
         ")"
     ));
 
-    // Aktuelle Schema-Version eintragen, falls nicht vorhanden
+    // Insert current schema version if not present
     QSqlQuery verQuery(sDb);
     verQuery.exec(QStringLiteral("SELECT COUNT(*) FROM schema_version"));
     if (verQuery.next() && verQuery.value(0).toInt() == 0) {
@@ -208,7 +208,7 @@ bool DatabaseModule::createSchema() noexcept
         IPView::Logger::info("DatabaseModule: Schema version 1 initialized");
     }
 
-    // ── SQL-Views für Reports (Item 12) ───────────────────────────────
+    // ── SQL Views for reports (Item 12) ───────────────────────────────
     query.exec(QStringLiteral(
         "CREATE VIEW IF NOT EXISTS v_daily_telemetry AS "
         "SELECT date(window_end) AS day, interface, "
@@ -419,7 +419,7 @@ void DatabaseModule::emitStatusMsg(const QString &msg) noexcept
     }
 }
 
-// Hilfsmakro für einheitliche Status-Meldungen
+// Helper macro for uniform status messages
 #define DB_STATUS(msg)  DatabaseModule::emitStatusMsg(QStringLiteral(msg))
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -885,7 +885,7 @@ bool DatabaseModule::clearTelemetryAggregated() noexcept
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Cross-Platform-Datenverzeichnis (Item 16)
+//  Cross-platform data directory (Item 16)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 QString DatabaseModule::dataDirectory() noexcept
