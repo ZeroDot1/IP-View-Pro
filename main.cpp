@@ -33,11 +33,12 @@ consteval auto sharedMemKey()   noexcept { return "IPView-Pro-SingleInstance"; }
 consteval auto localServerKey() noexcept { return "IPView-Pro-LocalServer"; }
 
 // ── Tooltip stylesheet ──────────────────────────────────────────────────────
-[[nodiscard]] static constexpr const char* tooltipStyleSheet() noexcept
+[[nodiscard]] static QString tooltipStyleSheet()
 {
-    return
-        "QToolTip { background-color: #1a1a2e; color: #ffffff; "
-        "border: 1px solid #e94560; border-radius: 4px; padding: 4px; }";
+    return QStringLiteral(
+        "QToolTip { background-color: %1; color: %2; "
+        "border: 1px solid %3; border-radius: 4px; padding: 4px; }"
+    ).arg(C_BG_ELEVATED, C_TEXT, C_ACCENT);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -60,7 +61,7 @@ int main(int argc, char* argv[])
 
     // ── Fusion theme + global stylesheet ──────────────────────────────
     app.setStyle(QStyleFactory::create("Fusion"));
-    app.setStyleSheet(appStyleSheet());
+    app.setStyleSheet(appStyleSheet() + QLatin1Char('\n') + tooltipStyleSheet());
 
     // ════════════════════════════════════════════════════════════════════
     //  CONFIG MANAGER (per-user, XDG-konform ~/.config/IPView/IPView.conf)

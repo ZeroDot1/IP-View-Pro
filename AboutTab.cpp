@@ -15,6 +15,7 @@
 #include <QApplication>
 #include <QSysInfo>
 #include <QFrame>
+#include "Theme.h"
 
 // ── Compiler Detection ─────────────────────────────────────────────────────
 [[nodiscard]]
@@ -95,16 +96,16 @@ void AboutTab::setupUI() noexcept
     // ── App Name ──────────────────────────────────────────────────────────
     auto *titleLabel = new QLabel(QStringLiteral("IPView Pro"));
     titleLabel->setFont(QFont(QStringLiteral("Segoe UI"), 28, QFont::Bold));
-    titleLabel->setStyleSheet(QStringLiteral("color: #e94560;"));
+    titleLabel->setStyleSheet(QStringLiteral("color: %1;").arg(C_ACCENT));
     titleLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(titleLabel);
 
     // ── Frame with Build Info ─────────────────────────────────────────────
     auto *infoFrame = new QFrame();
     infoFrame->setStyleSheet(QStringLiteral(
-        "QFrame { background-color: #1a1a2e; border: 1px solid #2a2a3e; "
+        "QFrame { background-color: %1; border: 1px solid %2; "
         "border-radius: 12px; padding: 24px; }"
-    ));
+    ).arg(C_BG_ELEVATED, C_BORDER));
 
     auto *infoLayout = new QVBoxLayout(infoFrame);
     infoLayout->setSpacing(8);
@@ -113,7 +114,7 @@ void AboutTab::setupUI() noexcept
     for (QString const& line : lines) {
         auto *label = new QLabel(line);
         label->setFont(QFont(QStringLiteral("JetBrains Mono"), 11));
-        label->setStyleSheet(QStringLiteral("color: #ffffff; background: transparent;"));
+        label->setStyleSheet(QStringLiteral("color: %1; background: transparent;").arg(C_TEXT));
         label->setAlignment(Qt::AlignCenter);
 
         // Bold label prefix
@@ -135,7 +136,7 @@ void AboutTab::setupUI() noexcept
         "Public Domain — No License — No Restrictions"));
     pdLabel->setFont(QFont(QStringLiteral("Segoe UI"), 10));
     pdLabel->setStyleSheet(QStringLiteral(
-        "color: #888888; font-style: italic; background: transparent;"));
+        "color: %1; font-style: italic; background: transparent;").arg(C_TEXT_MUTED));
     pdLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(pdLabel);
 

@@ -6,6 +6,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "SpeedtestTab.h"
+#include "Theme.h"
 
 #include <QApplication>
 #include <QClipboard>
@@ -22,19 +23,6 @@
 #include <QStandardPaths>
 #include <QTableWidget>
 #include <QVBoxLayout>
-
-// ═══════════════════════════════════════════════════════════════════════════════
-//  Style constants
-// ═══════════════════════════════════════════════════════════════════════════════
-
-static constexpr auto BG_DARK    = "#0f0f1a";
-static constexpr auto BG_CARD    = "#1a1a2e";
-static constexpr auto BORDER     = "#2a2a3e";
-static constexpr auto ACCENT     = "#e94560";
-static constexpr auto TEXT_DIM   = "#888888";
-static constexpr auto TEXT_WHITE = "#ffffff";
-static constexpr auto GREEN      = "#00ff88";
-static constexpr auto CYAN       = "#00d4ff";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 SpeedtestTab::SpeedtestTab(QWidget *parent)
@@ -72,7 +60,7 @@ QString SpeedtestTab::appStyleSheet() const noexcept
 {
     return QStringLiteral(
         "QWidget { background-color: %1; color: %2; font-family: 'Segoe UI'; }"
-    ).arg(QString::fromLatin1(BG_DARK), QString::fromLatin1(TEXT_WHITE));
+    ).arg(C_BG, C_TEXT);
 }
 
 [[nodiscard]]
@@ -85,7 +73,7 @@ QFrame *SpeedtestTab::createMetricCard(
         "QFrame { background-color: %1; border: 1px solid %2; "
         "border-radius: 14px; padding: 14px; }"
         "QFrame:hover { border-color: %3; }"
-    ).arg(QString::fromLatin1(BG_CARD), QString::fromLatin1(BORDER), color));
+    ).arg(C_BG_ELEVATED, C_BORDER, color));
 
     auto *lay = new QVBoxLayout(card);
     lay->setSpacing(6);
@@ -95,7 +83,7 @@ QFrame *SpeedtestTab::createMetricCard(
     t->setStyleSheet(QStringLiteral(
         "color: %1; font-size: 10px; font-weight: bold; "
         "letter-spacing: 1px; background: transparent;"
-    ).arg(QString::fromLatin1(TEXT_DIM)));
+    ).arg(C_TEXT_MUTED));
     t->setAlignment(Qt::AlignCenter);
     lay->addWidget(t);
 
@@ -109,7 +97,7 @@ QFrame *SpeedtestTab::createMetricCard(
     auto *u = new QLabel(unit);
     u->setStyleSheet(QStringLiteral(
         "color: %1; font-size: 9px; background: transparent;"
-    ).arg(QString::fromLatin1(TEXT_DIM)));
+    ).arg(C_TEXT_MUTED));
     u->setAlignment(Qt::AlignCenter);
     lay->addWidget(u);
 
@@ -134,7 +122,7 @@ void SpeedtestTab::setupUI()
         "background-color: %3; }"
         "QGroupBox::title { subcontrol-origin: margin; left: 14px; "
         "padding: 0 6px; background-color: %3; }"
-    ).arg(TEXT_DIM, BORDER, BG_DARK));
+    ).arg(C_TEXT_MUTED, C_BORDER, C_BG));
 
     QHBoxLayout *optRow = new QHBoxLayout(optGroup);
     optRow->setSpacing(18);
@@ -145,7 +133,7 @@ void SpeedtestTab::setupUI()
         "border: 1px solid %2; background: %3; }"
         "QCheckBox::indicator:checked { background-color: %4; border-color: %4; }"
         "QCheckBox::indicator:hover { border-color: %4; }"
-    ).arg(TEXT_WHITE, BORDER, BG_CARD, ACCENT);
+    ).arg(C_TEXT, C_BORDER, C_BG_ELEVATED, C_ACCENT);
 
     singleConnCheck = new QCheckBox(QStringLiteral("Single Connection"));
     secureCheck     = new QCheckBox(QStringLiteral("Secure (HTTPS)"));
@@ -161,7 +149,7 @@ void SpeedtestTab::setupUI()
 
     // Server selection
     QLabel *srvLabel = new QLabel(QStringLiteral("Server:"));
-    srvLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold; background: transparent;").arg(TEXT_WHITE));
+    srvLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold; background: transparent;").arg(C_TEXT));
 
     serverCombo = new QComboBox();
     serverCombo->setEditable(false);
@@ -177,7 +165,7 @@ void SpeedtestTab::setupUI()
         "margin-right: 6px; }"
         "QComboBox QAbstractItemView { background: %1; color: %2; "
         "selection-background-color: %4; border: 1px solid %3; outline: none; }"
-    ).arg(BG_CARD, TEXT_WHITE, BORDER, ACCENT));
+    ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER, C_ACCENT));
 
     browseServersButton = new QPushButton(QStringLiteral("Browse\u2026"));
     browseServersButton->setCursor(Qt::PointingHandCursor);
@@ -186,7 +174,7 @@ void SpeedtestTab::setupUI()
         "QPushButton { background: %1; color: %2; border: 1px solid %3; "
         "border-radius: 5px; padding: 4px 14px; font-size: 11px; }"
         "QPushButton:hover { background: %4; border-color: %4; color: white; }"
-    ).arg(BG_CARD, TEXT_WHITE, BORDER, ACCENT));
+    ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER, C_ACCENT));
 
     optRow->addWidget(srvLabel);
     optRow->addWidget(serverCombo);
@@ -201,13 +189,13 @@ void SpeedtestTab::setupUI()
     ispLabel->setAlignment(Qt::AlignCenter);
     ispLabel->setStyleSheet(QString(
         "color: %1; font-size: 15px; font-weight: bold; background: transparent;"
-    ).arg(CYAN));
+    ).arg(C_PRIMARY));
 
     serverLabel = new QLabel(QStringLiteral("No server selected \u2013 will use auto-select"));
     serverLabel->setAlignment(Qt::AlignCenter);
     serverLabel->setStyleSheet(QString(
         "color: %1; font-size: 11px; background: transparent;"
-    ).arg(TEXT_DIM));
+    ).arg(C_TEXT_MUTED));
 
     root->addWidget(ispLabel);
     root->addWidget(serverLabel);
@@ -217,9 +205,9 @@ void SpeedtestTab::setupUI()
     // ══════════════════════════════════════════════════════════════════════
     QHBoxLayout *meterRow = new QHBoxLayout();
     meterRow->setSpacing(16);
-    meterRow->addWidget(createMetricCard(QStringLiteral("PING"),     pingLabel,     QStringLiteral("ms"),    ACCENT));
-    meterRow->addWidget(createMetricCard(QStringLiteral("DOWNLOAD"), downloadLabel, QStringLiteral("Mbps"),  GREEN));
-    meterRow->addWidget(createMetricCard(QStringLiteral("UPLOAD"),   uploadLabel,   QStringLiteral("Mbps"),  CYAN));
+    meterRow->addWidget(createMetricCard(QStringLiteral("PING"),     pingLabel,     QStringLiteral("ms"),    C_ACCENT));
+    meterRow->addWidget(createMetricCard(QStringLiteral("DOWNLOAD"), downloadLabel, QStringLiteral("Mbps"),  C_SUCCESS));
+    meterRow->addWidget(createMetricCard(QStringLiteral("UPLOAD"),   uploadLabel,   QStringLiteral("Mbps"),  C_PRIMARY));
     root->addLayout(meterRow);
 
     // ══════════════════════════════════════════════════════════════════════
@@ -246,7 +234,7 @@ void SpeedtestTab::setupUI()
         "background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
         "stop:0 %3, stop:0.5 %4, stop:1 %5); "
         "border-radius: 5px; }"
-    ).arg(BG_CARD, TEXT_WHITE, ACCENT, CYAN, GREEN));
+    ).arg(C_BG_ELEVATED, C_TEXT, C_ACCENT, C_PRIMARY, C_SUCCESS));
     root->addWidget(progressGauge);
 
     // ══════════════════════════════════════════════════════════════════════
@@ -265,7 +253,7 @@ void SpeedtestTab::setupUI()
         "QPushButton:hover { background: rgba(233, 69, 96, 0.12); "
         "border-color: %2; color: %2; }"
         "QPushButton:pressed { background: %1; color: white; }"
-    ).arg(ACCENT, TEXT_WHITE));
+    ).arg(C_ACCENT, C_TEXT));
 
     stopButton = new QPushButton(QStringLiteral("STOP"));
     stopButton->setFixedSize(110, 44);
@@ -278,8 +266,8 @@ void SpeedtestTab::setupUI()
         "QPushButton:hover { background: rgba(233, 69, 96, 0.15); "
         "border-color: %1; }"
         "QPushButton:pressed { background: %1; color: white; }"
-        "QPushButton:disabled { color: #444; border-color: #333; }"
-    ).arg(ACCENT));
+        "QPushButton:disabled { color: %2; border-color: %3; }"
+    ).arg(C_ACCENT, C_TEXT_MUTED, C_BORDER));
 
     btnRow->addWidget(startButton);
     btnRow->addSpacing(24);
@@ -294,7 +282,7 @@ void SpeedtestTab::setupUI()
     statusLabel->setAlignment(Qt::AlignCenter);
     statusLabel->setStyleSheet(QString(
         "color: %1; font-size: 13px; font-weight: bold; background: transparent;"
-    ).arg(ACCENT));
+    ).arg(C_ACCENT));
     root->addWidget(statusLabel);
 
     // ══════════════════════════════════════════════════════════════════════
@@ -305,10 +293,10 @@ void SpeedtestTab::setupUI()
     logArea->setMaximumHeight(130);
     logArea->setPlaceholderText(QStringLiteral("Test log will appear here..."));
     logArea->setStyleSheet(QString(
-        "QTextEdit { background: #08081a; color: %1; font-size: 10px; "
+        "QTextEdit { background: %3; color: %1; font-size: 10px; "
         "border-radius: 8px; border: 1px solid %2; padding: 6px; "
         "font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace; }"
-    ).arg(TEXT_DIM, BORDER));
+    ).arg(C_TEXT_MUTED, C_BORDER, C_BG_SUNKEN));
     root->addWidget(logArea);
 
     // ── Connections ──────────────────────────────────────────────────────
@@ -456,26 +444,26 @@ void SpeedtestTab::onBrowseServers()
     dlg.setMinimumSize(640, 480);
     dlg.setStyleSheet(QString(
         "QDialog { background: %1; color: %2; }"
-    ).arg(BG_DARK, TEXT_WHITE));
+    ).arg(C_BG, C_TEXT));
 
     QVBoxLayout *dlgLayout = new QVBoxLayout(&dlg);
     dlgLayout->setSpacing(12);
 
     QLabel *info = new QLabel(QStringLiteral("%1 servers found. Double-click or select + Accept.")
                                   .arg(static_cast<int>(servers.size())));
-    info->setStyleSheet(QString("color: %1; font-size: 12px;").arg(TEXT_DIM));
+    info->setStyleSheet(QString("color: %1; font-size: 12px;").arg(C_TEXT_MUTED));
     dlgLayout->addWidget(info);
 
     // Filter row
     auto *filterRow = new QHBoxLayout();
     auto *filterLabel = new QLabel(QStringLiteral("Filter:"));
-    filterLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(TEXT_WHITE));
+    filterLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(C_TEXT));
     auto *filterEdit = new QLineEdit();
     filterEdit->setPlaceholderText(QStringLiteral("Search by sponsor or location..."));
     filterEdit->setStyleSheet(QString(
         "QLineEdit { background: %1; color: %2; border: 1px solid %3; "
         "border-radius: 4px; padding: 4px 8px; font-size: 11px; }"
-    ).arg(BG_CARD, TEXT_WHITE, BORDER));
+    ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER));
     filterRow->addWidget(filterLabel);
     filterRow->addWidget(filterEdit, 1);
     dlgLayout->addLayout(filterRow);
@@ -503,7 +491,7 @@ void SpeedtestTab::onBrowseServers()
         "QHeaderView::section { background: %1; color: %2; "
         "border: none; border-bottom: 1px solid %3; padding: 6px; "
         "font-weight: bold; font-size: 11px; }"
-    ).arg(BG_CARD, TEXT_WHITE, BORDER, ACCENT));
+    ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER, C_ACCENT));
     dlgLayout->addWidget(table);
 
     // Buttons
@@ -512,8 +500,8 @@ void SpeedtestTab::onBrowseServers()
     selectBtn->setStyleSheet(QString(
         "QPushButton { background: %1; color: white; border: none; "
         "border-radius: 5px; padding: 8px 20px; font-weight: bold; }"
-        "QPushButton:hover { background: #c0392b; }"
-    ).arg(ACCENT));
+        "QPushButton:hover { background: %2; }"
+    ).arg(C_ACCENT, C_ACCENT_ACT));
     btns->addButton(QDialogButtonBox::Cancel);
     btns->setStyleSheet(QStringLiteral("QPushButton { color: white; }"));
     dlgLayout->addWidget(btns);
@@ -779,7 +767,7 @@ void SpeedtestTab::updateDisplayFromJson(const QJsonObject &obj) noexcept
             shareLinkLabel->setText(
                 QStringLiteral("<a href='%1' style='color: %2; text-decoration: none; "
                                "font-weight: bold; font-size: 12px;'>"
-                               "Share Result Image</a>").arg(url, QString::fromLatin1(GREEN)));
+                               "Share Result Image</a>").arg(url, C_SUCCESS));
         }
     }
 

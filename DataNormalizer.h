@@ -17,6 +17,7 @@
 #include <QStringList>
 #include <QVariant>
 #include <QRegularExpression>
+#include "Theme.h"
 
 #include <array>             // C++26: constexpr std::array
 #include <vector>            // C++26: stack-based dynamic container
@@ -219,7 +220,7 @@ namespace DataNormalizer {
     QString formatJsonHtml(const QJsonObject &obj) noexcept
     {
         QString const json = QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Indented));
-        QString html = QStringLiteral("<pre style='color: #ffffff; line-height: 1.4;'>");
+        QString html = QStringLiteral("<pre style='color: %1; line-height: 1.4;'>").arg(C_TEXT);
 
         // C++26: structured bindings in range-based for (C++17 already)
         QStringList const lines = json.split(QLatin1Char('\n'));
@@ -227,15 +228,15 @@ namespace DataNormalizer {
             // Highlight keys
             static QRegularExpression const keyRegex(QStringLiteral("\"(.*)\":"));
             QString formatted = line;
-            formatted.replace(keyRegex, QStringLiteral("<span style='color: #e94560;'>\"\\1\"</span>:"));
+            formatted.replace(keyRegex, QStringLiteral("<span style='color: %1;'>\"\\1\"</span>:").arg(C_ACCENT));
 
             // Highlight string values
             static QRegularExpression const valRegex(QStringLiteral(": \"(.*)\""));
-            formatted.replace(valRegex, QStringLiteral(": <span style='color: #00ff88;'>\"\\1\"</span>"));
+            formatted.replace(valRegex, QStringLiteral(": <span style='color: %1;'>\"\\1\"</span>").arg(C_SUCCESS));
 
             // Highlight numeric values
             static QRegularExpression const numRegex(QStringLiteral(": (\\d+\\.?\\d*)"));
-            formatted.replace(numRegex, QStringLiteral(": <span style='color: #00d4ff;'>\\1</span>"));
+            formatted.replace(numRegex, QStringLiteral(": <span style='color: %1;'>\\1</span>").arg(C_PRIMARY));
 
             html += formatted + QLatin1Char('\n');
         }

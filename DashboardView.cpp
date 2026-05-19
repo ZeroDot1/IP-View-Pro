@@ -93,7 +93,7 @@ void DashboardView::setupUI() noexcept
             QString::fromUtf8(FIELD_NAMES[static_cast<std::size_t>(i)].data(),
                               static_cast<qsizetype>(FIELD_NAMES[static_cast<std::size_t>(i)].size())));
         item->setFlags(item->flags() ^ Qt::ItemIsEditable);
-        item->setForeground(QBrush(QColor(QStringLiteral("#888888"))));
+        item->setForeground(QBrush(QColor(C_TEXT_MUTED)));
         ipTable->setItem(i, 0, item);
     }
 
