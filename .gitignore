@@ -58,3 +58,7 @@ ui_*.h
 *.pkg.tar.zst.sig
 pkg/
 src/
+
+# ── Private / Never upload ────────────────────────────────
+.antigravitycli/
+Entwicklungsplan.md
