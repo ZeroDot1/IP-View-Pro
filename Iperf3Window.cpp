@@ -64,7 +64,7 @@ void Iperf3Window::setEmbeddedMode(bool embedded) noexcept
 //  UI Setup
 // ═══════════════════════════════════════════════════════════════════════════════
 
-void Iperf3Window::setupUI()
+void Iperf3Window::setupUI() noexcept
 {
     setWindowTitle(QStringLiteral("IPerf3 Network Test"));
     setFixedSize(600, 500);
@@ -346,7 +346,7 @@ void Iperf3Window::parseLine(const QString &line) noexcept
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-void Iperf3Window::updateStats()
+void Iperf3Window::updateStats() noexcept
 {
     qint64 const elapsed = QDateTime::currentMSecsSinceEpoch() - startTime;
     QString const timeStr = QStringLiteral("%1:%2")
@@ -356,7 +356,7 @@ void Iperf3Window::updateStats()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-void Iperf3Window::handleSpeedUpdated(double speed)
+void Iperf3Window::handleSpeedUpdated(double speed) noexcept
 {
     speedLabel->setText(QStringLiteral("Speed: %1 Mbps").arg(speed, 0, 'f', 2));
     speedBar->setValue(static_cast<int>(qMin(100.0, speed / 10.0)));

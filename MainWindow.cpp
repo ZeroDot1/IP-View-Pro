@@ -491,4 +491,17 @@ void MainWindow::setupAlertEngine() noexcept
                 mAlertEngine,
                 &IPView::Alert::AlertEngine::feedTelemetry);
     }
+
+    // ── TLS Auditor → AlertEngine ─────────────────────────────────────────
+    // AuditorTab is registered in setupUI(); retrieve it via TabRegistry.
+    if (auto *auditorTabPtr = mTabRegistry.findAs<AuditorTab>(QStringLiteral("auditor"))) {
+        if (auditorTabPtr->auditorModule()) {
+            connect(auditorTabPtr->auditorModule(),
+                    &IPView::Auditor::AuditorModule::auditFinished,
+                    this, [this](const QString & /*host*/,
+                                 const IPView::Auditor::AuditResult &result) {
+                        mAlertEngine->feedAuditResult(result);
+                    });
+        }
+    }
 }

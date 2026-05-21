@@ -38,15 +38,15 @@ private slots:
     void onStopClicked();
     void onIperf3ReadyRead();
     void onIperf3Finished(int exitCode, QProcess::ExitStatus status);
-    void updateStats();
-    void handleSpeedUpdated(double speed);
+    void updateStats() noexcept;
+    void handleSpeedUpdated(double speed) noexcept;
 
 signals:
     void speedUpdated(double speed);
 
 private:
     // ── UI Setup ────────────────────────────────────────────────────────────
-    void setupUI();
+    void setupUI() noexcept;
 
     // ── Data Processing ─────────────────────────────────────────────────────
     void parseLine(const QString &line) noexcept;

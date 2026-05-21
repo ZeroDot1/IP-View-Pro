@@ -56,10 +56,10 @@ private slots:
     void onClearClicked();
 
 private:
-    void setupUI();
-    void buildTopology();
-    void addNode(const HopData &hop, int index, int total);
-    void clearScene();
+    void setupUI() noexcept;
+    void buildTopology() noexcept;
+    void addNode(const HopData &hop, int index, int total) noexcept;
+    void clearScene() noexcept;
 
     // ── UI elements ───────────────────────────────────────────────────────
     QLineEdit       *hostInput{nullptr};

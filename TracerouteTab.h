@@ -29,7 +29,7 @@ private slots:
     void onTraceClicked();
     void onStopTraceClicked();
     void onDataReceived();
-    void onTraceFinished(int exitCode);
+    void onTraceFinished(int exitCode, QProcess::ExitStatus status);
 
 private:
     [[nodiscard]] QString findTraceroute() const noexcept;

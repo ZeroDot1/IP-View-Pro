@@ -41,9 +41,9 @@ private slots:
     void onBatchProgress(int current, int total);
 
 private:
-    void setupUI();
-    void addResultToTable(const IPView::Auditor::AuditResult &result);
-    void showCertificateDetails(const IPView::Auditor::AuditResult &result);
+    void setupUI() noexcept;
+    void addResultToTable(const IPView::Auditor::AuditResult &result) noexcept;
+    void showCertificateDetails(const IPView::Auditor::AuditResult &result) noexcept;
 
     // ── UI elements ────────────────────────────────────────────────────────
     QLineEdit       *hostInput{nullptr};

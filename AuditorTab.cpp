@@ -23,7 +23,7 @@ AuditorTab::AuditorTab(QWidget *parent)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-void AuditorTab::setupUI()
+void AuditorTab::setupUI() noexcept
 {
     auto *mainLayout = new QVBoxLayout(this);
 
@@ -182,7 +182,7 @@ void AuditorTab::onBatchProgress(int current, int total)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-void AuditorTab::addResultToTable(const IPView::Auditor::AuditResult &result)
+void AuditorTab::addResultToTable(const IPView::Auditor::AuditResult &result) noexcept
 {
     int const row = resultTable->rowCount();
     resultTable->insertRow(row);
@@ -228,7 +228,7 @@ void AuditorTab::addResultToTable(const IPView::Auditor::AuditResult &result)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-void AuditorTab::showCertificateDetails(const IPView::Auditor::AuditResult &result)
+void AuditorTab::showCertificateDetails(const IPView::Auditor::AuditResult &result) noexcept
 {
     QString html;
     html += QStringLiteral("<h3>TLS Audit: %1:%2</h3>").arg(result.host).arg(result.port);

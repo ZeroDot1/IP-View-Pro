@@ -30,7 +30,7 @@ class HistoryTab : public QWidget
 public:
     explicit HistoryTab(QWidget *parent = nullptr);
 
-    void updateHistory(const QList<QJsonObject> &history);
+    void updateHistory(const QList<QJsonObject> &history) noexcept;
 
 private slots:
     void onClearHistory();

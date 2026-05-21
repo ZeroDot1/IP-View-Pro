@@ -146,7 +146,7 @@ void ScannerModule::onSocketConnected()
     }
 }
 
-void ScannerModule::onSocketError(QAbstractSocket::SocketError /*error*/)
+void ScannerModule::onSocketError([[maybe_unused]] QAbstractSocket::SocketError error)
 {
     auto *socket = qobject_cast<QTcpSocket*>(sender());
     if (!socket) return;

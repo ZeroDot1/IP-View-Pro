@@ -47,11 +47,11 @@ private slots:
     void onProgressTick();
     void onMultiProgressTick();
     void onMultiProcessFinished(int index, int exitCode);
-    void aggregateMultiResults();
+    void aggregateMultiResults() noexcept;
 
 private:
     // ── UI setup ───────────────────────────────────────────────────────────
-    void setupUI();
+    void setupUI() noexcept;
 
     [[nodiscard]] QFrame *createMetricCard(const QString &title,
                                             QLabel *&valueLabel,
@@ -66,11 +66,11 @@ private:
     void updateDisplayFromJson(const QJsonObject &obj) noexcept;
 
     // ── Server management (delegates to ServerSelectionModule) ────────────
-    void setSelectedServer(int serverId);
+    void setSelectedServer(int serverId) noexcept;
 
     // ── Process management ─────────────────────────────────────────────────
     [[nodiscard]] QString findSpeedtest() const noexcept;
-    void startProcess(const QStringList &args);
+    void startProcess(const QStringList &args) noexcept;
 
     // ── UI elements ────────────────────────────────────────────────────────
     QPushButton *startButton{nullptr};

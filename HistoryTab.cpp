@@ -134,13 +134,13 @@ void HistoryTab::onClearHistory()
 
     // Also clear SQLite if persistence is active
     if (IPView::Storage::DatabaseModule::isInitialized()) {
-        IPView::Storage::DatabaseModule::clearHistory();
-        IPView::Storage::DatabaseModule::vacuum();
+        (void)IPView::Storage::DatabaseModule::clearHistory();
+        (void)IPView::Storage::DatabaseModule::vacuum();
     }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-void HistoryTab::updateHistory(const QList<QJsonObject> &history)
+void HistoryTab::updateHistory(const QList<QJsonObject> &history) noexcept
 {
     // Save current timestamp for the latest entry
     if (!history.isEmpty()) {
@@ -149,7 +149,7 @@ void HistoryTab::updateHistory(const QList<QJsonObject> &history)
 
         // Save to SQLite (if enabled)
         if (persistCheckBox->isChecked() && IPView::Storage::DatabaseModule::isInitialized()) {
-            IPView::Storage::DatabaseModule::storeResult(history.first());
+            (void)IPView::Storage::DatabaseModule::storeResult(history.first());
         }
 
         // Keep maximum of 50 entries

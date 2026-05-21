@@ -2,6 +2,79 @@
 
 All notable changes to this project are documented here.
 
+## [2.11.0] — 2026-05-21
+
+### Fixed
+
+- **TopologyTab — Dead eventFilter code (CRITICAL):** Removed unnecessary
+  `view->viewport()->installEventFilter(this)` call. QGraphicsView already handles
+  scroll-wheel zoom natively via `setTransformationAnchor(QGraphicsView::AnchorUnderMouse)`.
+  No `eventFilter` override was declared, making this dead code.
+
+- **AlertEngine — Broken cooldown logic (CRITICAL):** `isOnCooldown()` returned
+  `elapsed < 0` which is always false since `secsTo()` returns positive values
+  for past timestamps. Fixed to properly compare elapsed seconds against the
+  rule's `cooldownSec` value.
+
+- **AuditorModule — Incorrect `noexcept` on `performAudit()` (HIGH):** The method
+  was marked `noexcept` but performs `new QSslSocket()` which can throw
+  `std::bad_alloc`. Removed `noexcept` to allow proper exception propagation.
+
+- **TracerouteTab — Slot signature mismatch (MEDIUM):** `onTraceFinished(int)`
+  did not match Qt6's `QProcess::finished(int, QProcess::ExitStatus)` signal.
+  Added the `QProcess::ExitStatus` parameter with `[[maybe_unused]]` attribute.
+
+### Added
+
+- **AlertEngine → AuditorModule integration (CRITICAL):** Connected
+  `AuditorModule::auditFinished` signal to `AlertEngine::feedAuditResult()` in
+  `MainWindow::setupAlertEngine()`. TLS audit results now automatically trigger
+  security alerts (certificate expiry, insecure certificates).
+
+### Changed
+
+- **TelemetryModule — C++26 ranges:** Replaced `std::find_if` with
+  `std::ranges::find_if` for idiomatic C++26 container searching.
+
+- **DatabaseModule — Macro elimination:** Replaced `DB_STATUS` macro with
+  `static inline void dbStatus()` function. Modern C++26 best practice.
+
+- **ScannerModule — Unused parameter:** Replaced C-style `/*error*/` comment
+  with `[[maybe_unused]]` attribute on `onSocketError()` parameter.
+
+- **PacketModule — Full `[[nodiscard]]`/`noexcept` coverage:** Added missing
+  `[[nodiscard]]` and `noexcept` to all static parser methods (`parseProcNet`,
+  `parseLine`, `hexToIp`, `hexToPort`, `tcpStateFromCode`) and public API
+  (`pollNow`, `startPolling`, `stopPolling`).
+
+- **SpeedtestTab — `noexcept` coverage:** Added `noexcept` to `setupUI()`,
+  `startProcess()`, `aggregateMultiResults()`, `setSelectedServer()`.
+
+- **Iperf3Window — `noexcept` coverage:** Added `noexcept` to `setupUI()`,
+  `updateStats()`, `handleSpeedUpdated()`.
+
+- **AuditorTab — `noexcept` coverage:** Added `noexcept` to `setupUI()`,
+  `addResultToTable()`, `showCertificateDetails()`.
+
+- **TopologyTab — `noexcept` coverage:** Added `noexcept` to `setupUI()`,
+  `buildTopology()`, `addNode()`, `clearScene()`.
+
+- **HistoryTab — `noexcept` coverage:** Added `noexcept` to `updateHistory()`.
+
+- **DatabaseModule — `[[nodiscard]]` coverage:** Added `[[nodiscard]]` to all
+  bool-returning methods: `storeResult`, `storeTelemetry`, `storeTelemetryAggregated`,
+  `clearTelemetryAggregated`, `clearHistory`, `vacuum`, `createSchema`.
+
+- **DatabaseModule — `emitStatusMsg` visibility:** Moved from private to public
+  section to enable the `dbStatus()` helper function.
+
+### Build
+
+- **Debug + Release:** Both build configurations compile cleanly with `-Werror`
+  and zero warnings.
+
+---
+
 ## [2.10.0] — 2026-05-19
 
 ### Added

@@ -12,6 +12,7 @@
 #include <QRegularExpression>
 
 #include <algorithm>
+#include <ranges>       // C++26: std::ranges::find_if
 #include <charconv>     // C++26: std::from_chars
 #include <system_error>
 
@@ -140,7 +141,7 @@ void TelemetryModule::onTick() noexcept
         Stats const current = parseProcNetDev(buf, name);
 
         // Find previous entry for speed calculation
-        auto it = std::find_if(mInterfaces.begin(), mInterfaces.end(),
+        auto it = std::ranges::find_if(mInterfaces,
             [&](const InterfaceInfo &info) { return info.name == iface; });
 
         double rxSpeed = 0.0;

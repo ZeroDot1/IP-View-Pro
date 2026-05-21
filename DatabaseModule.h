@@ -72,8 +72,8 @@ public:
     [[nodiscard]] static bool isInitialized() noexcept;
 
     // ── Write Operations ───────────────────────────────────────────────────
-    static bool storeResult(const QJsonObject &data) noexcept;
-    static bool storeTelemetry(const QString &interfaceName,
+    [[nodiscard]] static bool storeResult(const QJsonObject &data) noexcept;
+    [[nodiscard]] static bool storeTelemetry(const QString &interfaceName,
                                quint64 rxBytes, quint64 txBytes,
                                double rxSpeed, double txSpeed) noexcept;
 
@@ -90,7 +90,7 @@ public:
     [[nodiscard]] static int getHistoryCount() noexcept;
 
     // ── Aggregated Telemetry (for TelemetryPersistenceModule) ────────────
-    static bool storeTelemetryAggregated(const QString &interfaceName,
+    [[nodiscard]] static bool storeTelemetryAggregated(const QString &interfaceName,
                                          double avgRxSpeed, double avgTxSpeed,
                                          double minRxSpeed, double minTxSpeed,
                                          double maxRxSpeed, double maxTxSpeed,
@@ -112,7 +112,7 @@ public:
     getTelemetryStatsForWindow(const QDateTime &from,
                                const QDateTime &to) noexcept;
 
-    static bool clearTelemetryAggregated() noexcept;
+    [[nodiscard]] static bool clearTelemetryAggregated() noexcept;
 
     // ── Transaction Support (Item 11) ────────────────────────────────────
     [[nodiscard]] static bool beginTransaction() noexcept;
@@ -120,8 +120,8 @@ public:
     [[nodiscard]] static bool rollbackTransaction() noexcept;
 
     // ── Maintenance ────────────────────────────────────────────────────────
-    static bool clearHistory() noexcept;
-    static bool vacuum() noexcept;
+    [[nodiscard]] static bool clearHistory() noexcept;
+    [[nodiscard]] static bool vacuum() noexcept;
 
     // ── Pruning (Item 18) ─────────────────────────────────────────────────
     [[nodiscard]] static bool pruneHistory(int keepDays = 30) noexcept;
@@ -145,12 +145,15 @@ public:
     static void stopWorker() noexcept;
     [[nodiscard]] static bool isWorkerRunning() noexcept;
 
+    // ── Internes Status-Forwarding (public for dbStatus helper) ──────────
+    static void emitStatusMsg(const QString &msg) noexcept;
+
 private:
     DatabaseModule() = default;
     ~DatabaseModule() = default;
 
     // ── Schema ─────────────────────────────────────────────────────────────
-    static bool createSchema() noexcept;
+    [[nodiscard]] static bool createSchema() noexcept;
     [[nodiscard]] static QString defaultDbPath() noexcept;
 
     // ── State ─────────────────────────────────────────────────────────────
@@ -159,9 +162,6 @@ private:
     static bool           sInitialized;
     static QString        sDbPath;
     static StatusCallback sStatusCallback;
-
-    // ── Internes Status-Forwarding ───────────────────────────────────────
-    static void emitStatusMsg(const QString &msg) noexcept;
 
     // ── Worker (Item 14) ──────────────────────────────────────────────────
     static DatabaseWorker *sWorker;

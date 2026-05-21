@@ -104,7 +104,7 @@ QFrame *SpeedtestTab::createMetricCard(
     return card;
 }
 
-void SpeedtestTab::setupUI()
+void SpeedtestTab::setupUI() noexcept
 {
     setStyleSheet(appStyleSheet());
 
@@ -363,7 +363,7 @@ QString SpeedtestTab::findSpeedtest() const noexcept
     return IPView::Speedtest::ServerSelectionModule::findSpeedtestBinary();
 }
 
-void SpeedtestTab::startProcess(const QStringList &args)
+void SpeedtestTab::startProcess(const QStringList &args) noexcept
 {
     if (process->state() != QProcess::NotRunning) {
         process->kill();
@@ -550,7 +550,7 @@ void SpeedtestTab::onMultiProcessFinished(int index, int exitCode)
     }
 }
 
-void SpeedtestTab::aggregateMultiResults()
+void SpeedtestTab::aggregateMultiResults() noexcept
 {
     if (mMultiResults.isEmpty()) {
         statusLabel->setText(QStringLiteral("All multi-server tests failed"));
@@ -759,7 +759,7 @@ void SpeedtestTab::onBrowseServers()
     dlg.exec();
 }
 
-void SpeedtestTab::setSelectedServer(int serverId)
+void SpeedtestTab::setSelectedServer(int serverId) noexcept
 {
     // Find the server in cache
     for (auto const &s : serverCache) {

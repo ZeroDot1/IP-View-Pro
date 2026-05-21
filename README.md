@@ -141,6 +141,16 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
 - Context menu: Restore Window / Exit.
 - Informative tray tooltip with IP, country flag (Unicode), ISP, ASN, and timestamp.
 
+###  Alert Engine (Background Service)
+- **Rule-based monitoring:** Automatically detects high bandwidth usage, interface errors,
+  TLS certificate expiry, and insecure certificates.
+- **Telemetry integration:** Connected to `TelemetryModule` — monitors real-time network
+  speeds and triggers alerts when thresholds are exceeded.
+- **TLS Auditor integration:** Connected to `AuditorModule` — automatically fires security
+  alerts when certificate audits detect expired or untrusted certificates.
+- **Cooldown system:** Prevents alert flooding with configurable per-rule cooldown periods.
+- **Severity levels:** Info, Warning, Critical — with color-coded UI indicators.
+
 ###  Topology Tab
 - **QGraphicsView network path visualization:** Runs `traceroute` to a target host and renders each hop as a color-coded node on an interactive canvas.
 - **Color-coded by latency:** Green (<10 ms), blue (<50 ms), orange (<150 ms), red (≥150 ms or timeout). Destination node highlighted in green and enlarged.
@@ -167,11 +177,12 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
 | `saturate_fix.h` (polyfill) | Force-included via CMake | Polyfill for missing `std::saturate_cast` (GCC 16.1 / libstdc++) |
 | `std::to_array<std::string_view>` | NetworkManager, DataNormalizer | Compile-time API endpoint lists — no runtime initialization |
 | `consteval` | main.cpp | Application metadata (name, version) guaranteed at compile time |
-| `[[nodiscard]]` | 45× across the project | Compiler warns on discarded return values |
-| `noexcept` | 55× across the project | Exceptions stopped at API boundaries |
+| `[[nodiscard]]` | 60+ across the project | Compiler warns on discarded return values |
+| `noexcept` | 70+ across the project | Exceptions stopped at API boundaries |
 | Structured bindings | 8 files | `auto const& [key, value]` — more readable, type-safe |
 | `std::expected` | TelemetryModule, ServerSelectionModule | Type-safe error propagation without exceptions |
-| `std::from_chars` | TelemetryModule, ScannerModule | Performant string-to-integer conversion |
+| `std::from_chars` | TelemetryModule, ScannerModule, PacketModule | Performant string-to-integer conversion |
+| `std::ranges` | AlertEngine, AuditorModule, TelemetryModule, PacketModule | Idiomatic C++26 container algorithms |
 | `std::optional` | DatabaseModule | Nullable return values for database queries |
 | `std::unique_ptr` | ScannerModule | RAII socket pool management |
 | `QLatin1StringView` | main.cpp | C++26-compatible string view for Qt APIs |
@@ -412,4 +423,4 @@ This project is released under **Public Domain**. It may be freely used, copied,
 
 ---
 
-*IPView Pro v2.10.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*
+*IPView Pro v2.11.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*

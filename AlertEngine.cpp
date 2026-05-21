@@ -110,8 +110,13 @@ bool AlertEngine::isOnCooldown(const QString &ruleName) const noexcept
                                    [&](const CooldownEntry &e) { return e.ruleName == ruleName; });
     if (it == mCooldowns.end()) return false;
 
+    // Find the matching rule to get its cooldown period
+    auto ruleIt = std::ranges::find_if(mRules,
+                                       [&](const Rule &r) { return r.name == ruleName; });
+    int const cooldownSec = (ruleIt != mRules.end()) ? ruleIt->cooldownSec : 300;
+
     auto const elapsed = it->lastFired.secsTo(QDateTime::currentDateTimeUtc());
-    return elapsed < 0; // negative = still in cooldown (updated on fire)
+    return elapsed < cooldownSec;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

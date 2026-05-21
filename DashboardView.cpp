@@ -143,6 +143,11 @@ void DashboardView::updateDisplay(const QJsonObject &jsonData) noexcept
 {
     currentData = jsonData;
 
+    // Safe state handling: Clear previous country flag to prevent showing stale flags on IP changes
+    if (flagLabel) {
+        flagLabel->clear();
+    }
+
     QString const ip = jsonData[QStringLiteral("ip")].toString();
     ipLabel->setText(ip.isEmpty() ? QStringLiteral("N/A") : ip);
 

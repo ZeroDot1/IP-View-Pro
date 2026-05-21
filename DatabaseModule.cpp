@@ -419,8 +419,12 @@ void DatabaseModule::emitStatusMsg(const QString &msg) noexcept
     }
 }
 
-// Helper macro for uniform status messages
-#define DB_STATUS(msg)  DatabaseModule::emitStatusMsg(QStringLiteral(msg))
+// Helper function for uniform status messages (replaces DB_STATUS macro)
+[[maybe_unused]]
+static inline void dbStatus(const char *msg) noexcept
+{
+    IPView::Storage::DatabaseModule::emitStatusMsg(QString::fromUtf8(msg));
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Async Worker (Item 14)
@@ -509,14 +513,14 @@ bool DatabaseModule::clearHistory() noexcept
     QMutexLocker lock(&sMutex);
     if (!sInitialized) return false;
 
-    DB_STATUS("Clearing IP history...");
+    dbStatus("Clearing IP history...");
     QSqlQuery query(sDb);
     if (!query.exec(QStringLiteral("DELETE FROM ip_history"))) {
-        DB_STATUS("Failed to clear IP history");
+        dbStatus("Failed to clear IP history");
         return false;
     }
 
-    DB_STATUS("IP history cleared");
+    dbStatus("IP history cleared");
     return true;
 }
 
@@ -560,7 +564,7 @@ bool DatabaseModule::pruneHistory(int keepDays) noexcept
 
     if (ok && deleted > 0) {
         IPView::Logger::info("DatabaseModule: Pruned {} old history entries (>{} days)", deleted, keepDays);
-        vacuum();
+        (void)vacuum();
     }
 
     return ok;
@@ -609,7 +613,7 @@ bool DatabaseModule::pruneTelemetry(int keepDays) noexcept
     if (ok && (deletedTel > 0 || deletedAgg > 0)) {
         IPView::Logger::info("DatabaseModule: Pruned {} telemetry + {} aggregated entries (>{} days)",
               deletedTel, deletedAgg, keepDays);
-        vacuum();
+        (void)vacuum();
     }
 
     return ok;
@@ -873,14 +877,14 @@ bool DatabaseModule::clearTelemetryAggregated() noexcept
     QMutexLocker lock(&sMutex);
     if (!sInitialized) return false;
 
-    DB_STATUS("Clearing telemetry history...");
+    dbStatus("Clearing telemetry history...");
     QSqlQuery query(sDb);
     if (!query.exec(QStringLiteral("DELETE FROM telemetry_aggregated"))) {
-        DB_STATUS("Failed to clear telemetry history");
+        dbStatus("Failed to clear telemetry history");
         return false;
     }
 
-    DB_STATUS("Telemetry history cleared");
+    dbStatus("Telemetry history cleared");
     return true;
 }
 

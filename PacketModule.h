@@ -68,11 +68,11 @@ public:
     ~PacketModule() override = default;
 
     // ── Manual poll ──────────────────────────────────────────────────────
-    [[nodiscard]] ConnectionSnapshot pollNow();
+    [[nodiscard]] ConnectionSnapshot pollNow() noexcept;
 
     // ── Polling control ──────────────────────────────────────────────────
-    void startPolling(int intervalMs = 5000);
-    void stopPolling();
+    void startPolling(int intervalMs = 5000) noexcept;
+    void stopPolling() noexcept;
     [[nodiscard]] bool isPolling() const noexcept { return mTimer && mTimer->isActive(); }
 
     // ── Access ───────────────────────────────────────────────────────────
@@ -84,11 +84,11 @@ signals:
 
 private:
     // ── Parsers ──────────────────────────────────────────────────────────
-    [[nodiscard]] static QList<ConnectionEntry> parseProcNet(const QString &path, bool isTCP);
-    [[nodiscard]] static ConnectionEntry        parseLine(const QString &line, bool isTCP, int slot);
-    [[nodiscard]] static QString                hexToIp(const QString &hex);
-    [[nodiscard]] static uint16_t               hexToPort(const QString &hex);
-    [[nodiscard]] static ConnectionState        tcpStateFromCode(uint8_t code);
+    [[nodiscard]] static QList<ConnectionEntry> parseProcNet(const QString &path, bool isTCP) noexcept;
+    [[nodiscard]] static ConnectionEntry        parseLine(const QString &line, bool isTCP, int slot) noexcept;
+    [[nodiscard]] static QString                hexToIp(const QString &hex) noexcept;
+    [[nodiscard]] static uint16_t               hexToPort(const QString &hex) noexcept;
+    [[nodiscard]] static ConnectionState        tcpStateFromCode(uint8_t code) noexcept;
 
     QTimer      *mTimer{nullptr};
     QList<ConnectionEntry> mLastTCP;

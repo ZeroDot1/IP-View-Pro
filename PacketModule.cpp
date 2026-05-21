@@ -37,7 +37,7 @@ PacketModule::PacketModule(QObject *parent)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-ConnectionSnapshot PacketModule::pollNow()
+ConnectionSnapshot PacketModule::pollNow() noexcept
 {
     ConnectionSnapshot snap;
     snap.timestamp = QDateTime::currentDateTime();
@@ -58,13 +58,13 @@ ConnectionSnapshot PacketModule::pollNow()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-void PacketModule::startPolling(int intervalMs)
+void PacketModule::startPolling(int intervalMs) noexcept
 {
     if (intervalMs < 1000) intervalMs = 1000;  // minimum 1s
     mTimer->start(intervalMs);
 }
 
-void PacketModule::stopPolling()
+void PacketModule::stopPolling() noexcept
 {
     mTimer->stop();
 }
@@ -81,7 +81,7 @@ void PacketModule::stopPolling()
 //  Ports are in hex, big-endian: "0035" → 53
 // ═══════════════════════════════════════════════════════════════════════════════
 
-QList<ConnectionEntry> PacketModule::parseProcNet(const QString &path, bool isTCP)
+QList<ConnectionEntry> PacketModule::parseProcNet(const QString &path, bool isTCP) noexcept
 {
     QList<ConnectionEntry> result;
     QFile file(path);
@@ -104,7 +104,7 @@ QList<ConnectionEntry> PacketModule::parseProcNet(const QString &path, bool isTC
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-ConnectionEntry PacketModule::parseLine(const QString &line, bool isTCP, int slot)
+ConnectionEntry PacketModule::parseLine(const QString &line, bool isTCP, int slot) noexcept
 {
     ConnectionEntry entry;
     entry.slot  = slot;
@@ -192,7 +192,7 @@ ConnectionEntry PacketModule::parseLine(const QString &line, bool isTCP, int slo
 //  For IPv6 (32 hex chars), the same byte-reversal applies per 4-byte group.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-QString PacketModule::hexToIp(const QString &hex)
+QString PacketModule::hexToIp(const QString &hex) noexcept
 {
     if (hex.length() == 8) {
         // ── IPv4 ──────────────────────────────────────────────────────────
@@ -231,7 +231,7 @@ QString PacketModule::hexToIp(const QString &hex)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-uint16_t PacketModule::hexToPort(const QString &hex)
+uint16_t PacketModule::hexToPort(const QString &hex) noexcept
 {
     if (hex.length() != 4 && hex.length() != 2) return 0;
     bool ok = false;
@@ -240,7 +240,7 @@ uint16_t PacketModule::hexToPort(const QString &hex)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-ConnectionState PacketModule::tcpStateFromCode(uint8_t code)
+ConnectionState PacketModule::tcpStateFromCode(uint8_t code) noexcept
 {
     switch (code) {
         case 0x01: return ConnectionState::Established;

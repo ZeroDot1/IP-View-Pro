@@ -131,7 +131,7 @@ TopologyTab::TopologyTab(QWidget *parent)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-void TopologyTab::setupUI()
+void TopologyTab::setupUI() noexcept
 {
     auto *mainLayout = new QVBoxLayout(this);
 
@@ -176,7 +176,8 @@ void TopologyTab::setupUI()
     ).arg(C_BG_SUNKEN, C_BORDER, RADIUS_LG));
     view->setMinimumHeight(300);
 
-    // Interactive zoom via scroll wheel
+    // Interactive zoom via scroll wheel (QGraphicsView handles this natively
+    // with AnchorUnderMouse — no custom eventFilter needed)
     view->setInteractive(true);
     view->setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing, true);
 
@@ -186,9 +187,6 @@ void TopologyTab::setupUI()
     connect(traceButton, &QPushButton::clicked, this, &TopologyTab::onTraceClicked);
     connect(clearButton, &QPushButton::clicked, this, &TopologyTab::onClearClicked);
     connect(hostInput, &QLineEdit::returnPressed, this, &TopologyTab::onTraceClicked);
-
-    // ── Wheel zoom ────────────────────────────────────────────────────────
-    view->viewport()->installEventFilter(this);
 
     // Set dark background
     scene->setBackgroundBrush(QBrush(QColor(C_BG_SUNKEN)));
@@ -316,7 +314,7 @@ void TopologyTab::onClearClicked()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-void TopologyTab::clearScene()
+void TopologyTab::clearScene() noexcept
 {
     scene->clear();
     // Re-set background after clear (clear removes it)
@@ -324,7 +322,7 @@ void TopologyTab::clearScene()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-void TopologyTab::buildTopology()
+void TopologyTab::buildTopology() noexcept
 {
     clearScene();
     if (mHops.isEmpty()) return;
@@ -340,7 +338,7 @@ void TopologyTab::buildTopology()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-void TopologyTab::addNode(const HopData &hop, int index, int total)
+void TopologyTab::addNode(const HopData &hop, int index, int total) noexcept
 {
     Q_UNUSED(total)
 

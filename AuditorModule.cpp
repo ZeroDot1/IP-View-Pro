@@ -109,7 +109,7 @@ AuditorModule::auditHostList(const QString &rawList, int defaultPort, int timeou
 // ═══════════════════════════════════════════════════════════════════════════════
 
 AuditResult
-AuditorModule::performAudit(const QString &host, int port, int timeoutMs) noexcept
+AuditorModule::performAudit(const QString &host, int port, int timeoutMs)
 {
     AuditResult result;
     result.host = host;

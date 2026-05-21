@@ -79,7 +79,7 @@ private:
     // ── Hilfsfunktionen ────────────────────────────────────────────────────
     [[nodiscard]] CertificateInfo validateCertificate(const QSslCertificate &cert) noexcept;
     [[nodiscard]] AuditResult      performAudit(const QString &host, int port,
-                                                  int timeoutMs) noexcept;
+                                                   int timeoutMs);
 };
 
 } // namespace IPView::Auditor

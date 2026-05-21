@@ -152,7 +152,7 @@ void TracerouteTab::onDataReceived()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-void TracerouteTab::onTraceFinished(int exitCode)
+void TracerouteTab::onTraceFinished(int exitCode, [[maybe_unused]] QProcess::ExitStatus status)
 {
     outputArea->append(QStringLiteral("[%1] Traceroute %2.")
                            .arg(QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss")))
