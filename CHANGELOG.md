@@ -2,6 +2,50 @@
 
 All notable changes to this project are documented here.
 
+## [2.13.0] — 2026-05-21
+
+### Added
+
+- **PacketTab — Professional connection monitor with filtering and statistics:**
+  - **Protocol filter:** TCP, UDP, or All — dropdown selector.
+  - **State filter:** Filter by ESTABLISHED, LISTEN, TIME_WAIT, CLOSE_WAIT, SYN_SENT, etc.
+  - **Search field:** Real-time search across IP addresses, ports, states, and UIDs.
+  - **Statistics bar:** Live counts for TCP, UDP, Total connections, and Established sessions.
+  - **State color-coding:** ESTABLISHED (green), LISTEN (blue), TIME_WAIT/CLOSE_WAIT (orange),
+    SYN_SENT/SYN_RECV (cyan), closing states (gray).
+  - **Detailed tooltips:** Hover any row to see full connection details.
+  - **CSV Export:** Export all connections to CSV with one click.
+  - **Auto-refresh toggle:** Enable/disable 5-second auto-refresh.
+  - **Theme integration:** Full Theme.h stylesheet support for all controls.
+
+- **TopologyTab — Enhanced network path visualization:**
+  - **Statistics bar:** Total hops, average latency, maximum latency, timeout count.
+  - **Node click details:** Double-click any node to see full hop details in a dialog
+    (IP, hostname, latency, quality assessment).
+  - **Glow effects:** Nodes now have a subtle glow effect for better visibility.
+  - **Color-coded connections:** Lines between nodes colored by latency (green/blue/orange/red).
+  - **TXT Export:** Export topology trace to formatted text file with hop details.
+  - **Improved layout:** Better spacing and node sizing based on latency.
+
+- **TelemetryTab — Enhanced network monitoring with peak detection:**
+  - **Interface filter:** Dropdown to filter display to a specific interface or show all.
+  - **Peak detection:** Tracks and displays peak download/upload speeds during monitoring session.
+  - **8-column table:** Added separate RX Errors and TX Errors columns, plus Status column.
+  - **Status indicators:** Active (green dot), High traffic (green dot), Idle (white circle).
+  - **Interface detail view:** Double-click any interface row to see full details dialog
+    (speeds, bytes, packets, errors, status).
+  - **CSV Export:** Export telemetry data to CSV with one click.
+  - **Dynamic filter population:** Interface filter dropdown auto-populates with detected interfaces.
+
+### Changed
+
+- **Version bumped:** `2.12.0` → `2.13.0` (`CMakeLists.txt`).
+- **PacketTab:** Complete rewrite from basic table to professional monitoring dashboard.
+- **TopologyTab:** Added statistics, detail dialogs, glow effects, export functionality.
+- **TelemetryTab:** Added interface filter, peak tracking, detail view, export, status column.
+
+---
+
 ## [2.12.0] — 2026-05-21
 
 ### Added

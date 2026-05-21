@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.10.0 — TopologyTab.cpp
+//  IPView Pro v2.12.0 — TopologyTab.cpp
 //  C++26: QStringLiteral, auto, structured bindings, [[maybe_unused]]
 //  QGraphicsView network topology visualization (Item 46).
 //  Parses traceroute output and renders hops as an interactive node graph.
@@ -17,7 +17,14 @@
 #include <QDateTime>
 #include <QHeaderView>
 #include <QMessageBox>
+#include <QFileDialog>
+#include <QTextStream>
+#include <QFile>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QTableWidget>
 #include <cmath>
+#include <numeric>
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Helpers
@@ -50,12 +57,10 @@ static std::optional<HopData> parseTraceLine(const QString &line, int lineIndex)
 
     // Check for timeout (all asterisks)
     if (trimmed.count(QLatin1Char('*')) >= 3) {
-        // Timed out hop
         return hop;
     }
 
     // Pattern: "N  IP  latency_ms  hostname"
-    // Split by spaces
     QStringList const parts = trimmed.split(QRegularExpression(QStringLiteral("\\s+")),
                                             Qt::SkipEmptyParts);
 
@@ -71,15 +76,12 @@ static std::optional<HopData> parseTraceLine(const QString &line, int lineIndex)
     QString ip;
     if (idx < parts.size()) {
         ip = parts[idx];
-        // Check if it looks like an IP
         if (ip.contains(QLatin1Char('.')) || ip.contains(QLatin1Char(':'))) {
             hop.ipAddress = ip;
             ++idx;
         } else if (ip.startsWith(QLatin1Char('*'))) {
-            // Timeout
             return hop;
         } else {
-            // Might be a hostname without IP
             hop.hostname = ip;
             ++idx;
         }
@@ -134,8 +136,18 @@ TopologyTab::TopologyTab(QWidget *parent)
 void TopologyTab::setupUI() noexcept
 {
     auto *mainLayout = new QVBoxLayout(this);
+    mainLayout->setSpacing(10);
+    mainLayout->setContentsMargins(16, 16, 16, 16);
 
-    // ── Top: Input row ────────────────────────────────────────────────────
+    // ── Title bar ───────────────────────────────────────────────────────
+    auto *titleBar = new QHBoxLayout();
+    auto *title = new QLabel(QStringLiteral("Network Topology"));
+    title->setStyleSheet(QStringLiteral("color: %1; font-size: 16px; font-weight: bold;").arg(C_PRIMARY));
+    titleBar->addWidget(title);
+    titleBar->addStretch();
+    mainLayout->addLayout(titleBar);
+
+    // ── Top: Input row ──────────────────────────────────────────────────
     auto *inputRow = new QHBoxLayout();
 
     auto *hostLabel = new QLabel(QStringLiteral("Target:"));
@@ -143,26 +155,61 @@ void TopologyTab::setupUI() noexcept
     hostInput->setPlaceholderText(QStringLiteral("Hostname or IP (e.g. google.com)"));
     hostInput->setStyleSheet(inputStyle());
 
-    traceButton = new QPushButton(QStringLiteral(" Trace Route"));
+    traceButton = new QPushButton(QStringLiteral("\u25B6 Trace Route"));
     traceButton->setProperty("accent", true);
     traceButton->setStyleSheet(btnAccentStyle());
 
-    clearButton = new QPushButton(QStringLiteral(" Clear"));
+    clearButton = new QPushButton(QStringLiteral("\u2716 Clear"));
     clearButton->setStyleSheet(btnSecondaryStyle());
+
+    exportButton = new QPushButton(QStringLiteral("\u2B07 Export"));
+    exportButton->setStyleSheet(btnSmallStyle());
 
     inputRow->addWidget(hostLabel);
     inputRow->addWidget(hostInput, 1);
     inputRow->addWidget(traceButton);
     inputRow->addWidget(clearButton);
+    inputRow->addWidget(exportButton);
 
     mainLayout->addLayout(inputRow);
 
-    // ── Status ────────────────────────────────────────────────────────────
+    // ── Status ──────────────────────────────────────────────────────────
     statusLabel = new QLabel(QStringLiteral("Enter a target host and click Trace Route"));
     statusLabel->setStyleSheet(statusLabelStyle());
     mainLayout->addWidget(statusLabel);
 
-    // ── Graphics View ─────────────────────────────────────────────────────
+    // ── Statistics bar ──────────────────────────────────────────────────
+    auto *statsBar = new QHBoxLayout();
+    statsBar->setSpacing(12);
+
+    auto createStatCard = [&](const QString &labelText, QLabel *&valueLabel,
+                               const QString &color) -> QFrame* {
+        auto *card = new QFrame();
+        card->setProperty("card", true);
+        card->setStyleSheet(cardStyle());
+        auto *layout = new QVBoxLayout(card);
+        layout->setContentsMargins(12, 6, 12, 6);
+        layout->setSpacing(2);
+
+        auto *lbl = new QLabel(labelText);
+        lbl->setStyleSheet(QStringLiteral("color: %1; font-size: 10px;").arg(C_TEXT_DIM));
+        valueLabel = new QLabel(QStringLiteral("--"));
+        valueLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 14px; font-weight: bold;").arg(color));
+        valueLabel->setAlignment(Qt::AlignCenter);
+
+        layout->addWidget(lbl, 0, Qt::AlignCenter);
+        layout->addWidget(valueLabel, 0, Qt::AlignCenter);
+        return card;
+    };
+
+    statsBar->addWidget(createStatCard(QStringLiteral("Total Hops"), mTotalHopsLabel, C_TEXT), 1);
+    statsBar->addWidget(createStatCard(QStringLiteral("Avg Latency"), mAvgLatencyLabel, C_SUCCESS), 1);
+    statsBar->addWidget(createStatCard(QStringLiteral("Max Latency"), mMaxLatencyLabel, C_WARNING), 1);
+    statsBar->addWidget(createStatCard(QStringLiteral("Timeouts"), mTimeoutsLabel, C_ERROR), 1);
+
+    mainLayout->addLayout(statsBar);
+
+    // ── Graphics View ───────────────────────────────────────────────────
     scene = new QGraphicsScene(this);
     view = new QGraphicsView(scene);
     view->setRenderHint(QPainter::Antialiasing, true);
@@ -174,18 +221,17 @@ void TopologyTab::setupUI() noexcept
         "QGraphicsView { background-color: %1; border: 1px solid %2;"
         "  border-radius: %3; }"
     ).arg(C_BG_SUNKEN, C_BORDER, RADIUS_LG));
-    view->setMinimumHeight(300);
+    view->setMinimumHeight(350);
 
-    // Interactive zoom via scroll wheel (QGraphicsView handles this natively
-    // with AnchorUnderMouse — no custom eventFilter needed)
     view->setInteractive(true);
     view->setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing, true);
 
     mainLayout->addWidget(view, 1);
 
-    // ── Connections ───────────────────────────────────────────────────────
+    // ── Connections ─────────────────────────────────────────────────────
     connect(traceButton, &QPushButton::clicked, this, &TopologyTab::onTraceClicked);
     connect(clearButton, &QPushButton::clicked, this, &TopologyTab::onClearClicked);
+    connect(exportButton, &QPushButton::clicked, this, &TopologyTab::onExportClicked);
     connect(hostInput, &QLineEdit::returnPressed, this, &TopologyTab::onTraceClicked);
 
     // Set dark background
@@ -254,7 +300,6 @@ void TopologyTab::onTraceFinished(int exitCode, [[maybe_unused]] QProcess::ExitS
         auto hop = parseTraceLine(line, hopIndex);
         if (hop.has_value()) {
             if (hop->hopNumber >= hopIndex) {
-                // Set isTarget on the last hop
                 mHops.append(*hop);
                 ++hopIndex;
             }
@@ -265,8 +310,9 @@ void TopologyTab::onTraceFinished(int exitCode, [[maybe_unused]] QProcess::ExitS
         mHops.last().isTarget = true;
     }
 
-    // ── Build the visual topology ─────────────────────────────────────────
+    // ── Build the visual topology ───────────────────────────────────────
     buildTopology();
+    updateStats();
 
     statusLabel->setText(QStringLiteral("Trace complete: %1 hops to %2")
                          .arg(mHops.size())
@@ -311,14 +357,162 @@ void TopologyTab::onClearClicked()
     hostInput->clear();
     statusLabel->setText(QStringLiteral("Ready. Enter a target host and click Trace Route"));
     traceButton->setEnabled(true);
+    updateStats();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+void TopologyTab::onExportClicked()
+{
+    if (mHops.isEmpty()) {
+        QMessageBox::information(this, QStringLiteral("No Data"),
+            QStringLiteral("No topology data to export. Run a trace first."));
+        return;
+    }
+
+    QString const fileName = QFileDialog::getSaveFileName(
+        this, QStringLiteral("Export Topology"),
+        QStringLiteral("topology_%1_%2.txt").arg(mTargetHost).arg(
+            QDate::currentDate().toString(QStringLiteral("yyyyMMdd"))),
+        QStringLiteral("Text Files (*.txt)"));
+
+    if (fileName.isEmpty()) return;
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, QStringLiteral("Export Error"),
+            QStringLiteral("Could not open file for writing:\n%1").arg(file.errorString()));
+        return;
+    }
+
+    QTextStream out(&file);
+    out << QStringLiteral("Network Topology Export\n");
+    out << QStringLiteral("========================\n");
+    out << QStringLiteral("Target: %1\n").arg(mTargetHost);
+    out << QStringLiteral("Date: %1\n\n").arg(QDateTime::currentDateTime().toString(Qt::ISODate));
+    out << QStringLiteral("%-4s %-18s %-40s %10s %s\n")
+           .arg("Hop", "IP Address", "Hostname", "Latency", "Status");
+    out << QStringLiteral("--------------------------------------------------------------------------------\n");
+
+    for (auto const &hop : mHops) {
+        QString status = hop.latencyMs > 0.0 ? QStringLiteral("OK") : QStringLiteral("TIMEOUT");
+        out << QStringLiteral("%-4d %-18s %-40s %8.2f ms %s\n")
+               .arg(hop.hopNumber)
+               .arg(hop.ipAddress.isEmpty() ? QStringLiteral("*") : hop.ipAddress)
+               .arg(hop.hostname)
+               .arg(hop.latencyMs)
+               .arg(status);
+    }
+
+    file.close();
+    QMessageBox::information(this, QStringLiteral("Export Complete"),
+        QStringLiteral("Topology exported to:\n%1").arg(fileName));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+void TopologyTab::onNodeClicked(const HopData &hop)
+{
+    showHopDetails(hop);
+}
+
+void TopologyTab::showHopDetails(const HopData &hop)
+{
+    QDialog dlg(this);
+    dlg.setWindowTitle(QStringLiteral("Hop %1 Details").arg(hop.hopNumber));
+    dlg.setMinimumSize(450, 300);
+    dlg.setStyleSheet(QStringLiteral(
+        "QDialog { background-color: %1; color: %2; }"
+    ).arg(C_BG, C_TEXT));
+
+    auto *layout = new QVBoxLayout(&dlg);
+
+    // Info table
+    QTableWidget *table = new QTableWidget(6, 2);
+    table->setHorizontalHeaderLabels({QStringLiteral("Property"), QStringLiteral("Value")});
+    table->verticalHeader()->setVisible(false);
+    table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setStyleSheet(QStringLiteral(
+        "QTableWidget { background: %1; color: %2; border: 1px solid %3; "
+        "border-radius: 6px; gridline-color: %3; }"
+        "QTableWidget::item { padding: 6px 10px; }"
+        "QHeaderView::section { background: %1; color: %2; "
+        "border: none; border-bottom: 1px solid %3; padding: 6px; font-weight: bold; }"
+    ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER));
+
+    auto setRow = [&](int row, const QString &prop, const QString &val) {
+        table->setItem(row, 0, new QTableWidgetItem(prop));
+        table->setItem(row, 1, new QTableWidgetItem(val));
+    };
+
+    setRow(0, QStringLiteral("Hop Number"), QString::number(hop.hopNumber));
+    setRow(1, QStringLiteral("IP Address"), hop.ipAddress.isEmpty() ? QStringLiteral("* (timeout)") : hop.ipAddress);
+    setRow(2, QStringLiteral("Hostname"), hop.hostname.isEmpty() ? QStringLiteral("N/A") : hop.hostname);
+    setRow(3, QStringLiteral("Latency"), hop.latencyMs > 0.0 ? QStringLiteral("%1 ms").arg(hop.latencyMs, 0, 'f', 2) : QStringLiteral("Timeout"));
+    setRow(4, QStringLiteral("Destination"), hop.isTarget ? QStringLiteral("Yes") : QStringLiteral("No"));
+
+    QString quality;
+    if (hop.latencyMs <= 0.0) quality = QStringLiteral("Timeout");
+    else if (hop.latencyMs < 10.0) quality = QStringLiteral("Excellent (<10ms)");
+    else if (hop.latencyMs < 50.0) quality = QStringLiteral("Good (<50ms)");
+    else if (hop.latencyMs < 150.0) quality = QStringLiteral("Moderate (<150ms)");
+    else quality = QStringLiteral("Poor (>=150ms)");
+    setRow(5, QStringLiteral("Quality"), quality);
+
+    layout->addWidget(table);
+
+    auto *btns = new QDialogButtonBox(QDialogButtonBox::Close);
+    btns->setStyleSheet(QStringLiteral("QPushButton { color: %1; }").arg(C_TEXT));
+    connect(btns, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+    layout->addWidget(btns);
+
+    dlg.exec();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 void TopologyTab::clearScene() noexcept
 {
     scene->clear();
-    // Re-set background after clear (clear removes it)
     scene->setBackgroundBrush(QBrush(QColor(C_BG_SUNKEN)));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+void TopologyTab::updateStats() noexcept
+{
+    int totalHops = static_cast<int>(mHops.size());
+    mTotalHopsLabel->setText(QString::number(totalHops));
+
+    if (totalHops == 0) {
+        mAvgLatencyLabel->setText(QStringLiteral("--"));
+        mMaxLatencyLabel->setText(QStringLiteral("--"));
+        mTimeoutsLabel->setText(QStringLiteral("--"));
+        return;
+    }
+
+    int timeouts = 0;
+    double totalLatency = 0.0;
+    double maxLatency = 0.0;
+    int responsiveHops = 0;
+
+    for (auto const &hop : mHops) {
+        if (hop.latencyMs <= 0.0) {
+            ++timeouts;
+        } else {
+            totalLatency += hop.latencyMs;
+            maxLatency = std::max(maxLatency, hop.latencyMs);
+            ++responsiveHops;
+        }
+    }
+
+    double avgLatency = responsiveHops > 0 ? totalLatency / responsiveHops : 0.0;
+
+    mAvgLatencyLabel->setText(responsiveHops > 0
+        ? QStringLiteral("%1 ms").arg(avgLatency, 0, 'f', 1)
+        : QStringLiteral("--"));
+    mMaxLatencyLabel->setText(responsiveHops > 0
+        ? QStringLiteral("%1 ms").arg(maxLatency, 0, 'f', 1)
+        : QStringLiteral("--"));
+    mTimeoutsLabel->setText(QString::number(timeouts));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -366,12 +560,24 @@ void TopologyTab::addNode(const HopData &hop, int index, int total) noexcept
         nodeColor = QColor(C_ERROR);         // red = very slow
     }
 
-    // ── Node circle ───────────────────────────────────────────────────────
+    // ── Node circle with glow effect ──────────────────────────────────────
+    // Outer glow
+    (void)scene->addEllipse(
+        x - nodeRadius - 4, y - nodeRadius - 4,
+        (nodeRadius + 4) * 2.0, (nodeRadius + 4) * 2.0,
+        QPen(Qt::NoPen),
+        QBrush(QColor(nodeColor.red(), nodeColor.green(), nodeColor.blue(), 40)));
+
+    // Main node
     auto *ellipse = scene->addEllipse(
         x - nodeRadius, y - nodeRadius,
         nodeRadius * 2.0, nodeRadius * 2.0,
         QPen(QColor(C_TEXT), 2.0),
         QBrush(nodeColor));
+
+    // Make nodes clickable
+    ellipse->setFlag(QGraphicsItem::ItemIsSelectable, true);
+    ellipse->setFlag(QGraphicsItem::ItemIsFocusable, true);
 
     // Tooltip with full details
     QString tip;
@@ -386,13 +592,14 @@ void TopologyTab::addNode(const HopData &hop, int index, int total) noexcept
         tip += QStringLiteral("\nTimeout");
     if (hop.isTarget)
         tip += QStringLiteral("\n(Destination)");
+    tip += QStringLiteral("\n\nClick for details");
     ellipse->setToolTip(tip);
 
     // ── Hop number label (above node) ─────────────────────────────────────
     auto *numLabel = scene->addText(QString::number(hop.hopNumber), QFont(QStringLiteral("monospace"), 10, QFont::Bold));
     numLabel->setDefaultTextColor(QColor(C_TEXT));
     numLabel->setPos(x - numLabel->boundingRect().width() / 2.0,
-                     y - nodeRadius - 22.0);
+                     y - nodeRadius - 26.0);
 
     // ── IP / hostname label (below node) ──────────────────────────────────
     QString const displayName = hop.ipAddress.isEmpty() ? hop.hostname : hop.ipAddress;
@@ -409,19 +616,26 @@ void TopologyTab::addNode(const HopData &hop, int index, int total) noexcept
     if (hop.latencyMs > 0.0) {
         latencyStr = QStringLiteral("%1 ms").arg(hop.latencyMs, 0, 'f', 1);
     } else {
-        latencyStr = QStringLiteral("* * *");
+        latencyStr = QStringLiteral("\u2716");
     }
     auto *latLabel = scene->addText(latencyStr, QFont(QStringLiteral("monospace"), 8));
-    latLabel->setDefaultTextColor(QColor(C_TEXT_DIM));
+    latLabel->setDefaultTextColor(QColor(hop.latencyMs > 0.0 ? C_TEXT_DIM : C_ERROR));
     latLabel->setPos(x - latLabel->boundingRect().width() / 2.0,
                      y + nodeRadius + 18.0);
 
     // ── Connecting line to previous node ──────────────────────────────────
     if (index > 0) {
         qreal const prevX = 120.0 + static_cast<qreal>(index - 1) * 220.0;
+
+        // Line color based on current hop latency
+        QColor lineColor = C_BORDER;
+        if (hop.latencyMs > 150.0) lineColor = QColor(C_ERROR);
+        else if (hop.latencyMs > 50.0) lineColor = QColor(C_WARNING);
+        else if (hop.latencyMs > 0.0) lineColor = QColor(C_SUCCESS);
+
         scene->addLine(
             prevX + 18.0, y, x - nodeRadius, y,
-            QPen(QColor(C_BORDER), 2.0, Qt::DashLine));
+            QPen(lineColor, 2.0, Qt::DashLine));
 
         // Arrow marker (small triangle)
         QPolygonF arrow;

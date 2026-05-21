@@ -307,17 +307,28 @@ cmake --build build -j"$(nproc)"
 8. **Topology** : Visualize the network path to any host.
     - Enter a hostname/IP and click **Trace Route**.
     - Each network hop is displayed as a node on a QGraphicsView canvas.
-    - Color indicates latency; tooltips show IP, hostname, and exact RTT.
+    - **Statistics:** Total hops, average/max latency, timeout count.
+    - **Detail view:** Click any node for full hop details dialog.
+    - **Glow effects:** Nodes have subtle glow for better visibility.
+    - **Color-coded connections:** Lines colored by latency quality.
+    - **Export:** TXT export with formatted hop details.
     - Scroll to zoom, drag to pan.
 
 9. **Connections** : Monitor active TCP/UDP connections in real-time.
-    - 7-column table: Protocol, Local/Remote Address, Local/Remote Port, State, UID.
-    - Auto-refresh every 5 seconds.
-    - TCP states: ESTABLISHED, LISTEN, TIME_WAIT, CLOSE_WAIT, etc.
-    - No root privileges required (reads world-readable `/proc/net/*`).
+    - **Filter by protocol:** TCP, UDP, or All.
+    - **Filter by state:** ESTABLISHED, LISTEN, TIME_WAIT, CLOSE_WAIT, etc.
+    - **Search:** Real-time search across IPs, ports, states, and UIDs.
+    - **Statistics:** Live counts for TCP, UDP, Total, and Established connections.
+    - **Color-coded states:** Green (ESTABLISHED), blue (LISTEN), orange (TIME_WAIT), etc.
+    - **Export:** CSV export with one click.
+    - **Auto-refresh:** Toggle 5-second auto-refresh on/off.
 
 10. **Telemetry** : Real-time network interface monitoring.
-    - Live download/upload speed cards.
+    - **Interface filter:** Filter display to a specific interface or show all.
+    - **Peak detection:** Tracks peak download/upload speeds during session.
+    - **Detail view:** Double-click any interface for full details dialog.
+    - **Status indicators:** Active, High traffic, or Idle per interface.
+    - **Export:** CSV export with one click.
     - Per-interface table with RX/TX rates, packets, and errors.
     - Auto-refresh with configurable interval.
 
@@ -446,4 +457,4 @@ This project is released under **Public Domain**. It may be freely used, copied,
 
 ---
 
-*IPView Pro v2.12.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*
+*IPView Pro v2.13.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*

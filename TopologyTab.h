@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.10.0 — TopologyTab.h
+//  IPView Pro v2.12.0 — TopologyTab.h
 //  C++26: noexcept, [[nodiscard]], default member init
 //  QGraphicsView network topology visualization (Item 46).
-//  Displays traceroute hops as an interactive node graph.
+//  Displays traceroute hops as an interactive node graph with statistics.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -20,9 +20,7 @@
 #include <QPushButton>
 #include <QLineEdit>
 #include <QLabel>
-#include <QComboBox>
 #include <QProcess>
-#include <QTimer>
 #include <QList>
 #include <QString>
 
@@ -54,20 +52,31 @@ private slots:
     void onTraceReadyRead();
     void onTraceErrorOccurred(QProcess::ProcessError error);
     void onClearClicked();
+    void onExportClicked();
+    void onNodeClicked(const HopData &hop);
 
 private:
     void setupUI() noexcept;
     void buildTopology() noexcept;
     void addNode(const HopData &hop, int index, int total) noexcept;
     void clearScene() noexcept;
+    void updateStats() noexcept;
+    void showHopDetails(const HopData &hop);
 
     // ── UI elements ───────────────────────────────────────────────────────
     QLineEdit       *hostInput{nullptr};
     QPushButton     *traceButton{nullptr};
     QPushButton     *clearButton{nullptr};
+    QPushButton     *exportButton{nullptr};
     QLabel          *statusLabel{nullptr};
     QGraphicsView   *view{nullptr};
     QGraphicsScene  *scene{nullptr};
+
+    // ── Statistics labels ─────────────────────────────────────────────────
+    QLabel *mTotalHopsLabel{nullptr};
+    QLabel *mAvgLatencyLabel{nullptr};
+    QLabel *mMaxLatencyLabel{nullptr};
+    QLabel *mTimeoutsLabel{nullptr};
 
     // ── Trace process ────────────────────────────────────────────────────
     QProcess        *mProcess{nullptr};
