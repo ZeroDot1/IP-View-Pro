@@ -44,7 +44,12 @@ endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_compile_options(-fstack-protector-strong)
     add_link_options(-fstack-protector-strong -Wl,-z,relro -Wl,-z,now)
-    add_compile_definitions(_FORTIFY_SOURCE=3)
+    # _FORTIFY_SOURCE=3 requires optimization (-O1 or higher).
+    # In Debug builds (-O0), glibc emits #warning → fatal with -Werror.
+    # Only enable for non-Debug configurations.
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+        add_compile_definitions(_FORTIFY_SOURCE=3)
+    endif()
 endif()
 
 # Mit Sanitizern bauen: cmake -DSANITIZE=ON ..
