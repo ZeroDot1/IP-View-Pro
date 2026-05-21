@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// IPView Pro v2.12.0 — PacketTab.cpp
+// IPView Pro v2.14.0 — PacketTab.cpp
 // C++26: structured bindings, noexcept, [[nodiscard]], std::ranges
 // Professional UI displaying live connections from PacketModule.
-// Features: protocol/state filtering, search, statistics, export, theme.
+// Features: protocol/state filtering, search, statistics, export, theme,
+//           signal-driven updates, detail dialogs, empty state, connection counting.
 // Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -17,15 +18,19 @@
 #include <QTextStream>
 #include <QFile>
 #include <QMessageBox>
+#include <QDialog>
+#include <QFormLayout>
+#include <QScrollArea>
 #include <ranges>
 #include <algorithm>
 
 namespace IPView::UI {
 
-PacketTab::PacketTab(IPView::Packet::PacketModule *module, QWidget *parent) noexcept
+PacketTab::PacketTab(IPView::Packet::PacketModule *module, QWidget *parent)
     : QWidget(parent), mModule(module)
 {
     setupUI();
+    setupConnections();
 
     // Auto-refresh every 5 seconds
     mRefreshTimer = new QTimer(this);
@@ -37,7 +42,7 @@ PacketTab::PacketTab(IPView::Packet::PacketModule *module, QWidget *parent) noex
     refreshData();
 }
 
-void PacketTab::setupUI() noexcept
+void PacketTab::setupUI()
 {
     auto *mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(10);
@@ -46,29 +51,43 @@ void PacketTab::setupUI() noexcept
     // ── Title bar ───────────────────────────────────────────────────────
     auto *titleBar = new QHBoxLayout();
     auto *title = new QLabel(QStringLiteral("Active Network Connections"));
-    title->setStyleSheet(QStringLiteral("color: %1; font-size: 16px; font-weight: bold;").arg(C_PRIMARY));
+    title->setStyleSheet(QStringLiteral("color: %1; font-size: 18px; font-weight: bold;").arg(C_PRIMARY));
     titleBar->addWidget(title);
     titleBar->addStretch();
 
     mLastUpdateLabel = new QLabel(QStringLiteral("Last update: --"));
-    mLastUpdateLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 10px;").arg(C_TEXT_DIM));
+    mLastUpdateLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 11px;").arg(C_TEXT_DIM));
     titleBar->addWidget(mLastUpdateLabel);
     mainLayout->addLayout(titleBar);
 
+    // ── Status message ──────────────────────────────────────────────────
+    mStatusMsg = new QLabel();
+    mStatusMsg->setStyleSheet(QStringLiteral("color: %1; font-size: 11px; font-weight: bold; padding: 4px 8px; border-radius: 4px;").arg(C_SUCCESS));
+    mStatusMsg->hide();
+    mainLayout->addWidget(mStatusMsg);
+
     // ── Control bar ─────────────────────────────────────────────────────
-    auto *controlBar = new QHBoxLayout();
-    controlBar->setSpacing(8);
+    mFilterBar = new QFrame();
+    mFilterBar->setProperty("card", true);
+    mFilterBar->setStyleSheet(cardStyle());
+    auto *filterLayout = new QHBoxLayout(mFilterBar);
+    filterLayout->setSpacing(10);
+    filterLayout->setContentsMargins(14, 10, 14, 10);
 
     // Protocol filter
-    controlBar->addWidget(new QLabel(QStringLiteral("Protocol:")));
+    auto *protoLbl = new QLabel(QStringLiteral("Protocol:"));
+    protoLbl->setStyleSheet(QStringLiteral("color: %1; font-size: 12px; font-weight: bold;").arg(C_TEXT_SEC));
+    filterLayout->addWidget(protoLbl);
     mProtoFilter = new QComboBox();
     mProtoFilter->addItems({QStringLiteral("All"), QStringLiteral("TCP"), QStringLiteral("UDP")});
-    mProtoFilter->setFixedWidth(100);
+    mProtoFilter->setFixedWidth(110);
     mProtoFilter->setStyleSheet(comboStyle());
-    controlBar->addWidget(mProtoFilter);
+    filterLayout->addWidget(mProtoFilter);
 
     // State filter
-    controlBar->addWidget(new QLabel(QStringLiteral("State:")));
+    auto *stateLbl = new QLabel(QStringLiteral("State:"));
+    stateLbl->setStyleSheet(QStringLiteral("color: %1; font-size: 12px; font-weight: bold;").arg(C_TEXT_SEC));
+    filterLayout->addWidget(stateLbl);
     mStateFilter = new QComboBox();
     mStateFilter->addItems({
         QStringLiteral("All"), QStringLiteral("ESTABLISHED"), QStringLiteral("LISTEN"),
@@ -77,68 +96,89 @@ void PacketTab::setupUI() noexcept
         QStringLiteral("CLOSE"), QStringLiteral("LAST_ACK"), QStringLiteral("CLOSING"),
         QStringLiteral("UNKNOWN")
     });
-    mStateFilter->setFixedWidth(140);
+    mStateFilter->setFixedWidth(150);
     mStateFilter->setStyleSheet(comboStyle());
-    controlBar->addWidget(mStateFilter);
+    filterLayout->addWidget(mStateFilter);
 
     // Search
-    controlBar->addWidget(new QLabel(QStringLiteral("Search:")));
+    auto *searchLbl = new QLabel(QStringLiteral("Search:"));
+    searchLbl->setStyleSheet(QStringLiteral("color: %1; font-size: 12px; font-weight: bold;").arg(C_TEXT_SEC));
+    filterLayout->addWidget(searchLbl);
     mSearchEdit = new QLineEdit();
     mSearchEdit->setPlaceholderText(QStringLiteral("IP, port, UID..."));
-    mSearchEdit->setFixedWidth(160);
+    mSearchEdit->setFixedWidth(180);
     mSearchEdit->setStyleSheet(inputStyle());
-    controlBar->addWidget(mSearchEdit);
+    filterLayout->addWidget(mSearchEdit);
 
-    controlBar->addStretch();
+    filterLayout->addStretch();
 
     // Action buttons
-    mRefreshBtn = new QPushButton(QStringLiteral("\u27F3 Refresh"));
-    mRefreshBtn->setStyleSheet(btnSecondaryStyle());
-    mRefreshBtn->setFixedWidth(90);
-    controlBar->addWidget(mRefreshBtn);
+    mRefreshBtn = new QPushButton(QStringLiteral("\u21BB Refresh"));
+    mRefreshBtn->setStyleSheet(btnAccentStyle());
+    mRefreshBtn->setFixedWidth(100);
+    mRefreshBtn->setCursor(Qt::PointingHandCursor);
+    filterLayout->addWidget(mRefreshBtn);
 
     mAutoRefreshBtn = new QPushButton(QStringLiteral("\u23F8 Auto: ON"));
-    mAutoRefreshBtn->setStyleSheet(btnSmallStyle());
-    mAutoRefreshBtn->setFixedWidth(100);
-    controlBar->addWidget(mAutoRefreshBtn);
+    mAutoRefreshBtn->setStyleSheet(btnSecondaryStyle());
+    mAutoRefreshBtn->setFixedWidth(110);
+    mAutoRefreshBtn->setCursor(Qt::PointingHandCursor);
+    filterLayout->addWidget(mAutoRefreshBtn);
 
-    mExportBtn = new QPushButton(QStringLiteral("\u2B07 Export"));
-    mExportBtn->setStyleSheet(btnSmallStyle());
-    mExportBtn->setFixedWidth(90);
-    controlBar->addWidget(mExportBtn);
+    mExportBtn = new QPushButton(QStringLiteral("\u2B07 Export CSV"));
+    mExportBtn->setStyleSheet(btnSecondaryStyle());
+    mExportBtn->setFixedWidth(110);
+    mExportBtn->setCursor(Qt::PointingHandCursor);
+    filterLayout->addWidget(mExportBtn);
 
-    mainLayout->addLayout(controlBar);
+    mainLayout->addWidget(mFilterBar);
 
     // ── Statistics bar ──────────────────────────────────────────────────
     auto *statsBar = new QHBoxLayout();
-    statsBar->setSpacing(16);
+    statsBar->setSpacing(12);
 
-    auto createStatLabel = [&](const QString &labelText, QLabel *&valueLabel,
-                                const QString &color) -> QFrame* {
+    auto createStatCard = [&](const QString &labelText, QLabel *&valueLabel,
+                               const QString &color, const QString &icon) -> QFrame* {
         auto *card = new QFrame();
         card->setProperty("card", true);
         card->setStyleSheet(cardStyle());
         auto *layout = new QVBoxLayout(card);
-        layout->setContentsMargins(12, 8, 12, 8);
-        layout->setSpacing(2);
+        layout->setContentsMargins(14, 10, 14, 10);
+        layout->setSpacing(4);
+
+        auto *iconLbl = new QLabel(icon);
+        iconLbl->setStyleSheet(QStringLiteral("color: %1; font-size: 14px;").arg(color));
+        iconLbl->setAlignment(Qt::AlignCenter);
 
         auto *lbl = new QLabel(labelText);
-        lbl->setStyleSheet(QStringLiteral("color: %1; font-size: 10px;").arg(C_TEXT_DIM));
+        lbl->setStyleSheet(QStringLiteral("color: %1; font-size: 10px; font-weight: bold; text-transform: uppercase;").arg(C_TEXT_DIM));
+        lbl->setAlignment(Qt::AlignCenter);
+
         valueLabel = new QLabel(QStringLiteral("0"));
-        valueLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 16px; font-weight: bold;").arg(color));
+        valueLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 20px; font-weight: bold;").arg(color));
         valueLabel->setAlignment(Qt::AlignCenter);
 
+        layout->addWidget(iconLbl, 0, Qt::AlignCenter);
         layout->addWidget(lbl, 0, Qt::AlignCenter);
         layout->addWidget(valueLabel, 0, Qt::AlignCenter);
         return card;
     };
 
-    statsBar->addWidget(createStatLabel(QStringLiteral("TCP"), mTcpCountLabel, C_SUCCESS), 1);
-    statsBar->addWidget(createStatLabel(QStringLiteral("UDP"), mUdpCountLabel, C_PRIMARY), 1);
-    statsBar->addWidget(createStatLabel(QStringLiteral("Total"), mTotalCountLabel, C_TEXT), 1);
-    statsBar->addWidget(createStatLabel(QStringLiteral("Established"), mEstablishedLabel, C_INFO), 1);
+    statsBar->addWidget(createStatCard(QStringLiteral("TCP"), mTcpCountLabel, C_SUCCESS, QStringLiteral("\u25CF")), 1);
+    statsBar->addWidget(createStatCard(QStringLiteral("UDP"), mUdpCountLabel, C_PRIMARY, QStringLiteral("\u25CF")), 1);
+    statsBar->addWidget(createStatCard(QStringLiteral("Total"), mTotalCountLabel, C_TEXT, QStringLiteral("\u25CF")), 1);
+    statsBar->addWidget(createStatCard(QStringLiteral("Established"), mEstablishedLabel, C_INFO, QStringLiteral("\u25CF")), 1);
 
     mainLayout->addLayout(statsBar);
+
+    // ── Empty state label ───────────────────────────────────────────────
+    mEmptyLabel = new QLabel();
+    mEmptyLabel->setAlignment(Qt::AlignCenter);
+    mEmptyLabel->setStyleSheet(QStringLiteral(
+        "QLabel { color: %1; font-size: 14px; padding: 40px; }"
+    ).arg(C_TEXT_DIM));
+    mEmptyLabel->hide();
+    mainLayout->addWidget(mEmptyLabel, 1);
 
     // ── Connection table ────────────────────────────────────────────────
     mTable = new QTableWidget(0, 7);
@@ -162,47 +202,68 @@ void PacketTab::setupUI() noexcept
     mTable->setStyleSheet(QStringLiteral(
         "QTableWidget { background: %1; color: %2; gridline-color: %3; "
         "border: 1px solid %3; border-radius: %4; }"
-        "QTableWidget::item { padding: 4px 8px; }"
+        "QTableWidget::item { padding: 6px 8px; }"
         "QTableWidget::item:selected { background: %5; color: %2; }"
-        "QHeaderView::section { background: %1; color: %6; padding: 6px; "
+        "QHeaderView::section { background: %1; color: %6; padding: 8px; "
         "border: none; border-bottom: 1px solid %3; font-weight: bold; font-size: 11px; }"
     ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER, RADIUS_SM, C_ACCENT, C_TEXT_DIM));
 
     mainLayout->addWidget(mTable, 1);
+}
 
-    // ── Connections ─────────────────────────────────────────────────────
+void PacketTab::setupConnections()
+{
+    // ── Signal-driven updates from PacketModule ─────────────────────────
+    if (mModule) {
+        connect(mModule, &IPView::Packet::PacketModule::connectionsUpdated,
+                this, &PacketTab::onSnapshotReceived);
+    }
+
+    // ── Filter / Search ─────────────────────────────────────────────────
     connect(mProtoFilter,   QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &PacketTab::onFilterChanged);
     connect(mStateFilter,   QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &PacketTab::onFilterChanged);
     connect(mSearchEdit,    &QLineEdit::textChanged,
             this, &PacketTab::onSearchChanged);
+
+    // ── Buttons ─────────────────────────────────────────────────────────
     connect(mRefreshBtn,    &QPushButton::clicked,
             this, &PacketTab::refreshData);
     connect(mAutoRefreshBtn, &QPushButton::clicked,
             this, &PacketTab::onToggleAutoRefresh);
     connect(mExportBtn,     &QPushButton::clicked,
             this, &PacketTab::onExportClicked);
+
+    // ── Double-click for detail view ────────────────────────────────────
+    connect(mTable, &QTableWidget::cellDoubleClicked,
+            this, &PacketTab::onRowDoubleClicked);
 }
 
-void PacketTab::refreshData() noexcept
+void PacketTab::onSnapshotReceived(const IPView::Packet::ConnectionSnapshot &snapshot)
 {
-    if (!mModule) return;
-    auto snapshot = mModule->pollNow();
+    mLastSnapshot = snapshot;
     updateStats(snapshot);
     populateTable(snapshot);
     mLastUpdateLabel->setText(QStringLiteral("Last update: %1").arg(
         QTime::currentTime().toString(QStringLiteral("hh:mm:ss"))));
 }
 
+void PacketTab::refreshData()
+{
+    if (!mModule) return;
+    auto snapshot = mModule->pollNow();
+    onSnapshotReceived(snapshot);
+}
+
 void PacketTab::onFilterChanged()
 {
-    refreshData();
+    populateTable(mLastSnapshot);
 }
 
 void PacketTab::onSearchChanged()
 {
-    refreshData();
+    populateTable(mLastSnapshot);
 }
 
 void PacketTab::onToggleAutoRefresh()
@@ -211,9 +272,11 @@ void PacketTab::onToggleAutoRefresh()
     if (mAutoRefresh) {
         mRefreshTimer->start();
         mAutoRefreshBtn->setText(QStringLiteral("\u23F8 Auto: ON"));
+        mAutoRefreshBtn->setStyleSheet(btnSecondaryStyle());
     } else {
         mRefreshTimer->stop();
         mAutoRefreshBtn->setText(QStringLiteral("\u25B6 Auto: OFF"));
+        mAutoRefreshBtn->setStyleSheet(btnSecondaryStyle());
     }
 }
 
@@ -235,26 +298,123 @@ void PacketTab::onExportClicked()
     }
 
     QTextStream out(&file);
-    out << "Protocol,Local Address,Local Port,Remote Address,Remote Port,State,UID\n";
+    out << "Protocol,Local Address,Local Port,Remote Address,Remote Port,State,UID,TX Queue,RX Queue\n";
 
-    if (mModule) {
-        auto snapshot = mModule->pollNow();
-        auto exportEntry = [&](const IPView::Packet::ConnectionEntry &e, const QString &proto) {
-            out << proto << ","
-                << e.localAddress << "," << e.localPort << ","
-                << e.remoteAddress << "," << e.remotePort << ","
-                << stateToString(e.state) << "," << e.uid << "\n";
-        };
-        for (auto const &e : snapshot.tcpConnections) exportEntry(e, QStringLiteral("TCP"));
-        for (auto const &e : snapshot.udpConnections) exportEntry(e, QStringLiteral("UDP"));
-    }
+    auto exportEntry = [&](const IPView::Packet::ConnectionEntry &e, const QString &proto) {
+        out << proto << ","
+            << e.localAddress << "," << e.localPort << ","
+            << e.remoteAddress << "," << e.remotePort << ","
+            << stateToString(e.state) << "," << e.uid << ","
+            << e.txQueue << "," << e.rxQueue << "\n";
+    };
+    for (auto const &e : mLastSnapshot.tcpConnections) exportEntry(e, QStringLiteral("TCP"));
+    for (auto const &e : mLastSnapshot.udpConnections) exportEntry(e, QStringLiteral("UDP"));
 
     file.close();
     QMessageBox::information(this, QStringLiteral("Export Complete"),
         QStringLiteral("Connections exported to:\n%1").arg(fileName));
 }
 
-void PacketTab::updateStats(const IPView::Packet::ConnectionSnapshot &snapshot) noexcept
+void PacketTab::onRowDoubleClicked(int row, int /*col*/)
+{
+    if (row < 0 || row >= mTable->rowCount()) return;
+
+    // Find matching entry from snapshot
+    auto findEntry = [&](const QString &proto) -> const IPView::Packet::ConnectionEntry* {
+        auto const &list = (proto == QStringLiteral("TCP"))
+            ? mLastSnapshot.tcpConnections : mLastSnapshot.udpConnections;
+        for (auto const &e : list) {
+            if (matchesFilter(e, proto) && matchesSearch(e, proto)) {
+                // Check if this entry matches the row data
+                auto *localAddrItem = mTable->item(row, 1);
+                auto *remoteAddrItem = mTable->item(row, 3);
+                if (localAddrItem && remoteAddrItem) {
+                    if (e.localAddress == localAddrItem->text() &&
+                        e.remoteAddress == remoteAddrItem->text()) {
+                        return &e;
+                    }
+                }
+            }
+        }
+        return nullptr;
+    };
+
+    auto *protoItem = mTable->item(row, 0);
+    if (!protoItem) return;
+    QString proto = protoItem->text();
+
+    auto *entry = findEntry(proto);
+    if (entry) {
+        showConnectionDetail(*entry, proto);
+    }
+}
+
+void PacketTab::showConnectionDetail(const IPView::Packet::ConnectionEntry &entry, const QString &proto)
+{
+    auto *dialog = new QDialog(this);
+    dialog->setWindowTitle(QStringLiteral("Connection Details"));
+    dialog->setMinimumWidth(420);
+    dialog->setStyleSheet(QStringLiteral(
+        "QDialog { background: %1; color: %2; }"
+        "QLabel { color: %2; font-size: 13px; }"
+        "QLabel[title=\"true\"] { color: %3; font-size: 16px; font-weight: bold; }"
+        "QLabel[value=\"true\"] { color: %4; font-weight: bold; }"
+    ).arg(C_BG_ELEVATED, C_TEXT, C_PRIMARY, C_SUCCESS));
+
+    auto *mainLayout = new QVBoxLayout(dialog);
+    mainLayout->setSpacing(12);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+
+    // Title
+    auto *titleLbl = new QLabel(QStringLiteral("Connection Details"));
+    titleLbl->setProperty("title", true);
+    titleLbl->setAlignment(Qt::AlignCenter);
+    mainLayout->addWidget(titleLbl);
+
+    // Separator
+    auto *sep = new QFrame();
+    sep->setFrameShape(QFrame::HLine);
+    sep->setStyleSheet(QStringLiteral("background-color: %1; border: none; height: 1px;").arg(C_BORDER));
+    mainLayout->addWidget(sep);
+
+    // Details
+    auto *form = new QFormLayout();
+    form->setSpacing(8);
+    form->setContentsMargins(0, 8, 0, 8);
+
+    auto addRow = [&](const QString &label, const QString &value) {
+        auto *lbl = new QLabel(label);
+        lbl->setStyleSheet(QStringLiteral("color: %1; font-size: 12px; font-weight: bold;").arg(C_TEXT_DIM));
+        auto *val = new QLabel(value);
+        val->setProperty("value", true);
+        val->setStyleSheet(QStringLiteral("color: %1; font-size: 13px; font-weight: bold;").arg(C_TEXT));
+        form->addRow(lbl, val);
+    };
+
+    addRow(QStringLiteral("Protocol:"), proto);
+    addRow(QStringLiteral("Local Address:"), entry.localAddress);
+    addRow(QStringLiteral("Local Port:"), QString::number(entry.localPort));
+    addRow(QStringLiteral("Remote Address:"), entry.remoteAddress);
+    addRow(QStringLiteral("Remote Port:"), QString::number(entry.remotePort));
+    addRow(QStringLiteral("State:"), stateToString(entry.state));
+    addRow(QStringLiteral("UID:"), QString::number(entry.uid));
+    addRow(QStringLiteral("TX Queue:"), QString::number(entry.txQueue));
+    addRow(QStringLiteral("RX Queue:"), QString::number(entry.rxQueue));
+
+    mainLayout->addLayout(form);
+
+    // Close button
+    auto *closeBtn = new QPushButton(QStringLiteral("Close"));
+    closeBtn->setStyleSheet(btnAccentStyle());
+    closeBtn->setCursor(Qt::PointingHandCursor);
+    connect(closeBtn, &QPushButton::clicked, dialog, &QDialog::accept);
+    mainLayout->addWidget(closeBtn, 0, Qt::AlignCenter);
+
+    dialog->exec();
+    dialog->deleteLater();
+}
+
+void PacketTab::updateStats(const IPView::Packet::ConnectionSnapshot &snapshot)
 {
     int tcpCount = static_cast<int>(snapshot.tcpConnections.size());
     int udpCount = static_cast<int>(snapshot.udpConnections.size());
@@ -268,11 +428,42 @@ void PacketTab::updateStats(const IPView::Packet::ConnectionSnapshot &snapshot) 
     mUdpCountLabel->setText(QString::number(udpCount));
     mTotalCountLabel->setText(QString::number(tcpCount + udpCount));
     mEstablishedLabel->setText(QString::number(established));
+
+    // Show/hide empty state
+    int total = tcpCount + udpCount;
+    if (total == 0) {
+        showEmptyState();
+    } else {
+        mEmptyLabel->hide();
+        mTable->show();
+        mStatusMsg->setText(QStringLiteral("\u2713 %1 active connections").arg(total));
+        mStatusMsg->setStyleSheet(QStringLiteral(
+            "color: %1; font-size: 11px; font-weight: bold; padding: 4px 8px; border-radius: 4px;"
+        ).arg(C_SUCCESS));
+        mStatusMsg->show();
+    }
 }
 
-void PacketTab::populateTable(const IPView::Packet::ConnectionSnapshot &snapshot) noexcept
+void PacketTab::showEmptyState()
+{
+    mTable->hide();
+    mEmptyLabel->show();
+    mEmptyLabel->setText(
+        QStringLiteral("\u23F3 No active connections found\n"
+                       "Connections will appear here when detected.\n"
+                       "Click Refresh to scan now."));
+    mStatusMsg->setText(QStringLiteral("\u26A0 No connections detected"));
+    mStatusMsg->setStyleSheet(QStringLiteral(
+        "color: %1; font-size: 11px; font-weight: bold; padding: 4px 8px; border-radius: 4px;"
+    ).arg(C_WARNING));
+    mStatusMsg->show();
+}
+
+void PacketTab::populateTable(const IPView::Packet::ConnectionSnapshot &snapshot)
 {
     mTable->setRowCount(0);
+
+    int visibleRows = 0;
 
     auto addRow = [&](const IPView::Packet::ConnectionEntry &e, const QString &proto) {
         if (!matchesFilter(e, proto)) return;
@@ -280,11 +471,13 @@ void PacketTab::populateTable(const IPView::Packet::ConnectionSnapshot &snapshot
 
         int row = mTable->rowCount();
         mTable->insertRow(row);
+        ++visibleRows;
 
         // Protocol
         auto *protoItem = new QTableWidgetItem(proto);
         protoItem->setForeground(QBrush(QColor(proto == QStringLiteral("TCP") ? C_SUCCESS : C_PRIMARY)));
         protoItem->setTextAlignment(Qt::AlignCenter);
+        protoItem->setFont(QFont(QStringLiteral("Segoe UI"), 11, QFont::Bold));
         mTable->setItem(row, 0, protoItem);
 
         // Local Address
@@ -307,11 +500,13 @@ void PacketTab::populateTable(const IPView::Packet::ConnectionSnapshot &snapshot
         remotePortItem->setTextAlignment(Qt::AlignCenter);
         mTable->setItem(row, 4, remotePortItem);
 
-        // State (color-coded)
+        // State (color-coded with icon)
         QString stateStr = stateToString(e.state);
-        auto *stateItem = new QTableWidgetItem(stateStr);
+        QString icon = stateIcon(e.state);
+        auto *stateItem = new QTableWidgetItem(icon + QStringLiteral("  ") + stateStr);
         stateItem->setForeground(QBrush(QColor(stateColor(e.state))));
         stateItem->setTextAlignment(Qt::AlignCenter);
+        stateItem->setFont(QFont(QStringLiteral("Segoe UI"), 11, QFont::Bold));
         mTable->setItem(row, 5, stateItem);
 
         // UID
@@ -325,7 +520,9 @@ void PacketTab::populateTable(const IPView::Packet::ConnectionSnapshot &snapshot
         tip += QStringLiteral("Local: %1:%2\n").arg(e.localAddress).arg(e.localPort);
         tip += QStringLiteral("Remote: %1:%2\n").arg(e.remoteAddress).arg(e.remotePort);
         tip += QStringLiteral("State: %1\n").arg(stateStr);
-        tip += QStringLiteral("UID: %1").arg(e.uid);
+        tip += QStringLiteral("UID: %1\n").arg(e.uid);
+        tip += QStringLiteral("TX Queue: %1\n").arg(e.txQueue);
+        tip += QStringLiteral("RX Queue: %1").arg(e.rxQueue);
         for (int col = 0; col < 7; ++col) {
             if (auto *item = mTable->item(row, col)) {
                 item->setToolTip(tip);
@@ -337,10 +534,23 @@ void PacketTab::populateTable(const IPView::Packet::ConnectionSnapshot &snapshot
     for (auto const &e : snapshot.udpConnections) addRow(e, QStringLiteral("UDP"));
 
     mTable->resizeColumnsToContents();
+
+    // Update empty state visibility
+    if (visibleRows == 0 && (static_cast<int>(snapshot.tcpConnections.size()) +
+                              static_cast<int>(snapshot.udpConnections.size())) > 0) {
+        // Has connections but none match filter
+        mTable->show();
+        mEmptyLabel->hide();
+        mStatusMsg->setText(QStringLiteral("\u26A0 No connections match current filters"));
+        mStatusMsg->setStyleSheet(QStringLiteral(
+            "color: %1; font-size: 11px; font-weight: bold; padding: 4px 8px; border-radius: 4px;"
+        ).arg(C_WARNING));
+        mStatusMsg->show();
+    }
 }
 
 bool PacketTab::matchesFilter(const IPView::Packet::ConnectionEntry &e,
-                               const QString &proto) const noexcept
+                               const QString &proto) const
 {
     // Protocol filter
     QString const protoFilter = mProtoFilter->currentText();
@@ -357,7 +567,7 @@ bool PacketTab::matchesFilter(const IPView::Packet::ConnectionEntry &e,
 }
 
 bool PacketTab::matchesSearch(const IPView::Packet::ConnectionEntry &e,
-                               const QString &proto) const noexcept
+                               const QString &proto) const
 {
     QString const search = mSearchEdit->text().trimmed();
     if (search.isEmpty()) return true;
@@ -407,6 +617,24 @@ QString PacketTab::stateColor(IPView::Packet::ConnectionState state) noexcept
         case IPView::Packet::ConnectionState::LastAck:       return C_TEXT_DIM;
         case IPView::Packet::ConnectionState::Closing:       return C_TEXT_DIM;
         default:                                            return C_TEXT_MUTED;
+    }
+}
+
+QString PacketTab::stateIcon(IPView::Packet::ConnectionState state) noexcept
+{
+    switch (state) {
+        case IPView::Packet::ConnectionState::Established:   return QStringLiteral("\u25CF");
+        case IPView::Packet::ConnectionState::Listen:        return QStringLiteral("\u25CF");
+        case IPView::Packet::ConnectionState::TimeWait:      return QStringLiteral("\u25CB");
+        case IPView::Packet::ConnectionState::CloseWait:     return QStringLiteral("\u25CB");
+        case IPView::Packet::ConnectionState::SynSent:       return QStringLiteral("\u25CC");
+        case IPView::Packet::ConnectionState::SynReceived:   return QStringLiteral("\u25CC");
+        case IPView::Packet::ConnectionState::FinWait1:      return QStringLiteral("\u25CC");
+        case IPView::Packet::ConnectionState::FinWait2:      return QStringLiteral("\u25CC");
+        case IPView::Packet::ConnectionState::Close:         return QStringLiteral("\u25CB");
+        case IPView::Packet::ConnectionState::LastAck:       return QStringLiteral("\u25CB");
+        case IPView::Packet::ConnectionState::Closing:       return QStringLiteral("\u25CB");
+        default:                                            return QStringLiteral("\u25CB");
     }
 }
 

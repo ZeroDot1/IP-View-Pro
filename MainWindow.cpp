@@ -230,9 +230,12 @@ void MainWindow::setupUI() noexcept
 
     tabWidget = new QTabWidget();
 
-    // ── Tab bar: no scrolling → all 8 tabs always visible ────────────────
+    // ── Tab bar: no scrolling → all 12 tabs always visible ────────────────
     tabWidget->tabBar()->setUsesScrollButtons(false);
     tabWidget->tabBar()->setExpanding(true);
+    tabWidget->tabBar()->setStyleSheet(QStringLiteral(
+        "QTabBar::tab { padding: 6px 12px; font-size: 11px; }"
+    ));
     tabWidget->setIconSize(QSize(14, 14));
 
     // ── Tabs in logical order ──────────────────────────────────────

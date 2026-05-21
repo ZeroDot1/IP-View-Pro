@@ -2,6 +2,45 @@
 
 All notable changes to this project are documented here.
 
+## [2.14.0] — 2026-05-21
+
+### Fixed
+
+- **PacketTab — Complete rewrite for reliable connection display:**
+  - **Signal-driven updates:** Now connects to `PacketModule::connectionsUpdated` signal
+    instead of relying solely on a separate timer. Connections appear immediately when
+    the module polls `/proc/net/*`.
+  - **Snapshot caching:** Stores last snapshot locally to enable filter/search without
+    re-polling the kernel.
+  - **Empty state handling:** Shows a clear "No active connections found" message when
+    no connections are detected, with instructions to click Refresh.
+  - **Filter mismatch message:** Shows warning when connections exist but none match
+    the current filter/search criteria.
+  - **Detail dialog:** Double-click any row to see full connection details in a styled
+    dialog (Protocol, Local/Remote Address/Port, State, UID, TX/RX Queue).
+  - **Status indicator:** Live status bar showing connection count or warning messages.
+  - **Enhanced theme:** Filter bar wrapped in card-style container, buttons use accent
+    and secondary styles consistently, cursor pointers on all interactive elements.
+  - **State icons:** Unicode dot indicators (● ○ ◌) for visual state differentiation.
+  - **Bold protocol/state columns:** Improved readability with font-weight: bold.
+  - **Extended CSV export:** Now includes TX Queue and RX Queue columns.
+
+- **iPerf3 color-coded progress bar — Now functional:**
+  - `handleSpeedUpdated()` now calls `updateVisualization()` to apply color-coding:
+    green (≥100 Mbps), cyan (≥50 Mbps), orange (≥10 Mbps), red (<10 Mbps).
+  - Previously the method existed but was never invoked.
+
+- **Version consistency:** `main.cpp` appVersion updated from "2.9.1" to "2.14.0"
+  to match `CMakeLists.txt` and `README.md`.
+
+### Changed
+
+- **Tab bar styling:** Added explicit padding (`6px 12px`) and font-size (`11px`)
+  to QTabBar stylesheet for consistent compact tab display across all 12 tabs.
+- **Version bumped:** `2.13.0` → `2.14.0` (`CMakeLists.txt`, `main.cpp`).
+
+---
+
 ## [2.13.0] — 2026-05-21
 
 ### Added

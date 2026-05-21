@@ -359,9 +359,9 @@ void Iperf3Window::updateStats() noexcept
 void Iperf3Window::handleSpeedUpdated(double speed) noexcept
 {
     speedLabel->setText(QStringLiteral("Speed: %1 Mbps").arg(speed, 0, 'f', 2));
-    speedBar->setValue(static_cast<int>(qMin(100.0, speed / 10.0)));
     transferLabel->setText(QStringLiteral("Transferred: %1 MB")
                                .arg(totalTransfer, 0, 'f', 2));
+    updateVisualization(speed);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

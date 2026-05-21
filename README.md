@@ -50,7 +50,7 @@
 
 Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory (512×512 px native, displayed at 14×14 px inline).
 
-> **Compact Tab Bar:** All 12 tabs (Overview, Whois, Port Scanner, Network Tools, Speedtest, TLS Auditor, Topology, Connections, Telemetry, Alerts, History, About) are always visible without scrolling — thanks to reduced padding (`6px 12px`), smaller font (`11px`), and `setUsesScrollButtons(false)` + `setExpanding(true)` on the QTabBar. (`TelemetryPersistenceModule`, `ServerSelectionModule`, `AlertEngine`, and `PacketModule` are background services with dedicated GUI tabs.)
+> **Compact Tab Bar:** All 12 tabs (Overview, Whois, Port Scanner, Network Tools, Speedtest, TLS Auditor, Topology, Connections, Telemetry, Alerts, History, About) are always visible without scrolling — thanks to reduced padding (`6px 12px`), smaller font (`11px`), `setUsesScrollButtons(false)` + `setExpanding(true)` on the QTabBar, and explicit QTabBar stylesheet. (`TelemetryPersistenceModule`, `ServerSelectionModule`, `AlertEngine`, and `PacketModule` are background services with dedicated GUI tabs.)
 
 ###  Multi-API Geolocation
 - **12+ APIs** with automatic failover, sparse data enrichment, and IPv6 support.
@@ -71,7 +71,7 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
 
 ###  Network Tools
 - **Ping:** 4 ICMP packets with real-time output, **Cancel button**, 60-second auto-timeout.
-- **iPerf3:** Client/server mode with real-time speed visualization and color-coded progress bar (green ≥ 100 Mbps, cyan ≥ 50, orange ≥ 10, red < 10).
+- **iPerf3:** Client/server mode with real-time speed visualization and color-coded progress bar (green ≥ 100 Mbps, cyan ≥ 50, orange ≥ 10, red < 10). Progress bar updates automatically with each speed measurement.
 - **Traceroute:** Cross-platform support (Linux: `traceroute`/`tracepath`, Windows: `tracert`) with Cancel button.
 
 ###  IP Change History
@@ -315,13 +315,18 @@ cmake --build build -j"$(nproc)"
     - Scroll to zoom, drag to pan.
 
 9. **Connections** : Monitor active TCP/UDP connections in real-time.
+    - **Signal-driven updates:** Receives live updates from PacketModule via Qt signals.
     - **Filter by protocol:** TCP, UDP, or All.
     - **Filter by state:** ESTABLISHED, LISTEN, TIME_WAIT, CLOSE_WAIT, etc.
     - **Search:** Real-time search across IPs, ports, states, and UIDs.
     - **Statistics:** Live counts for TCP, UDP, Total, and Established connections.
     - **Color-coded states:** Green (ESTABLISHED), blue (LISTEN), orange (TIME_WAIT), etc.
-    - **Export:** CSV export with one click.
+    - **State icons:** Unicode dot indicators (● ○ ◌) for visual differentiation.
+    - **Detail dialog:** Double-click any row for full connection details.
+    - **Empty state:** Clear message when no connections are detected.
+    - **Export:** CSV export with TX/RX Queue columns.
     - **Auto-refresh:** Toggle 5-second auto-refresh on/off.
+    - **Status indicator:** Live status bar with connection count or warnings.
 
 10. **Telemetry** : Real-time network interface monitoring.
     - **Interface filter:** Filter display to a specific interface or show all.
@@ -457,4 +462,4 @@ This project is released under **Public Domain**. It may be freely used, copied,
 
 ---
 
-*IPView Pro v2.13.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*
+*IPView Pro v2.14.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*
