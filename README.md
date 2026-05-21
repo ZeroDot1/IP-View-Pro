@@ -50,7 +50,7 @@
 
 Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory (512×512 px native, displayed at 14×14 px inline).
 
-> **Compact Tab Bar:** All 10 tabs (Overview, Whois, Port Scanner, Network Tools, Speedtest, TLS Auditor, Topology, Telemetry, History, About) are always visible without scrolling — thanks to reduced padding (`6px 12px`), smaller font (`11px`), and `setUsesScrollButtons(false)` + `setExpanding(true)` on the QTabBar. (`TelemetryPersistenceModule`, `ServerSelectionModule`, `AlertEngine`, and `PacketModule` are background services without dedicated tabs.)
+> **Compact Tab Bar:** All 12 tabs (Overview, Whois, Port Scanner, Network Tools, Speedtest, TLS Auditor, Topology, Connections, Telemetry, Alerts, History, About) are always visible without scrolling — thanks to reduced padding (`6px 12px`), smaller font (`11px`), and `setUsesScrollButtons(false)` + `setExpanding(true)` on the QTabBar. (`TelemetryPersistenceModule`, `ServerSelectionModule`, `AlertEngine`, and `PacketModule` are background services with dedicated GUI tabs.)
 
 ###  Multi-API Geolocation
 - **12+ APIs** with automatic failover, sparse data enrichment, and IPv6 support.
@@ -141,7 +141,14 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
 - Context menu: Restore Window / Exit.
 - Informative tray tooltip with IP, country flag (Unicode), ISP, ASN, and timestamp.
 
-###  Alert Engine (Background Service)
+###  Active Connections Monitor (PacketModule + PacketTab)
+- **Background service:** Parses `/proc/net/tcp`, `/proc/net/tcp6`, `/proc/net/udp`, and `/proc/net/udp6` at configurable intervals (default 5s).
+- **Hex-to-IP conversion:** Converts kernel hex-encoded addresses (little-endian byte order) to standard dotted-decimal IPv4 / colon-hex IPv6.
+- **TCP state decoding:** Established, Listen, TimeWait, CloseWait, and more.
+- **No root required:** World-readable procfs entries.
+- **GUI Tab:** `Connections` tab with 7-column table (Protocol, Local/Remote Addr/Port, State, UID), auto-refresh every 5 seconds.
+
+###  Alert Engine (AlertEngine + AlertTab)
 - **Rule-based monitoring:** Automatically detects high bandwidth usage, interface errors,
   TLS certificate expiry, and insecure certificates.
 - **Telemetry integration:** Connected to `TelemetryModule` — monitors real-time network
@@ -150,6 +157,8 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
   alerts when certificate audits detect expired or untrusted certificates.
 - **Cooldown system:** Prevents alert flooding with configurable per-rule cooldown periods.
 - **Severity levels:** Info, Warning, Critical — with color-coded UI indicators.
+- **GUI Tab:** `Alerts` tab with 6-column table (Time, Severity, Category, Title, Message, Source),
+  severity icons (⚠ Critical, ⚡ Warning, ℹ Info), acknowledge/clear buttons, auto-refresh every 3s.
 
 ###  Topology Tab
 - **QGraphicsView network path visualization:** Runs `traceroute` to a target host and renders each hop as a color-coded node on an interactive canvas.
@@ -296,17 +305,29 @@ cmake --build build -j"$(nproc)"
    - Color-coded: green = secure, red = insecure/expired.
 
 8. **Topology** : Visualize the network path to any host.
-   - Enter a hostname/IP and click **Trace Route**.
-   - Each network hop is displayed as a node on a QGraphicsView canvas.
-   - Color indicates latency; tooltips show IP, hostname, and exact RTT.
-   - Scroll to zoom, drag to pan.
+    - Enter a hostname/IP and click **Trace Route**.
+    - Each network hop is displayed as a node on a QGraphicsView canvas.
+    - Color indicates latency; tooltips show IP, hostname, and exact RTT.
+    - Scroll to zoom, drag to pan.
 
-9. **Telemetry** : Real-time network interface monitoring.
-   - Live download/upload speed cards.
-   - Per-interface table with RX/TX rates, packets, and errors.
-   - Auto-refresh with configurable interval.
+9. **Connections** : Monitor active TCP/UDP connections in real-time.
+    - 7-column table: Protocol, Local/Remote Address, Local/Remote Port, State, UID.
+    - Auto-refresh every 5 seconds.
+    - TCP states: ESTABLISHED, LISTEN, TIME_WAIT, CLOSE_WAIT, etc.
+    - No root privileges required (reads world-readable `/proc/net/*`).
 
-10. **About** : View build information including compiler name/version, C++ standard, system architecture, Qt version, and compile date/time.
+10. **Telemetry** : Real-time network interface monitoring.
+    - Live download/upload speed cards.
+    - Per-interface table with RX/TX rates, packets, and errors.
+    - Auto-refresh with configurable interval.
+
+11. **Alerts** : View active security and telemetry alerts.
+    - Severity-coded: ⚠ Critical (red), ⚡ Warning (orange), ℹ Info (cyan).
+    - Categories: Telemetry, Security, System, Custom.
+    - Acknowledge individual alerts or clear all acknowledged.
+    - Auto-refresh every 3 seconds + real-time signal updates.
+
+12. **About** : View build information including compiler name/version, C++ standard, system architecture, Qt version, and compile date/time.
 
 ---
 
@@ -340,7 +361,9 @@ IPView/
 ├── AuditorModule.h/.cpp                # TLS certificate auditor (QSslSocket)
 ├── AuditorTab.h/.cpp                   # TLS Auditor GUI
 ├── AlertEngine.h/.cpp                  # Rule-based alert engine (Item 49)
+├── AlertTab.h/.cpp                     # Alert Engine GUI tab (Item 49)
 ├── PacketModule.h/.cpp                 # Active connection parser (/proc/net) (Item 47)
+├── PacketTab.h/.cpp                    # Active Connections GUI tab (Item 47)
 ├── TopologyTab.h/.cpp                  # QGraphicsView network topology (Item 46)
 ├── CMakeLists.txt        # C++26, Qt 6.11, security hardening
 ├── saturate_fix.h        # C++26 polyfill (saturate_cast for GCC 16.1)
@@ -423,4 +446,4 @@ This project is released under **Public Domain**. It may be freely used, copied,
 
 ---
 
-*IPView Pro v2.11.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*
+*IPView Pro v2.12.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*

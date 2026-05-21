@@ -2,6 +2,43 @@
 
 All notable changes to this project are documented here.
 
+## [2.12.0] — 2026-05-21
+
+### Added
+
+- **PacketTab — Active Connections GUI (Item 47):** New tab displaying live TCP/UDP
+  connections parsed from `/proc/net/tcp`, `/proc/net/tcp6`, `/proc/net/udp`, `/proc/net/udp6`.
+  - 7-column table: Protocol, Local Addr, Local Port, Remote Addr, Remote Port, State, UID.
+  - Auto-refresh every 5 seconds via QTimer.
+  - TCP state decoding: ESTABLISHED, SYN_SENT, SYN_RECV, FIN_WAIT1, FIN_WAIT2, TIME_WAIT,
+    CLOSE, CLOSE_WAIT, LAST_ACK, LISTEN, CLOSING, UNKNOWN.
+  - Connected to `PacketModule` — uses `pollNow()` for on-demand snapshots.
+
+- **AlertTab — Security & Telemetry Alerts GUI (Item 49):** New tab displaying active
+  alerts from `AlertEngine` with severity-based color coding.
+  - 6-column table: Time, Severity, Category, Title, Message, Source.
+  - Severity icons and colors: ⚠ Critical (red), ⚡ Warning (orange), ℹ Info (cyan).
+  - Category labels: Telemetry, Security, System, Custom.
+  - **Acknowledge Selected** button to mark individual alerts as handled.
+  - **Clear Acknowledged** button to remove all acknowledged alerts.
+  - Auto-refresh every 3 seconds + real-time updates via `alertTriggered`/`alertsChanged` signals.
+  - Status bar showing count of active alerts.
+
+### Changed
+
+- **Tab count expanded to 12:** Overview, Whois, Port Scanner, Network Tools, Speedtest,
+  TLS Auditor, Topology, Connections, Telemetry, Alerts, History, About.
+- **MainWindow constructor order:** `setupPacketModule()` moved before `setupUI()` so
+  `PacketTab` can receive the `PacketModule` pointer during registration.
+- **Version bumped:** `2.11.0` → `2.12.0` (`CMakeLists.txt`).
+
+### Build
+
+- `CMakeLists.txt` supplemented with `PacketTab.cpp` and `AlertTab.cpp`.
+- `MainWindow.h` extended with `PacketTab.h` and `AlertTab.h` includes.
+
+---
+
 ## [2.11.0] — 2026-05-21
 
 ### Fixed

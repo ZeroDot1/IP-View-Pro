@@ -16,7 +16,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 project(IPView
-    VERSION      2.11.0
+    VERSION      2.12.0
     DESCRIPTION  "Professional IP Monitoring & Network Analysis Tool"
     LANGUAGES    CXX
 )
@@ -97,6 +97,8 @@ qt_add_executable(IPView
     AlertEngine.cpp
     TopologyTab.cpp
     PacketModule.cpp
+    PacketTab.cpp
+    AlertTab.cpp
     resources.qrc
 )
 

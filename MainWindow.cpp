@@ -27,9 +27,9 @@
 MainWindow::MainWindow(QWidget *parent)
     : QWidget(parent)
 {
+    setupPacketModule();  // Must be before setupUI() — PacketTab needs mPacketModule
     setupUI();
     setupAlertEngine();
-    setupPacketModule();
     setupTray();
 
     networkManager   = new NetworkManager(this);
@@ -270,6 +270,9 @@ void MainWindow::setupUI() noexcept
     topologyTab = mTabRegistry.registerTab<TopologyTab>(
         QStringLiteral("topology"), QStringLiteral(" Topology"),
         QIcon(QStringLiteral(":/svgs/topology.svg")));
+    packetTab = mTabRegistry.registerTab<IPView::UI::PacketTab>(
+        QStringLiteral("packets"), QStringLiteral(" Connections"),
+        QIcon(QStringLiteral(":/svgs/graph.svg")), mPacketModule);
     telemetryTab = mTabRegistry.registerTab<TelemetryTab>(
                        QStringLiteral("telemetry"), QStringLiteral(" Telemetry"),
                        QIcon(QStringLiteral(":/svgs/graph.svg")));
@@ -504,4 +507,9 @@ void MainWindow::setupAlertEngine() noexcept
                     });
         }
     }
+
+    // ── AlertTab — GUI for AlertEngine ────────────────────────────────────
+    alertTab = new IPView::UI::AlertTab(mAlertEngine);
+    tabWidget->addTab(alertTab, QIcon(QStringLiteral(":/svgs/warning.svg")),
+                      QStringLiteral(" Alerts"));
 }

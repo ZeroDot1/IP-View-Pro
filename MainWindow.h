@@ -34,6 +34,8 @@
 #include "AboutTab.h"
 #include "AuditorTab.h"
 #include "TopologyTab.h"
+#include "PacketTab.h"
+#include "AlertTab.h"
 #include "AlertEngine.h"
 #include "PacketModule.h"
 #include "TabRegistry.h"
@@ -98,6 +100,8 @@ private:
     TelemetryTab *telemetryTab{nullptr};
     AboutTab     *aboutTab{nullptr};
     TopologyTab  *topologyTab{nullptr};
+    IPView::UI::PacketTab *packetTab{nullptr};
+    IPView::UI::AlertTab  *alertTab{nullptr};
 
     // ── Network & Data ──────────────────────────────────────────────────
     NetworkManager *networkManager{nullptr};
