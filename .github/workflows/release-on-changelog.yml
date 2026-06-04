@@ -1,14 +1,15 @@
 name: Release on Changelog Update
 
-# This workflow runs on every push to main. If CHANGELOG.md was
-# changed and its topmost version header differs from the latest
-# git tag of the form v*.*.*, a new tag is created and pushed.
-# The existing release.yml workflow is triggered by the tag push
-# and handles the actual build + GitHub Release upload.
+# Runs on every push to main that touches CHANGELOG.md or
+# CMakeLists.txt. If the topmost "## [X.Y.Z]" heading in
+# CHANGELOG.md is newer than the latest existing v*.*.* tag,
+# creates an annotated tag and pushes it. The release.yml
+# workflow is triggered by that tag push and handles the
+# actual build + GitHub Release upload.
 #
-# This means: bump the version in CMakeLists.txt + add a new
-# heading to CHANGELOG.md, push to main, and a GitHub Release
-# appears within ~10 minutes.
+# This means: bump the version in CMakeLists.txt + add a
+# new heading to CHANGELOG.md, push to main, and a GitHub
+# Release appears within ~10 minutes.
 
 on:
   push:
@@ -19,25 +20,29 @@ on:
   workflow_dispatch:        # Manual trigger for retro-releases.
 
 permissions:
-  contents: write           # Required to create tags and releases.
+  contents: write           # Required to create tags.
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   detect-and-tag:
     name: Detect new version & create tag
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0    # Need full history for the latest tag.
 
+      # ── Parse the topmost version from CHANGELOG.md ──────────────
+      # We accept any 3-part SemVer that may carry a single-letter
+      # pre-release suffix (e.g. 2.16.0rc1) so we don't have to
+      # add a separate regex branch every time we cut a release
+      # candidate.
       - name: Extract topmost version from CHANGELOG
         id: changelog
         run: |
-          # The first "## [X.Y.Z]" heading in CHANGELOG.md is
-          # the newest release. We accept any 3-part SemVer that
-          # may carry a single-letter pre-release suffix (e.g.
-          # 2.16.0rc1) so we don't have to add a separate regex
-          # branch every time we cut a release candidate.
           VERSION=$(awk '
               /^##[[:space:]]+\[[0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.-]*\][[:space:]]/ {
                   match($0, /\[([0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.-]*)\]/, m)
@@ -51,13 +56,13 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Latest CHANGELOG version: $VERSION"
 
+      # ── Cross-check against CMakeLists.txt ───────────────────────
+      # Fail loud if CHANGELOG and CMakeLists disagree — a release
+      # with mismatched metadata would produce a binary that reports
+      # the wrong version in its About dialog.
       - name: Read canonical CMake version
         id: cmake
         run: |
-          # Cross-check the CHANGELOG header against the canonical
-          # version in CMakeLists.txt. If they disagree, fail the
-          # workflow so a release is never cut with mismatched
-          # metadata in the binary.
           CMAKE_VERSION=$(awk -F'[ "]' '/^[[:space:]]*VERSION[[:space:]]+[0-9]+\.[0-9]+\.[0-9]+/ {
               for (i=1; i<=NF; i++) if ($i ~ /^[0-9]+\.[0-9]+\.[0-9]+$/) { print $i; exit }
           }' CMakeLists.txt)
@@ -74,17 +79,19 @@ jobs:
           echo "::error::CHANGELOG version (${{ steps.changelog.outputs.version }}) does not match CMakeLists.txt version (${{ steps.cmake.outputs.cmake_version }})"
           exit 1
 
+      # ── Fetch existing tags ──────────────────────────────────────
+      # Pull all remote v*.*.* tags, then sort by SemVer so the
+      # last line is the highest existing version. The head -n
+      # approach avoids git for-each-ref sorting quirks.
       - name: Fetch existing tags
         id: tags
         run: |
-          # Pull all remote v*.*.* tags, then sort by SemVer so the
-          # last line is the highest existing version. The head -n
-          # approach avoids git for-each-ref sorting quirks.
           git fetch --tags --force
           LATEST=$(git tag -l 'v*.*.*' --sort=-v:refname | head -n1)
           echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
           echo "Latest existing tag: ${LATEST:-<none>}"
 
+      # ── Decide whether to tag ────────────────────────────────────
       - name: Decide whether to tag
         id: decide
         run: |
@@ -92,17 +99,15 @@ jobs:
           NEW_TAG="v${NEW_VERSION}"
           LATEST_TAG="${{ steps.tags.outputs.latest }}"
 
-          # If the latest tag already matches, there's nothing
-          # to do (re-push of the same CHANGELOG, for example).
+          # Same tag already exists — nothing to do.
           if [ "${LATEST_TAG}" = "${NEW_TAG}" ]; then
             echo "should_tag=false" >> "$GITHUB_OUTPUT"
             echo "No new release — latest tag ${LATEST_TAG} already matches CHANGELOG version ${NEW_VERSION}."
             exit 0
           fi
 
-          # If we have a prior v-tag, the new one must be a
-          # strictly higher SemVer. We delegate the comparison
-          # to sort -V so that 2.15.10 > 2.15.9 works.
+          # New version must be strictly higher than the latest.
+          # sort -V handles 2.15.10 > 2.15.9 correctly.
           if [ -n "${LATEST_TAG}" ] && \
              [ "$(printf '%s\n%s\n' "${LATEST_TAG#v}" "${NEW_VERSION}" | sort -V | tail -n1)" != "${NEW_VERSION}" ]; then
             echo "::error::New version ${NEW_VERSION} is not greater than latest tag ${LATEST_TAG}."
@@ -113,6 +118,7 @@ jobs:
           echo "new_tag=${NEW_TAG}" >> "$GITHUB_OUTPUT"
           echo "Will create tag ${NEW_TAG}."
 
+      # ── Push the tag ──────────────────────────────────────────────
       - name: Create and push tag
         if: steps.decide.outputs.should_tag == 'true'
         env:
@@ -128,7 +134,7 @@ jobs:
     name: Skipped — no new release
     needs: detect-and-tag
     if: steps.decide.outputs.should_tag != 'true'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - run: |
           echo "CHANGELOG.md was updated but no new release was needed."

@@ -1,8 +1,8 @@
 # IPView — Professional IP Monitoring & Network Analysis Tool
-# Requires: Qt 6.11+, CMake 3.28+, C++26 compiler (GCC 14+ / Clang 18+)
+# Requires: Qt 6.5+, CMake 3.28+, C++26 compiler (GCC 14+ / Clang 18+)
 #
 # ════════════════════════════════════════════════════════════════
-#  C++26 (ISO/IEC 14882:2026) | Qt 6.11 (March 2026)
+#  C++26 (ISO/IEC 14882:2026) | Qt 6.5+ | CMake 3.28+
 #  Security Hardening:
 #    • -Werror             — all warnings = errors
 #    • -fstack-protector   — stack smashing protection
@@ -178,8 +178,13 @@ if(IPVIEW_MINSIZE)
                     "--build-id=none, --hash-style=gnu, -z,nodump)")
 endif()
 
-# ── Qt 6.11 (latest release: March 2026) ──────────────────────
-find_package(Qt6 6.11 REQUIRED COMPONENTS Core Widgets Network Svg Sql)
+# ── Qt 6 (6.5 LTS or newer) ───────────────────────────────────────
+#  Hard minimum is 6.5 because that is the oldest LTS line still
+#  receiving security patches in 2026. Newer Qt 6 versions (6.6, 6.7,
+#  6.8 LTS, 6.9, 6.10, 6.11, …) all work — the GitHub Actions
+#  workflow installs 6.8.* via jurplel/install-qt-action for
+#  reproducibility; local development typically uses 6.11.
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Network Svg Sql)
 
 # ── Automatische Qt-Metacompiler ──────────────────────────────
 set(CMAKE_AUTOMOC ON)

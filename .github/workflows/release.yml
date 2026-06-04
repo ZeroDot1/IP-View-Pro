@@ -1,9 +1,13 @@
 name: Release
 
 # Triggered by the release-on-changelog.yml workflow pushing a
-# new v*.*.* tag. Runs the full Release pipeline: install system
-# dependencies, build the binary, package it as an AppImage, and
-# attach the AppImage + a SHA-256SUMS file to the GitHub Release.
+# new v*.*.* tag, or by manual dispatch for an emergency rebuild.
+# Runs the full release pipeline: install the toolchain (GCC 16
+# for C++26, Qt 6.8 via jurplel for Qt 6.5+ ABI compat), build
+# the binary, run the test suite, package it as an AppImage, and
+# attach the AppImage + a SHA-256SUMS file to the GitHub Release
+# via the official `gh` CLI (replaces the deprecated
+# softprops/action-gh-release action).
 
 on:
   push:
@@ -14,136 +18,203 @@ on:
 permissions:
   contents: write           # Required to upload release assets.
 
+# Node.js 24 opt-in. actions/checkout@v5 and the rest of the
+# GitHub-Actions JavaScript actions used here all support Node 24
+# as of mid-2026; opting in now silences the deprecation warning
+# and protects us from the September 16, 2026 removal of Node 20.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   build:
     name: Build & ship AppImage
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    runs-on: ubuntu-24.04
 
-      - name: Install system dependencies
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0    # Need full history for the version tag.
+
+      # ── C++26 compiler ─────────────────────────────────────────────
+      # Ubuntu 24.04 ships GCC 13.3 which does not understand
+      # -std=c++26 (it predates the final C++26 standard). The
+      # ubuntu-toolchain-r/test PPA carries g++-16 which is the
+      # first GCC release that fully supports C++26.
+      - name: Install GCC 16 (C++26)
         run: |
           sudo apt-get update
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y g++-16 gcc-16
+          g++-16 --version
+          c++filt --version | head -1
+
+      # ── Qt 6 (LTS line) ────────────────────────────────────────────
+      # jurplel/install-qt-action downloads the official Qt online
+      # installer and provisions the requested Qt version. We pin
+      # 6.8.* because it is the current LTS line at the time of
+      # writing; CMakeLists.txt only requires Qt 6.5+, so any 6.8
+      # patch (6.8.0, 6.8.1, 6.8.2, …) is accepted.
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.*'
+          host: linux
+          target: desktop
+          arch: gcc_64
+          modules: 'qtimageformats'
+          cache: true
+
+      # ── System dependencies ────────────────────────────────────────
+      # libfuse2 is required for appimagetool's --appimage-extract-
+      # and-run fallback; libgl1, libxkbcommon, libdbus are Qt's
+      # X11 / D-Bus / OpenGL runtime deps. libsqlite3 is needed
+      # for Qt6::Sql at runtime; the .so ships in /usr/lib on
+      # Ubuntu 24.04 so we don't have to bundle it.
+      - name: Install system dependencies
+        run: |
           sudo apt-get install -y \
-              cmake \
-              ninja-build \
-              build-essential \
-              qt6-base-dev \
-              qt6-svg-dev \
-              libqt6core6 \
-              libqt6widgets6 \
-              libqt6network6 \
-              libqt6gui6 \
-              libqt6dbus6 \
-              libqt6svg6 \
-              libgl1-mesa-dev \
-              libxkbcommon-dev \
-              libxkbcommon-x11-0 \
-              libdbus-1-3 \
+              cmake ninja-build \
+              libgl1-mesa-dev libxkbcommon-dev libxkbcommon-x11-0 libdbus-1-3 \
               libsqlite3-dev \
-              wget \
-              file \
-              fuse \
-              zsync
-          # libfuse2 is required to actually *run* the AppImage
-          # tool on GitHub-hosted runners; otherwise appimagetool
-          # fails with "fuse: device not found, try '--appimage-extract-and-run'".
-          sudo apt-get install -y libfuse2
+              fuse libfuse2 \
+              file wget zsync \
+              upx-ucl
 
-      - name: Build (Release)
-        run: |
-          cmake -S . -B build \
-              -G Ninja \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_CXX_COMPILER=g++
-          cmake --build build -j"$(nproc)"
+      # ── Configure ─────────────────────────────────────────────────
+      - name: Configure (Release + tests)
+        run: >
+          cmake -S . -B build
+          -G Ninja
+          -DCMAKE_CXX_COMPILER=g++-16
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_TESTING=ON
+          -DIPVIEW_MINSIZE=ON
+          -DIPVIEW_STRIP_BINARY=ON
+          -DIPVIEW_COMPRESS_BINARY=ON
+          -DIPVIEW_SIZE_REPORT=ON
 
+      # ── Build ─────────────────────────────────────────────────────
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+
+      # ── Unit tests ─────────────────────────────────────────────────
       - name: Run unit tests
-        run: |
-          ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure
 
+      # ── Smoke test ─────────────────────────────────────────────────
+      # Run the binary on the offscreen platform for 3 s. Exit
+      # 124 is the timeout code — the app is designed to keep
+      # running, so that is the expected outcome.
       - name: Smoke test
         run: |
-          # Run for 3 seconds with the offscreen platform to
-          # confirm the binary starts, parses config, and exits
-          # cleanly. Exit 124 is the timeout code, which we
-          # treat as success — the app is designed to keep
-          # running.
           timeout 3 ./build/IPView -platform offscreen || [ $? -eq 124 ]
 
-      - name: Strip binary
-        run: |
-          # Pre-strip before packaging to keep the AppImage small.
-          strip --strip-all build/IPView
-
+      # ── appimagetool ───────────────────────────────────────────────
+      # The "12" tag on AppImage/AppImageKit is the current stable
+      # release; tag "13" was an obsolete archive that no longer
+      # carries a working appimagetool-x86_64.AppImage. The
+      # --appimage-extract-and-run fallback is required on GitHub
+      # runners because FUSE is not available there by default.
       - name: Download appimagetool
         run: |
-          # The "13" tag on AppImage/AppImageKit is the obsolete
-          # archive and no longer contains a working
-          # appimagetool-x86_64.AppImage. The current build lives
-          # at the "12" tag (the "continuous" tag is even newer
-          # but is rebuilt every night and can be unstable).
-          wget -c \
+          wget -q -c \
               "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage"
           chmod +x appimagetool-x86_64.AppImage
-          # --appimage-extract-and-run is required on GitHub
-          # runners because FUSE is not available there by default.
-          ./appimagetool-x86_64.AppImage --appimage-extract-and-run --version
 
+      # ── Assemble AppDir ───────────────────────────────────────────
+      # AppDir is the standard AppImage staging directory. The
+      # binary lives at AppDir/usr/bin/IPView so the AppImage
+      # launches the same way the build artefact does. We bundle
+      # the Qt 6 runtime libraries (Core, DBus, Gui, Network,
+      # Sql, Svg, Widgets) so the AppImage starts on bare systems
+      # that don't have Qt 6.5+ installed.
       - name: Assemble AppDir
         run: |
-          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/bin AppDir/usr/lib
           cp build/IPView AppDir/usr/bin/
           cp ipview.desktop AppDir/
-          # The desktop file's Icon key points at "ipview-pro",
-          # so we provide the icon under that name. The
-          # appimagetool also looks for ipview-pro.{png,svg,...}
-          # at the AppDir root.
           cp icon.svg AppDir/ipview-pro.svg
-          # Bundle the Qt 6 libraries the AppImage needs at
-          # runtime. Without this the binary will not start on
-          # end-user machines that don't have Qt 6.8+ installed.
+
+          # jurplel installs Qt 6 to /opt/hostedtoolcache/Qt/<ver>/<arch>
+          # by default. Use Qt6_DIR (the cmake dir) to find the lib
+          # dir robustly without hard-coding the host layout.
+          if [ -n "$Qt6_DIR" ]; then
+            QT_LIB_DIR="$(dirname "$(dirname "$Qt6_DIR")")/lib"
+          else
+            QT_LIB_DIR="$(find /opt/hostedtoolcache/Qt -maxdepth 4 -type d -name lib 2>/dev/null | head -1)"
+          fi
+          echo "Qt lib dir: $QT_LIB_DIR"
+
           for lib in \
               libQt6Core.so.6 \
               libQt6DBus.so.6 \
               libQt6Gui.so.6 \
               libQt6Network.so.6 \
+              libQt6Sql.so.6 \
               libQt6Svg.so.6 \
               libQt6Widgets.so.6; do
-              src=$(ldconfig -p | awk -v l="$lib" '$1==l {print $4; exit}')
-              if [ -z "$src" ]; then
-                echo "::warning::$lib not found in ldconfig — AppImage may not start on bare systems"
-                continue
-              fi
-              cp -P "$src"* AppDir/usr/bin/ 2>/dev/null || cp "$src" AppDir/usr/bin/
+            find "$QT_LIB_DIR" -name "${lib}*" -exec cp -P {} AppDir/usr/lib/ \; 2>/dev/null || true
           done
-          ldd build/IPView | grep "not found" || true
 
+          echo "=== ldd check ==="
+          ldd AppDir/usr/bin/IPView | grep "not found" || echo "All libraries resolved."
+
+      # ── Build AppImage ────────────────────────────────────────────
       - name: Build AppImage
         run: |
-          # --appimage-extract-and-run is required on GitHub
-          # runners (no FUSE available by default).
           ./appimagetool-x86_64.AppImage --appimage-extract-and-run \
               AppDir \
               IPView-x86_64.AppImage
         env:
           ARCH: x86_64
 
+      # ── SHA-256SUMS ───────────────────────────────────────────────
       - name: Generate SHA-256SUMS
         run: |
           sha256sum IPView-x86_64.AppImage > SHA-256SUMS
           cat SHA-256SUMS
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            IPView-x86_64.AppImage
-            SHA-256SUMS
-          generate_release_notes: true
-          draft: false
-          prerelease: ${{ contains(github.ref_name, 'rc') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+      # ── GitHub Release (via gh CLI) ────────────────────────────────
+      # We use the official `gh` CLI instead of softprops/action-gh-
+      # release because (a) softprops is a Node.js action that is
+      # not yet updated for Node 24, and (b) `gh` is built into
+      # every GitHub-hosted runner and has no external action dep.
+      # The notes are extracted from CHANGELOG.md for the matching
+      # version block.
+      - name: Create GitHub Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          # Pre-release flag for RC / beta / alpha tags.
+          PRERELEASE_FLAG=""
+          if [[ "$GITHUB_REF_NAME" == *rc* ]] || \
+             [[ "$GITHUB_REF_NAME" == *beta* ]] || \
+             [[ "$GITHUB_REF_NAME" == *alpha* ]]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+
+          # Extract the matching CHANGELOG section.
+          NOTES_FILE="$(mktemp)"
+          awk -v ver="[${VERSION}]" '
+            /^##[[:space:]]/ {
+              if (found) exit
+              if (index($0, "## " ver) > 0) { found = 1; next }
+            }
+            found { print }
+          ' CHANGELOG.md > "$NOTES_FILE"
+
+          echo "=== Release notes (${VERSION}) ==="
+          cat "$NOTES_FILE"
+          echo "==================================="
+
+          # shellcheck disable=SC2086
+          gh release create "$GITHUB_REF_NAME" \
+              IPView-x86_64.AppImage \
+              SHA-256SUMS \
+              --title "IPView Pro ${GITHUB_REF_NAME}" \
+              --notes-file "$NOTES_FILE" \
+              $PRERELEASE_FLAG

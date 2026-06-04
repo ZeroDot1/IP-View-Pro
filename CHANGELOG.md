@@ -42,6 +42,30 @@ All notable changes to this project are documented here.
 - **`install.sh` banner was stuck at v2.9.1.** Updated to v2.15.5
   so the script's `--help` and the uninstall dialogue reflect the
   current version.
+- **GitHub Actions release pipeline did not run on C++26 / Qt 6
+  and emitted `1 error + 1 warning` per push.** The previous
+  workflows ran on `ubuntu-22.04` (GCC 11, Qt 6.2 from apt) and
+  used the now-deprecated `actions/checkout@v4` and
+  `softprops/action-gh-release@v2` (both on Node.js 20, removed
+  from runners 2026-09-16). The CMake `find_package(Qt6 6.11
+  REQUIRED …)` rejected the system Qt 6.2 from `apt`, the
+  `cmake -std=c++26` flag was rejected by GCC 11, and the
+  release-creation step was the deprecated softprops action.
+  All four workflows (`release.yml`, `release-on-changelog.yml`,
+  `build.yml`, `lint.yml`) are now on:
+  - `ubuntu-24.04`
+  - `actions/checkout@v5`
+  - `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'` env var
+  - GCC 16 via the `ubuntu-toolchain-r/test` PPA (first GCC
+    with full C++26 support)
+  - Qt 6.8.* via `jurplel/install-qt-action@v4` (LTS line;
+    CMakeLists now requires only Qt 6.5+)
+  - `appimagetool` from `AppImage/AppImageKit` tag 12
+  - `gh release create` for the GitHub Release upload
+    (replaces the deprecated softprops action)
+  - Three-statement QA gate: build → ctest → offscreen
+    smoke test, with a 124-exit-code tolerance on the
+    smoke test (the app is designed to keep running)
 
 ## [2.15.5] — 2026-06-04
 
