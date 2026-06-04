@@ -1,16 +1,22 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.0 — FlagLoader.cpp
-//  C++26: auto, const-correctness, noexcept
+//  IPView Pro v2.15.4 — FlagLoader.cpp
+//  C++26: auto, const-correctness, noexcept, QPointer for label lifetime
 //  Loads country flags asynchronously with in-memory caching.
+//
+//  v2.15.4 rewrite — see FlagLoader.h for the rationale.
+//  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "FlagLoader.h"
 #include "SecurityUtil.h"
 #include "Logger.h"
 #include "Timeouts.hpp"
+
 #include <QUrl>
 #include <QNetworkRequest>
 #include <QTimer>
+
+// ═══════════════════════════════════════════════════════════════════════════════
 
 FlagLoader::FlagLoader(QObject *parent)
     : QObject(parent)
@@ -18,83 +24,105 @@ FlagLoader::FlagLoader(QObject *parent)
 {
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+
+[[nodiscard]]
+QString FlagLoader::flagUrl(const QString &lowerCc) noexcept
+{
+    return QString::fromLatin1(FLAG_URL_FMT).arg(lowerCc);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+
 void FlagLoader::loadFlag(const QString &cc, QLabel *label) noexcept
 {
     if (cc.isEmpty() || !label) return;
 
-    // ── Cache-Check ─────────────────────────────────────────────────────
-    auto const cacheIt = flagCache.constFind(cc);
+    QString const lowerCc = cc.toLower();
+
+    // ── Cache hit ────────────────────────────────────────────────────────
+    auto const cacheIt = flagCache.constFind(lowerCc);
     if (cacheIt != flagCache.constEnd()) {
         label->setPixmap(cacheIt->scaled(label->size(),
                          Qt::KeepAspectRatio, Qt::SmoothTransformation));
         return;
     }
 
-    // ── Download ─────────────────────────────────────────────────────────
-    // Store per-request context via QNetworkReply properties to avoid
-    // race conditions when multiple loadFlag() calls are in flight.
-    QString const lowerCc = cc.toLower();
-
-    QUrl const url(QStringLiteral("https://flagpedia.net/data/flags/w580/%1.png")
-                       .arg(lowerCc));
-    QNetworkRequest request(url);
-    request.setRawHeader("User-Agent", QByteArrayLiteral("IPView/2.0"));
+    // ── New request ──────────────────────────────────────────────────────
+    QNetworkRequest request{ QUrl(flagUrl(lowerCc)) };
+    request.setRawHeader("User-Agent", QByteArrayLiteral("IPView/2.15"));
     request.setTransferTimeout(IPView::Timeouts::HTTP_FALLBACK);
 
     QNetworkReply * const reply = manager->get(request);
 
-    // Attach context to the reply (prevents async race conditions)
-    reply->setProperty("flagCountry", lowerCc);
-    reply->setProperty("flagLabel",
-                       QVariant::fromValue(reinterpret_cast<quintptr>(label)));
+    // Record the (reply → context) association BEFORE returning, so
+    // the finished slot can always look it up.
+    mPending.insert(reply, FlagRequest{ QPointer<QLabel>(label), lowerCc });
 
-    // ── Security: detect and abort on SSL error ────────────────┐
-    enforceStrictSsl(reply);                                        //┘
+    // Strict SSL — abort on any certificate error.
+    enforceStrictSsl(reply);
 
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
-        onReplyFinished(reply);
-    });
-
-    // Security timeout — same length as the OS transfer timeout plus a
-    // small grace window before the reply is forcibly aborted.
+    // Safety timeout — slightly longer than the transfer timeout,
+    // so the OS-level timeout fires first and the reply is already
+    // finished when this timer hits.
     QTimer::singleShot(IPView::Timeouts::HTTP_FALLBACK + std::chrono::seconds{5},
                        reply, [reply]() {
         if (reply && !reply->isFinished()) {
             reply->abort();
         }
     });
+
+    connect(reply, &QNetworkReply::finished,
+            this, &FlagLoader::onReplyFinished);
 }
 
-void FlagLoader::onReplyFinished(QNetworkReply *reply)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void FlagLoader::onReplyFinished()
 {
+    auto *reply = qobject_cast<QNetworkReply*>(sender());
     if (!reply) return;
 
-    // Retrieve per-request context from reply properties
-    QString const country = reply->property("flagCountry").toString();
-    auto const labelPtr = reply->property("flagLabel").value<quintptr>();
-    auto *label = reinterpret_cast<QLabel*>(labelPtr);
+    // Pop the per-request context. The map entry is removed
+    // exactly once, no matter how many times the finished signal
+    // fires (Qt guarantees a single emit, but defence-in-depth).
+    auto it = mPending.find(reply);
+    if (it == mPending.end()) {
+        // Unknown reply — should not happen, but be defensive.
+        reply->deleteLater();
+        return;
+    }
+    FlagRequest const ctx = it.value();
+    mPending.erase(it);
 
-    if (reply->error() != QNetworkReply::NoError || !label) {
+    // The QLabel may have been destroyed while the request was
+    // in flight (tab switched, window closed). QPointer turns
+    // the dangling pointer into nullptr automatically.
+    QLabel *label = ctx.label.data();
+    if (!label || reply->error() != QNetworkReply::NoError) {
         if (reply->error() != QNetworkReply::NoError) {
             IPView::Logger::debug("Flag download failed for {}: {}",
-                                      country.toStdString(), reply->errorString().toStdString());
+                                  ctx.cc.toStdString(),
+                                  reply->errorString().toStdString());
         }
         reply->deleteLater();
         return;
     }
 
     QByteArray const raw = reply->readAll();
-    QPixmap pixmap;
+    QPixmap        pixmap;
 
     if (pixmap.loadFromData(raw)) {
-        // Store in cache
-        flagCache.insert(country, pixmap);
+        flagCache.insert(ctx.cc, pixmap);
         label->setPixmap(pixmap.scaled(label->size(),
-                          Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                                       Qt::KeepAspectRatio,
+                                       Qt::SmoothTransformation));
     }
 
     reply->deleteLater();
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
 
 [[nodiscard]]
 QPixmap FlagLoader::getFlagPixmap(const QString &cc) const noexcept
