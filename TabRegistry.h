@@ -24,7 +24,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::UI {
 
-// ── Eintrag in der Tab-Registry ──────────────────────────────────────────
+// ── Entry in the tab registry ──────────────────────────────────────────
 struct TabEntry {
     QString  id;        // Unique key (e.g. "dashboard", "whois")
     QString  title;     // Display title

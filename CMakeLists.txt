@@ -99,14 +99,14 @@ if(SANITIZE)
     message(STATUS "Sanitizers ENABLED: ${SANITIZER_TYPE}")
 endif()
 
-# LTO ist standardmäßig an, lässt sich per -DENABLE_LTO=OFF deaktivieren.
+# LTO is enabled by default, can be disabled via -DENABLE_LTO=OFF.
 option(ENABLE_LTO "Enable link-time optimization for Release builds" ON)
 if(ENABLE_LTO AND CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
     message(STATUS "LTO enabled for Release build")
 endif()
 
-# Test-Builds (Phase 5) sind standardmäßig aus.
+# Test builds (Phase 5) are disabled by default.
 option(BUILD_TESTING "Build the unit / integration test targets" OFF)
 if(BUILD_TESTING)
     enable_testing()
@@ -234,7 +234,7 @@ target_link_libraries(IPView
         Qt6::Sql
 )
 
-# ── Ziel-Eigenschaften ────────────────────────────────────────
+# ── Target properties ────────────────────────────────────────
 set_target_properties(IPView PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE    TRUE

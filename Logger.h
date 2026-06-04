@@ -52,7 +52,7 @@ class Logger
 public:
     Logger() = delete; // Nur statische Nutzung
 
-    /// Formatierten Trace-Log ausgeben (sehr verbose, default off).
+    /// Emit formatted trace log (very verbose, default off).
     template <typename... Args>
     static void trace(std::format_string<Args...> fmt,
                       Args&&... args) noexcept

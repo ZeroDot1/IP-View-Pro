@@ -47,7 +47,7 @@ struct AuditResult {
     std::vector<CertificateInfo> chain;    // Certificate chain (leaf → root)
     int                    daysRemaining{0}; // Days until expiry
     bool                   isSecure{false}; // Gesamtbewertung
-    qint64                 latencyMs{0};    // Verbindungslatenz
+    qint64                 latencyMs{0};    // Connection latency
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════

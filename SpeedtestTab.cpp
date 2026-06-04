@@ -465,7 +465,7 @@ void SpeedtestTab::onMultiTestClicked()
     logArea->clear();
     logArea->append(QStringLiteral("\u2500\u2500 Multi-Server Speedtest (%1 servers) \u2500\u2500").arg(count));
 
-    // ── Alle vorherigen Prozesse bereinigen ────────────────────────────
+    // ── Clean up any previous processes ────────────────────────────
     for (auto *p : mMultiProcesses) {
         if (p) { p->kill(); p->deleteLater(); }
     }
@@ -591,7 +591,7 @@ void SpeedtestTab::aggregateMultiResults() noexcept
                             .arg(ul, 0, 'f', 1).arg(srv));
     }
 
-    // Anzeige: Bester Ping, max DL, max UL + Gesamt-DL
+    // Display: best ping, max DL, max UL + total DL
     pingLabel->setText(QString::number(bestPing, 'f', 1));
     downloadLabel->setText(QStringLiteral("%1 / %2")
                                .arg(bestDl, 0, 'f', 1).arg(totalDl, 0, 'f', 1));
@@ -605,7 +605,7 @@ void SpeedtestTab::aggregateMultiResults() noexcept
     progressGauge->setFormat(QStringLiteral("Completed"));
     logArea->append(QStringLiteral("\u2500\u2500 Multi test finished \u2500\u2500"));
 
-    // Bereinigen
+    // Clean up
     mMultiResults.clear();
 }
 

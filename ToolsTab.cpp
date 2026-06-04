@@ -80,14 +80,14 @@ ToolsTab::ToolsTab(QWidget *parent)
     netScanLayout->setContentsMargins(16, 16, 16, 16);
 
     auto *inputRow = new QHBoxLayout();
-    auto *inputLbl = new QLabel(QStringLiteral("Ziel-IPs (max. 3, Komma-getrennt):"));
+    auto *inputLbl = new QLabel(QStringLiteral("Target IPs (max. 3, comma-separated):"));
     inputLbl->setStyleSheet(QStringLiteral("color: %1; font-weight: bold;").arg(C_TEXT));
     mNetScanTargetsEdit = new QLineEdit();
     mNetScanTargetsEdit->setPlaceholderText(
-        QStringLiteral("z. B. 192.168.1.1, 192.168.1.2, 192.168.1.3"));
+        QStringLiteral("e.g. 192.168.1.1, 192.168.1.2, 192.168.1.3"));
     mNetScanTargetsEdit->setStyleSheet(inputStyle());
 
-    mNetScanStartBtn = new QPushButton(QStringLiteral("▶ Scan starten"));
+    mNetScanStartBtn = new QPushButton(QStringLiteral("▶ Start scan"));
     mNetScanStartBtn->setProperty("accent", true);
     mNetScanStartBtn->setStyleSheet(btnAccentStyle());
     mNetScanStartBtn->setCursor(Qt::PointingHandCursor);
@@ -108,15 +108,15 @@ ToolsTab::ToolsTab(QWidget *parent)
 
     mNetScanStatusLbl = new QLabel();
     mNetScanStatusLbl->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(C_TEXT_DIM));
-    mNetScanStatusLbl->setText(QStringLiteral("Bereit. IPs eintragen und „Scan starten“ drücken."));
+    mNetScanStatusLbl->setText(QStringLiteral("Ready. Enter IPs and click \"Start scan\"."));
     netScanLayout->addWidget(mNetScanStatusLbl);
 
     mNetScanTable = new QTableWidget(0, 4);
     mNetScanTable->setHorizontalHeaderLabels({
-        QStringLiteral("Ziel-IP"),
-        QStringLiteral("Offener Port"),
-        QStringLiteral("Dienst"),
-        QStringLiteral("Latenz (ms)")
+        QStringLiteral("Target IP"),
+        QStringLiteral("Open Port"),
+        QStringLiteral("Service"),
+        QStringLiteral("Latency (ms)")
     });
     mNetScanTable->horizontalHeader()->setStretchLastSection(false);
     mNetScanTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
@@ -132,7 +132,7 @@ ToolsTab::ToolsTab(QWidget *parent)
 
     toolsTabWidget->addTab(pingIperfTab,  QStringLiteral("Ping / iPerf3"));
     toolsTabWidget->addTab(trace,         QStringLiteral("Traceroute"));
-    toolsTabWidget->addTab(netScanTab,    QStringLiteral("Netzwerkscan"));
+    toolsTabWidget->addTab(netScanTab,    QStringLiteral("Network scan"));
 
     mainLayout->addWidget(toolsTabWidget);
 
@@ -258,7 +258,7 @@ void ToolsTab::onStopPingClicked()
 void ToolsTab::onIperfClicked()
 {
     if (!mIperfWindow) {
-        // Iperf3Window einmal erstellen und als Tab einbetten
+        // Create the Iperf3Window once and embed as a tab
         mIperfWindow = new Iperf3Window(this);
         mIperfWindow->setEmbeddedMode(true);
         mIperfWindow->setWindowTitle(QStringLiteral("iPerf3 Bandwidth Test"));
@@ -266,12 +266,12 @@ void ToolsTab::onIperfClicked()
             QIcon(QStringLiteral(":/svgs/lightning.svg")),
             QStringLiteral("iPerf3"));
     }
-    // Zum iPerf3-Tab wechseln
+    // Switch to the iPerf3 tab
     mToolsTabWidget->setCurrentWidget(mIperfWindow);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Netzwerkscan — multi-target sequential port scan
+//  Network scan — multi-target sequential port scan
 //
 //  parseNetScanTargets() pulls the user-typed comma-separated
 //  string out of mNetScanTargetsEdit, trims whitespace off
@@ -310,7 +310,7 @@ void ToolsTab::onNetScanStartClicked()
     QStringList const targets = parseNetScanTargets();
     if (targets.isEmpty()) {
         mNetScanStatusLbl->setText(QStringLiteral(
-            "⚠ Keine gültigen Ziel-IPs eingegeben."));
+            "⚠ No valid target IPs entered."));
         mNetScanStatusLbl->setStyleSheet(QStringLiteral(
             "color: %1; font-size: 12px;").arg(C_WARNING));
         return;
@@ -328,7 +328,7 @@ void ToolsTab::onNetScanStartClicked()
 
     if (valid.isEmpty()) {
         mNetScanStatusLbl->setText(QStringLiteral(
-            "⚠ Keine gültigen Ziel-IPs (alle Eingaben ungültig): %1")
+            "⚠ No valid target IPs (all entries invalid): %1")
             .arg(dropped.join(QStringLiteral(", "))));
         mNetScanStatusLbl->setStyleSheet(QStringLiteral(
             "color: %1; font-size: 12px;").arg(C_ERROR));
@@ -336,7 +336,7 @@ void ToolsTab::onNetScanStartClicked()
     }
 
     // Hard cap at MAX_NET_SCAN_TARGETS (3). The user wanted
-    // "bis zu 3 IPs" — anything beyond is dropped with a
+    // "up to 3 IPs" — anything beyond is dropped with a
     // notice.
     if (valid.size() > static_cast<int>(MAX_NET_SCAN_TARGETS)) {
         dropped.append(valid.mid(static_cast<int>(MAX_NET_SCAN_TARGETS)));
@@ -350,11 +350,11 @@ void ToolsTab::onNetScanStartClicked()
     mNetScanTargetsEdit->setReadOnly(true);
     mNetScanTable->setRowCount(0);
 
-    QString statusMsg = QStringLiteral("▶ Starte Scan von %1 Ziel(s): %2")
+    QString statusMsg = QStringLiteral("▶ Starting scan of %1 target(s): %2")
         .arg(valid.size())
         .arg(valid.join(QStringLiteral(", ")));
     if (!dropped.isEmpty()) {
-        statusMsg += QStringLiteral("  (verworfen: %1)")
+        statusMsg += QStringLiteral("  (dropped: %1)")
             .arg(dropped.join(QStringLiteral(", ")));
     }
     mNetScanStatusLbl->setText(statusMsg);
@@ -373,7 +373,7 @@ void ToolsTab::onNetScanStopClicked()
     mNetScanStartBtn->setEnabled(true);
     mNetScanStopBtn->setEnabled(false);
     mNetScanTargetsEdit->setReadOnly(false);
-    mNetScanStatusLbl->setText(QStringLiteral("■ Scan abgebrochen."));
+    mNetScanStatusLbl->setText(QStringLiteral("■ Scan cancelled."));
     mNetScanStatusLbl->setStyleSheet(QStringLiteral(
         "color: %1; font-size: 12px;").arg(C_WARNING));
 }
@@ -388,7 +388,7 @@ void ToolsTab::startNextNetScanTarget() noexcept
         mNetScanStopBtn->setEnabled(false);
         mNetScanTargetsEdit->setReadOnly(false);
         mNetScanStatusLbl->setText(QStringLiteral(
-            "✓ Sequentieller Scan abgeschlossen."));
+            "✓ Sequential scan completed."));
         mNetScanStatusLbl->setStyleSheet(QStringLiteral(
             "color: %1; font-size: 12px;").arg(C_SUCCESS));
         return;
@@ -397,7 +397,7 @@ void ToolsTab::startNextNetScanTarget() noexcept
     QString const nextTarget = mNetScanQueue.takeFirst();
     mNetScanCurrentTarget = nextTarget;
     mNetScanStatusLbl->setText(QStringLiteral(
-        "▶ Scanne %1 (%2 verbleibend)…")
+        "▶ Scanning %1 (%2 remaining)…")
         .arg(nextTarget)
         .arg(mNetScanQueue.size() + 1));
     mNetScanner->runScan(nextTarget, IPView::Scanner::ScannerModule::defaultPorts());
@@ -439,7 +439,7 @@ void ToolsTab::onNetScanCompleted(const QVector<IPView::Scanner::ScanResult> &re
     int const openCount = static_cast<int>(std::ranges::count_if(results,
         [](const IPView::Scanner::ScanResult &r) { return r.open; }));
     mNetScanStatusLbl->setText(QStringLiteral(
-        "✓ %1 abgeschlossen (%2 offene Ports). Starte nächsten…")
+        "✓ %1 completed (%2 open ports). Starting next…")
         .arg(mNetScanCurrentTarget)
         .arg(openCount));
     mNetScanStatusLbl->setStyleSheet(QStringLiteral(
@@ -451,7 +451,7 @@ void ToolsTab::onNetScanCompleted(const QVector<IPView::Scanner::ScanResult> &re
 void ToolsTab::onNetScanError(const QString &message)
 {
     mNetScanStatusLbl->setText(QStringLiteral(
-        "⚠ Fehler bei %1: %2")
+        "⚠ Error on %1: %2")
         .arg(mNetScanCurrentTarget, message));
     mNetScanStatusLbl->setStyleSheet(QStringLiteral(
         "color: %1; font-size: 12px;").arg(C_ERROR));

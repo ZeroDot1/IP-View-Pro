@@ -105,7 +105,7 @@ void AuditorTab::setupUI() noexcept
 
     mainLayout->addWidget(splitter, 1);
 
-    // ── Verbindungen ─────────────────────────────────────────────────────
+    // ── Connections ─────────────────────────────────────────────────────
     connect(auditButton, &QPushButton::clicked, this, &AuditorTab::onAuditClicked);
     connect(hostInput, &QLineEdit::returnPressed, this, &AuditorTab::onAuditClicked);
 }

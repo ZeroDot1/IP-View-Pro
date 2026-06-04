@@ -156,7 +156,7 @@ bool DatabaseModule::createSchema() noexcept
         return false;
     }
 
-    // ── Index auf interface + timestamp ────────────────────────────────────
+    // ── Index on interface + timestamp ────────────────────────────────────
     query.exec(QStringLiteral(
         "CREATE INDEX IF NOT EXISTS idx_telemetry_iface_time "
         "ON telemetry(interface, timestamp DESC)"

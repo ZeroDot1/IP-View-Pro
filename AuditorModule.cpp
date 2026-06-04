@@ -119,7 +119,7 @@ AuditorModule::performAudit(const QString &host, int port, int timeoutMs)
     QElapsedTimer timer;
     timer.start();
 
-    // ── SSL-Verbindung aufbauen ────────────────────────────────────────────
+    // ── Establish SSL connection ────────────────────────────────────────────
     auto *socket = new QSslSocket();
 
     // Ignore self-signed for reporting purposes (we detect it ourselves)

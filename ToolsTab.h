@@ -42,7 +42,7 @@ private slots:
     void onStopPingClicked();
     void onIperfClicked();
 
-    // ── Multi-target network scan (Phase: Netzwerkscan) ──────────────────
+    // ── Multi-target network scan ──────────────────
     void onNetScanStartClicked();
     void onNetScanStopClicked();
     void onNetScanPortFound(const IPView::Scanner::ScanResult &result);

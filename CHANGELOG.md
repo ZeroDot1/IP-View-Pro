@@ -59,7 +59,7 @@ All 50 unit tests, 103 checks, and the 3 s smoke test still pass.
 
 ### Added
 
-- **Network Tools — "Netzwerkscan" sub-tab (sequential multi-target port scan):**
+- **Network Tools — "Network scan" sub-tab (sequential multi-target port scan):**
   - New third sub-tab in `ToolsTab` alongside **Ping / iPerf3** and **Traceroute**.
   - Single input field accepts up to **3 comma-separated target IPs** (e.g.
     `192.168.1.1, 192.168.1.2, 192.168.1.3`); optional whitespace around
@@ -70,8 +70,8 @@ All 50 unit tests, 103 checks, and the 3 s smoke test still pass.
     of the dropped targets; the run is not aborted.
   - Scan walks the queue sequentially: `scanCompleted` handler triggers the
     next `runScan()` call, so the three ports sweeps never overlap.
-  - Results land in a 4-column table (`Ziel-IP`, `Offener Port`,
-    `Dienst`, `Latenz (ms)`) sorted in the order they were found.
+  - Results land in a 4-column table (`Target IP`, `Open Port`,
+    `Service`, `Latency (ms)`) sorted in the order they were found.
   - Stop button cancels the in-flight scan via `ScannerModule::cancelScan()`,
     clears the queue, and leaves the table in its current state for
     inspection.

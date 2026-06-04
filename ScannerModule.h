@@ -49,7 +49,7 @@ public:
     static constexpr int MAX_CONCURRENT_SCANS   = 100;  // Concurrent scans
     static constexpr int SCAN_DELAY_MS          = 10;   // Delay between batches
 
-    // Bekannte Ports (Auswahl)
+    // Known ports (selection)
     static constexpr std::array KNOWN_PORTS = {
         21, 22, 23, 25, 53, 80, 110, 111, 135, 139,
         143, 443, 445, 993, 995, 1433, 1521, 2049, 3306, 3389,

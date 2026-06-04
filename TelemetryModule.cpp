@@ -120,7 +120,7 @@ QList<InterfaceInfo> TelemetryModule::getAllInterfaces() const noexcept
 void TelemetryModule::onTick() noexcept
 {
     QFile file(QStringLiteral("/proc/net/dev"));
-    if (!file.open(QIODevice::ReadOnly)) {   // ← binary mode, kein QTextStream
+    if (!file.open(QIODevice::ReadOnly)) {   // ← binary mode, no QTextStream
         emit errorOccurred(QStringLiteral("Cannot open /proc/net/dev"));
         return;
     }
@@ -128,7 +128,7 @@ void TelemetryModule::onTick() noexcept
     QByteArray const raw = file.readAll();   // ← QByteArray statt QString
     file.close();
 
-    // ── Zero-Copy: std::string_view in den Roh-Puffer (Item 40) ──────────
+    // ── Zero-Copy: std::string_view into the raw buffer (Item 40) ──────────
     std::string_view const buf(raw.constData(),
                                static_cast<std::size_t>(raw.size()));
 
