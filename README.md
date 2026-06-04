@@ -462,4 +462,4 @@ This project is released under **Public Domain**. It may be freely used, copied,
 
 ---
 
-*IPView Pro v2.14.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*
+*IPView Pro v2.15.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*

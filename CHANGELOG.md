@@ -2,6 +2,39 @@
 
 All notable changes to this project are documented here.
 
+## [2.15.0] — 2026-06-04
+
+### Added
+
+- **Single source of truth for version metadata:**
+  - New `version.hpp.in` template, generated to `build/generated/version.hpp`
+    via `configure_file()` in CMakeLists.txt.
+  - `IPView::Version::Major / Minor / Patch / Commits / String` constants.
+  - `consteval appName / appVersion / appOrgName / appOrgDomain / appDisplayName`
+    accessors replace the literal strings previously inlined in `main.cpp`.
+  - Git commit count is auto-detected (best-effort, falls back to 0).
+
+### Changed
+
+- **Theme refresh — Teal Amber OLED Dark:**
+  - Palette renamed and tightened (primary `#00BCD4`, accent `#FFB300`).
+  - Surfaces use a 4-tier grey hierarchy on true OLED black (`#000000`).
+  - Removed QSS `transition` rules (Qt does not animate QSS changes for
+    the property classes we use; removing them shrinks the stylesheet).
+  - Tab-selected color switched to OLED-black text on amber for contrast.
+- **Version bumped:** `2.14.0` → `2.15.0` across `CMakeLists.txt`, `main.cpp`,
+  `PacketTab.cpp/.h`, `README.md`, build script, and all header banners.
+- **Header comments:** remaining German inline comments translated to
+  US English to match the rest of the source tree.
+
+### Fixed
+
+- **Version inconsistency:** `main.cpp` was hard-coded to `"2.14.0"` while
+  Theme.h, MainWindow.cpp/.h, and build.sh were already on v2.15.0 banners.
+  The new `version.hpp` makes this class of drift impossible.
+
+---
+
 ## [2.14.0] — 2026-05-21
 
 ### Fixed

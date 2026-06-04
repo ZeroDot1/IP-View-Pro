@@ -19,14 +19,14 @@
 #include "DatabaseModule.h"
 #include "ConfigManager.h"
 #include "Logger.h"
+#include "version.hpp"
 
-// ── Compile-time constant application metadata ─────────────────────────────
-//  C++26 consteval: Guaranteed evaluation at compile time
-consteval auto appName()        noexcept { return "IPView"; }
-    consteval auto appVersion()     noexcept { return "2.14.0"; }
-consteval auto appOrgName()     noexcept { return "IPView"; }
-consteval auto appOrgDomain()   noexcept { return "ipview.local"; }
-consteval auto appDisplayName() noexcept { return "IP View Pro"; }
+// Application metadata functions live in version.cpp (single source of truth).
+using IPView::appName;
+using IPView::appVersion;
+using IPView::appOrgName;
+using IPView::appOrgDomain;
+using IPView::appDisplayName;
 
 // ── Unique single-instance keys ─────────────────────────────────────────
 //  C++26 consteval: guaranteed compile-time evaluation

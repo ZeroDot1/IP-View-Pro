@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// IPView Pro v2.14.0 — PacketTab.h
+// IPView Pro v2.15.0 — PacketTab.h
 // C++26: noexcept, [[nodiscard]], default member init, std::ranges
 // Professional UI for live network connections from PacketModule.
 // Features: filtering, search, statistics, theme integration, state colors,

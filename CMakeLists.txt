@@ -16,9 +16,46 @@
 cmake_minimum_required(VERSION 3.28)
 
 project(IPView
-    VERSION      2.14.0
+    VERSION      2.15.0
     DESCRIPTION  "Professional IP Monitoring & Network Analysis Tool"
     LANGUAGES    CXX
+)
+
+# ── Version metadata (single source of truth) ────────────────────────
+#  version.hpp is generated from version.hpp.in so main.cpp can read
+#  the current version from a compile-time constant. Keeping the
+#  canonical value in CMake means CMakeLists.txt, the about dialog,
+#  and the runtime metadata are always in sync.
+set(IPVIEW_VERSION_MAJOR  2)
+set(IPVIEW_VERSION_MINOR  15)
+set(IPVIEW_VERSION_PATCH  0)
+set(IPVIEW_VERSION_COMMITS 0)
+
+# Git-aware commit count (best-effort, falls back to 0)
+find_package(Git QUIET)
+if(GIT_FOUND)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-list --count HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE IPVIEW_GIT_COMMIT_COUNT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if(IPVIEW_GIT_COMMIT_COUNT MATCHES "^[0-9]+$")
+        set(IPVIEW_VERSION_COMMITS ${IPVIEW_GIT_COMMIT_COUNT})
+    endif()
+endif()
+
+set(IPVIEW_VERSION_STRING "${IPVIEW_VERSION_MAJOR}.${IPVIEW_VERSION_MINOR}.${IPVIEW_VERSION_PATCH}")
+set(IPVIEW_APP_NAME       "IPView")
+set(IPVIEW_ORG_NAME       "IPView")
+set(IPVIEW_ORG_DOMAIN     "ipview.local")
+set(IPVIEW_DISPLAY_NAME   "IP View Pro")
+
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/version.hpp.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/version.hpp"
+    @ONLY
 )
 
 # ── C++26 Standard ─────────────────────────────────────────────
@@ -99,7 +136,13 @@ qt_add_executable(IPView
     PacketModule.cpp
     PacketTab.cpp
     AlertTab.cpp
+    version.cpp
     resources.qrc
+)
+
+# Generated version header must be visible to all translation units.
+target_include_directories(IPView PRIVATE
+    "${CMAKE_CURRENT_BINARY_DIR}/generated"
 )
 
 target_link_libraries(IPView
