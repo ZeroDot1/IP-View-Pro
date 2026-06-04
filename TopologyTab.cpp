@@ -16,7 +16,6 @@
 #include <QFont>
 #include <QDateTime>
 #include <QHeaderView>
-#include <QMessageBox>
 #include <QFileDialog>
 #include <QTextStream>
 #include <QFile>
@@ -25,6 +24,7 @@
 #include <QTableWidget>
 #include <cmath>
 #include <numeric>
+#include "ErrorDialog.h"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Helpers
@@ -245,7 +245,7 @@ void TopologyTab::onTraceClicked()
     if (input.isEmpty()) return;
 
     if (!isValidNetworkTarget(input)) {
-        QMessageBox::warning(this,
+        IPView::UI::ErrorDialog::showError(this,
             QStringLiteral("Invalid Target"),
             QStringLiteral("Please enter a valid IP address or hostname.\n"
                            "Shell metacharacters are not allowed."));
@@ -364,7 +364,7 @@ void TopologyTab::onClearClicked()
 void TopologyTab::onExportClicked()
 {
     if (mHops.isEmpty()) {
-        QMessageBox::information(this, QStringLiteral("No Data"),
+        IPView::UI::ErrorDialog::showInfo(this, QStringLiteral("No Data"),
             QStringLiteral("No topology data to export. Run a trace first."));
         return;
     }
@@ -379,7 +379,7 @@ void TopologyTab::onExportClicked()
 
     QFile file(fileName);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, QStringLiteral("Export Error"),
+        IPView::UI::ErrorDialog::showError(this, QStringLiteral("Export Error"),
             QStringLiteral("Could not open file for writing:\n%1").arg(file.errorString()));
         return;
     }
@@ -404,7 +404,7 @@ void TopologyTab::onExportClicked()
     }
 
     file.close();
-    QMessageBox::information(this, QStringLiteral("Export Complete"),
+    IPView::UI::ErrorDialog::showInfo(this, QStringLiteral("Export Complete"),
         QStringLiteral("Topology exported to:\n%1").arg(fileName));
 }
 
@@ -462,7 +462,8 @@ void TopologyTab::showHopDetails(const HopData &hop)
     layout->addWidget(table);
 
     auto *btns = new QDialogButtonBox(QDialogButtonBox::Close);
-    btns->setStyleSheet(QStringLiteral("QPushButton { color: %1; }").arg(C_TEXT));
+    // The global appStyleSheet() already styles all QPushButtons (incl.
+    // QDialogButtonBox children), so no per-button-box override needed.
     connect(btns, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
     layout->addWidget(btns);
 

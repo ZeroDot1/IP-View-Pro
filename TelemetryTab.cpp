@@ -22,8 +22,8 @@
 #include <QFileDialog>
 #include <QTextStream>
 #include <QFile>
-#include <QMessageBox>
 #include <QTableWidget>
+#include "ErrorDialog.h"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 TelemetryTab::TelemetryTab(QWidget *parent)
@@ -153,9 +153,7 @@ void TelemetryTab::setupUI() noexcept
     interfaceTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     interfaceTable->horizontalHeader()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
     interfaceTable->verticalHeader()->setVisible(false);
-    interfaceTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    interfaceTable->setAlternatingRowColors(true);
-    interfaceTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    applyTableStyle(interfaceTable);
     interfaceTable->setStyleSheet(QStringLiteral(
         "QTableWidget { background: %1; color: %2; gridline-color: %3; "
         "border: 1px solid %3; border-radius: %4; }"
@@ -325,7 +323,7 @@ void TelemetryTab::onRefreshInterfaces()
 void TelemetryTab::onExportClicked()
 {
     if (interfaceTable->rowCount() == 0) {
-        QMessageBox::information(this, QStringLiteral("No Data"),
+        IPView::UI::ErrorDialog::showInfo(this, QStringLiteral("No Data"),
             QStringLiteral("No telemetry data to export. Start monitoring first."));
         return;
     }
@@ -340,7 +338,7 @@ void TelemetryTab::onExportClicked()
 
     QFile file(fileName);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, QStringLiteral("Export Error"),
+        IPView::UI::ErrorDialog::showError(this, QStringLiteral("Export Error"),
             QStringLiteral("Could not open file for writing:\n%1").arg(file.errorString()));
         return;
     }
@@ -359,7 +357,7 @@ void TelemetryTab::onExportClicked()
     }
 
     file.close();
-    QMessageBox::information(this, QStringLiteral("Export Complete"),
+    IPView::UI::ErrorDialog::showInfo(this, QStringLiteral("Export Complete"),
         QStringLiteral("Telemetry data exported to:\n%1").arg(fileName));
 }
 
@@ -451,7 +449,8 @@ void TelemetryTab::showInterfaceDetails(const IPView::Telemetry::InterfaceInfo &
     layout->addWidget(table);
 
     auto *btns = new QDialogButtonBox(QDialogButtonBox::Close);
-    btns->setStyleSheet(QStringLiteral("QPushButton { color: %1; }").arg(C_TEXT));
+    // The global appStyleSheet() already styles all QPushButtons (incl.
+    // QDialogButtonBox children), so no per-button-box override needed.
     connect(btns, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
     layout->addWidget(btns);
 
@@ -540,9 +539,7 @@ void TelemetryTab::onShowAggregationHistory()
         });
         table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
         table->verticalHeader()->setVisible(false);
-        table->setSelectionBehavior(QAbstractItemView::SelectRows);
-        table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-        table->setAlternatingRowColors(true);
+        applyTableStyle(table);
         table->setStyleSheet(QStringLiteral(
             "QTableWidget { background: %1; color: %2; border: 1px solid %3; "
             "border-radius: 6px; gridline-color: %3; font-size: 11px; }"
@@ -590,7 +587,8 @@ void TelemetryTab::onShowAggregationHistory()
     }
 
     auto *btns = new QDialogButtonBox(QDialogButtonBox::Close);
-    btns->setStyleSheet(QStringLiteral("QPushButton { color: %1; }").arg(C_TEXT));
+    // The global appStyleSheet() already styles all QPushButtons (incl.
+    // QDialogButtonBox children), so no per-button-box override needed.
     connect(btns, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
     layout->addWidget(btns);
 

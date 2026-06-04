@@ -20,6 +20,9 @@
 
 #include <QString>
 #include <QStringBuilder>   // Efficient string concatenation
+#include <QTableWidget>     // For applyTableStyle()
+#include <QHeaderView>      // QHeaderView for verticalHeader() call
+#include <QAbstractItemView>// QAbstractItemView::SelectionBehavior / EditTrigger
 
 #include <array>            // C++26: constexpr std::array
 #include <chrono>           // std::chrono::milliseconds
@@ -675,6 +678,33 @@ inline QString appStyleSheet() noexcept
         "QSplitter::handle:vertical   { height: 1px; }"
         "QSplitter::handle:hover { background-color: %2; }"
     ).arg(C_BORDER, C_ACCENT);
+}
+
+// ─── Behavior helpers ────────────────────────────────────────────────────────
+//
+// These helpers are not style-sheet strings — they are the per-widget
+// behavioural defaults that the theme is built around. Centralising them
+// here keeps every QTableWidget in the project visually and behaviourally
+// consistent: alternating row colours, whole-row selection, no in-place
+// editing, no sorting (sorting is opt-in because it reorders any
+// pre-populated rows).
+
+/// Apply the standard IP View Pro styling and behaviour to a QTableWidget.
+/// The optional \a sortable flag enables column-header sorting (off by
+/// default because the speed-test, packet, and topology tables are
+/// filled in arrival order). The optional \a showVerticalHeader flag
+/// shows the row-number column (off by default — the OLED look is
+/// header-free on the left edge). Safe to call with a null pointer.
+inline void applyTableStyle(QTableWidget *table,
+                            bool sortable       = false,
+                            bool showVerticalHeader = false) noexcept
+{
+    if (table == nullptr) return;
+    table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setAlternatingRowColors(true);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setSortingEnabled(sortable);
+    if (auto *vh = table->verticalHeader()) vh->setVisible(showVerticalHeader);
 }
 
 #endif // THEME_H

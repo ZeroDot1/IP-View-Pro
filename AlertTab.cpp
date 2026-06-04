@@ -11,7 +11,7 @@
 
 #include <QHeaderView>
 #include <QDateTime>
-#include <QMessageBox>
+#include "ErrorDialog.h"
 
 namespace IPView::UI {
 
@@ -104,7 +104,7 @@ void AlertTab::onAcknowledgeClicked()
 {
     int const row = mTable->currentRow();
     if (row < 0) {
-        QMessageBox::information(this, QStringLiteral("No Selection"),
+        IPView::UI::ErrorDialog::showInfo(this, QStringLiteral("No Selection"),
             QStringLiteral("Please select an alert to acknowledge."));
         return;
     }

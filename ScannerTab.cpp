@@ -144,9 +144,7 @@ void ScannerTab::setupUI() noexcept
     resultTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     resultTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     resultTable->verticalHeader()->setVisible(false);
-    resultTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    resultTable->setAlternatingRowColors(true);
-    resultTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    applyTableStyle(resultTable);
     mainLayout->addWidget(resultTable, 1);
 
     // ── Connections ────────────────────────────────────────────────────────

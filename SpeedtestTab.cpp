@@ -675,12 +675,7 @@ void SpeedtestTab::onBrowseServers()
     });
     table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     table->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
-    table->setSelectionBehavior(QAbstractItemView::SelectRows);
-    table->setSelectionMode(QAbstractItemView::SingleSelection);
-    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    table->setAlternatingRowColors(true);
-    table->setSortingEnabled(true);
-    table->verticalHeader()->setVisible(false);
+    applyTableStyle(table, /*sortable=*/true);
     table->setStyleSheet(QString(
         "QTableWidget { background: %1; color: %2; border: 1px solid %3; "
         "border-radius: 6px; gridline-color: %3; font-size: 11px; }"

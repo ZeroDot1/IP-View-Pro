@@ -182,9 +182,7 @@ void ToolsTab::setupNetworkScanTab(QVBoxLayout *parentLayout) noexcept
     mNetScanTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     mNetScanTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
     mNetScanTable->verticalHeader()->setVisible(false);
-    mNetScanTable->setEditTriggers(QTableWidget::NoEditTriggers);
-    mNetScanTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    mNetScanTable->setAlternatingRowColors(true);
+    applyTableStyle(mNetScanTable);
     parentLayout->addWidget(mNetScanTable, 1);
 }
 

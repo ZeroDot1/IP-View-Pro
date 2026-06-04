@@ -18,12 +18,12 @@
 #include <QFileDialog>
 #include <QTextStream>
 #include <QFile>
-#include <QMessageBox>
 #include <QDialog>
 #include <QFormLayout>
 #include <QScrollArea>
 #include <ranges>
 #include <algorithm>
+#include "ErrorDialog.h"
 
 namespace IPView::UI {
 
@@ -196,10 +196,8 @@ void PacketTab::setupUI()
     mTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
     mTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     mTable->horizontalHeader()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    mTable->setEditTriggers(QTableWidget::NoEditTriggers);
-    mTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    mTable->setAlternatingRowColors(true);
     mTable->verticalHeader()->setVisible(false);
+    applyTableStyle(mTable);
     mTable->setStyleSheet(QStringLiteral(
         "QTableWidget { background: %1; color: %2; gridline-color: %3; "
         "border: 1px solid %3; border-radius: %4; }"
@@ -293,7 +291,7 @@ void PacketTab::onExportClicked()
 
     QFile file(fileName);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, QStringLiteral("Export Error"),
+        IPView::UI::ErrorDialog::showError(this, QStringLiteral("Export Error"),
             QStringLiteral("Could not open file for writing:\n%1").arg(file.errorString()));
         return;
     }
@@ -312,7 +310,7 @@ void PacketTab::onExportClicked()
     for (auto const &e : mLastSnapshot.udpConnections) exportEntry(e, QStringLiteral("UDP"));
 
     file.close();
-    QMessageBox::information(this, QStringLiteral("Export Complete"),
+    IPView::UI::ErrorDialog::showInfo(this, QStringLiteral("Export Complete"),
         QStringLiteral("Connections exported to:\n%1").arg(fileName));
 }
 
