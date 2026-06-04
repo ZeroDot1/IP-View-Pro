@@ -2,6 +2,86 @@
 
 All notable changes to this project are documented here.
 
+## [2.15.4] — 2026-06-04
+
+### Fixed
+
+- **All IP lookups were silently failing.** `NetworkManager`
+  enforced an HTTPS-only check in `doRequest()` but three IPv4
+  endpoints (`ipwhois.app`, `myip.com`, `checkip.amazonaws.com`)
+  and two IPv6 endpoints (`api6.ipify.org`, `api64.ipify.org`)
+  were still listed with `http://` URLs. The check rejected
+  every response, so no provider ever returned data. All URLs
+  switched to `https://`. `doRequest()` retains the check as
+  defence-in-depth.
+- **Country flags never loaded.** `FlagLoader` was using
+  `https://flagpedia.net` (rate-limited, frequently 429'd), set
+  the `User-Agent` header on a *copy* of the request *after*
+  `get()` had already fired (no-op), and stored the target
+  `QLabel*` as a `QVariant<quintptr>` + `reinterpret_cast` —
+  which broke the moment a label was destroyed and recreated.
+  Rewrite uses a `QHash<QNetworkReply*, FlagRequest>` with
+  `QPointer<QLabel>` for safe lifetime tracking, the
+  `User-Agent` set on the live request before `get()`, and
+  `https://flagcdn.com/w160/<cc>.png` (Cloudflare CDN).
+
+### Added
+
+- **Full tray view.** The tray menu now contains a
+  live status header (IP, country flag, country name, ISP),
+  *Refresh now*, *Show / hide window*, *Go to tab* (12-entry
+  sub-menu built from the central `TabRegistry`),
+  *Auto-refresh* (checkable), and *Quit*. Middle-click on the
+  tray icon refreshes, double-click restores the window. The
+  tray tooltip shows a richer multi-line "IP View Pro / IP /
+  Country / ISP / Org" with a "last refreshed" timestamp. On
+  close-to-tray, `QSystemTrayIcon::showMessage()` is fired
+  once per actual IP change (not on every refresh) and is
+  guarded by `trayIcon->supportsMessages()` so it no-ops on
+  desktops without a notification daemon.
+- **Theme design tokens expanded.** Added severity scale
+  (info / warning / critical), status dots (online / offline /
+  pending / idle), spacing scale (8-px base), sizing tokens
+  (icon, button, flag, table row), typography scale, animation
+  durations (hover, press, fade, toast, traytip), shadows
+  (sm / md / lg / focus / glow), z-index, opacity. New
+  helper styles: `btnPrimaryStyle`, `btnDangerStyle`,
+  `btnGhostStyle`, `statusDotStyle(color)`,
+  `severityBadgeStyle(bg, fg)`, `toastStyle()`,
+  `splitterStyle()`. New global QSS selectors:
+  `QFrame[card]`, `QStatusBar`, `QLabel[statusdot=...]`,
+  `QLabel[badge=...]`, plus richer `QPushButton` variants.
+  `IPView::Theme::COLOR_TOKENS` is a `constexpr std::array`
+  of token names for tooling / CI lint.
+- **`applyTableStyle(QTableWidget*, sortable, showVHeader)`.**
+  Centralises the 3-call table setup
+  (SelectRows + Alternating + NoEditTriggers + optional
+  sorting / vHeader visibility) used in 5 different tabs.
+  Future behaviour change is a one-file edit.
+- **`colorStyle(const char* color)` helper.** Replaces
+  `QStringLiteral("color: %1;").arg(C_*)` in 8 call sites.
+- **`Format.hpp` constants.** `TIME_HMS` ("hh:mm:ss") and
+  `DATETIME_SEC` ("yyyy-MM-dd hh:mm:ss") extracted from
+  7 raw `QStringLiteral()` calls in 4 files.
+- **`TabRegistry::entries()` accessor** returns
+  `std::span<const TabEntry>` for iteration by the tray
+  sub-menu and any future palette consumer.
+
+### Changed
+
+- **Refactor: dedupe QMessageBox calls.** 9 direct
+  `QMessageBox::warning` / `information` calls in
+  `AlertTab`, `PacketTab`, `TelemetryTab`, `TopologyTab` were
+  migrated to `IPView::UI::ErrorDialog::showError` /
+  `showInfo`. Drops the `<QMessageBox>` include from those
+  files and routes everything through the project's central
+  dialog wrapper. Net: -27 lines, 0 functional changes, 0
+  new dependencies.
+- **Refactor: remove dead `QPushButton` colour override.**
+  Three `QDialogButtonBox` instances had a local
+  `setStyleSheet("QPushButton { color: ... }")` that was
+  already covered by the global `appStyleSheet()`. Removed.
+
 ## [2.15.3] — 2026-06-04
 
 ### Added
