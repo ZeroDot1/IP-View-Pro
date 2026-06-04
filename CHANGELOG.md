@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented here.
 
+## [2.15.1] — 2026-06-04
+
+### Added
+
+- **Network Tools — "Netzwerkscan" sub-tab (sequential multi-target port scan):**
+  - New third sub-tab in `ToolsTab` alongside **Ping / iPerf3** and **Traceroute**.
+  - Single input field accepts up to **3 comma-separated target IPs** (e.g.
+    `192.168.1.1, 192.168.1.2, 192.168.1.3`); optional whitespace around
+    commas is trimmed.
+  - Each entry is validated through `SecurityUtil::isValidNetworkTarget`
+    (the same regex that blocks command injection in the rest of the app).
+    Invalid or empty entries are reported in the status label with a list
+    of the dropped targets; the run is not aborted.
+  - Scan walks the queue sequentially: `scanCompleted` handler triggers the
+    next `runScan()` call, so the three ports sweeps never overlap.
+  - Results land in a 4-column table (`Ziel-IP`, `Offener Port`,
+    `Dienst`, `Latenz (ms)`) sorted in the order they were found.
+  - Stop button cancels the in-flight scan via `ScannerModule::cancelScan()`,
+    clears the queue, and leaves the table in its current state for
+    inspection.
+  - The hard 3-target cap is enforced with a notice — anything beyond the
+    third IP is dropped and named in the status line rather than silently
+    truncated.
+
 ## [2.15.0] — 2026-06-04
 
 ### Added

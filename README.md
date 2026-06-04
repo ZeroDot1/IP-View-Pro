@@ -73,6 +73,7 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
 - **Ping:** 4 ICMP packets with real-time output, **Cancel button**, 60-second auto-timeout.
 - **iPerf3:** Client/server mode with real-time speed visualization and color-coded progress bar (green ≥ 100 Mbps, cyan ≥ 50, orange ≥ 10, red < 10). Progress bar updates automatically with each speed measurement.
 - **Traceroute:** Cross-platform support (Linux: `traceroute`/`tracepath`, Windows: `tracert`) with Cancel button.
+- **Netzwerkscan — sequential multi-target port scan:** Enter up to **3 comma-separated IPs** (e.g. `192.168.1.1, 192.168.1.2, 192.168.1.3`) and start a sequential port sweep across all three. Each target is validated through `isValidNetworkTarget()` (the same command-injection guard used everywhere else), bad entries are reported in the status line, and the 28 well-known ports are scanned per target with results flowing into a single table (`Ziel-IP`, `Offener Port`, `Dienst`, `Latenz (ms)`). Stop button cancels mid-run.
 
 ###  IP Change History
 - Automatic recording of all IP changes during the session (up to 50 entries).
@@ -285,6 +286,7 @@ cmake --build build -j"$(nproc)"
    - **Ping:** Send 4 ICMP packets to any target. Cancel anytime.
    - **iPerf3:** Measure network throughput between client and server. Real-time color-coded speed display.
    - **Traceroute:** Trace network hops to any target. Cross-platform (Linux/Windows).
+   - **Netzwerkscan:** Scan up to 3 IPs sequentially. Enter comma-separated targets (`192.168.1.1, 192.168.1.2, 192.168.1.3`), click **Scan starten**, and watch the results table fill in. Stop button cancels mid-run.
 
 4. **Port Scanner** : Scan open ports on any target host.
    - **Quick Scan:** 28 well-known ports (SSH, HTTP, HTTPS, MySQL, etc.).
