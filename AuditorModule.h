@@ -19,7 +19,10 @@
 #include <expected>
 #include <vector>
 #include <string>
+#include <string_view>
 #include <optional>
+
+#include "Error.hpp"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Auditor {
@@ -58,7 +61,7 @@ public:
 
     // ── Public API ──────────────────────────────────────────────────────────
     /// Audit a single host (blocking, with timeout).
-    [[nodiscard]] std::expected<AuditResult, QString>
+    [[nodiscard]] IPView::Result<AuditResult>
     auditHost(const QString &host, int port = 443, int timeoutMs = 10000) noexcept;
 
     /// Audit multiple hosts sequentially.

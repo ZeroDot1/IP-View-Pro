@@ -29,13 +29,13 @@ ServerSelectionModule::ServerSelectionModule(QObject *parent)
 //  Public API
 // ═══════════════════════════════════════════════════════════════════════════════
 
-std::expected<std::vector<ServerInfo>, QString>
+IPView::Result<std::vector<ServerInfo>>
 ServerSelectionModule::getAvailableServers(int timeoutMs) noexcept
 {
     QString const program = findSpeedtestBinary();
     if (program.isEmpty()) {
-        return std::unexpected(
-            QStringLiteral("speedtest-cli not found. Install: sudo pacman -S speedtest-cli"));
+        return IPView::unexpected(IPView::Error::CommandNotFound,
+            std::string{"speedtest-cli not found. Install: sudo pacman -S speedtest-cli"});
     }
 
     emit serverFetchStarted();
@@ -48,17 +48,18 @@ ServerSelectionModule::getAvailableServers(int timeoutMs) noexcept
         listProc.kill();
         listProc.waitForFinished(static_cast<int>(IPView::Timeouts::PROCESS_QUIT.count()));
         emit serverFetchError(QStringLiteral("Server list fetch timed out"));
-        return std::unexpected(QStringLiteral("Server list fetch timed out after %1 ms")
-                                   .arg(timeoutMs));
+        return IPView::unexpected(IPView::Error::CommandFailed,
+            QStringLiteral("Server list fetch timed out after %1 ms")
+                .arg(timeoutMs).toStdString());
     }
 
     if (listProc.exitCode() != 0) {
         QString const stderrOut = QString::fromUtf8(listProc.readAllStandardError());
         emit serverFetchError(stderrOut);
-        return std::unexpected(
+        return IPView::unexpected(IPView::Error::CommandFailed,
             QStringLiteral("speedtest-cli --list failed (exit %1): %2")
                 .arg(listProc.exitCode())
-                .arg(stderrOut));
+                .arg(stderrOut).toStdString());
     }
 
     QByteArray const raw = listProc.readAll();

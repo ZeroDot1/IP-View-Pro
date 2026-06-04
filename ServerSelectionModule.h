@@ -18,6 +18,9 @@
 #include <optional>
 #include <algorithm>
 #include <expected>     // C++26
+#include <string>
+
+#include "Error.hpp"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Speedtest {
@@ -41,8 +44,8 @@ public:
     ~ServerSelectionModule() override = default;
 
     // ── Fetch available servers via speedtest-cli --list ──────────────────
-    //  Returns std::expected with vector of servers or error string.
-    [[nodiscard]] std::expected<std::vector<ServerInfo>, QString>
+    //  Returns IPView::Result with vector of servers or ErrorInfo.
+    [[nodiscard]] IPView::Result<std::vector<ServerInfo>>
     getAvailableServers(int timeoutMs = 30000) noexcept;
 
     // ── Convenience: parse raw --list output ──────────────────────────────

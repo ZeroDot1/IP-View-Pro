@@ -31,13 +31,13 @@ TelemetryModule::TelemetryModule(QObject *parent)
 //  Public API
 // ═══════════════════════════════════════════════════════════════════════════════
 
-std::expected<Stats, std::string>
+IPView::Result<Stats>
 TelemetryModule::fetchStats(std::string_view interface) noexcept
 {
     QFile file(QStringLiteral("/proc/net/dev"));
     if (!file.open(QIODevice::ReadOnly)) {
-        return std::unexpected(
-            std::string("Cannot open /proc/net/dev: ") + file.errorString().toStdString());
+        return IPView::unexpected(IPView::Error::FileReadError,
+            std::string{"Cannot open /proc/net/dev: "} + file.errorString().toStdString());
     }
 
     QByteArray const raw = file.readAll();
@@ -138,6 +138,11 @@ void TelemetryModule::onTick() noexcept
 
     for (QString const &iface : ifaces) {
         std::string const name = iface.toStdString();
+        // parseProcNetDev returns Stats; failures produce zeroed values
+        // and emit an error signal. Treat the call as a plain
+        // operation rather than threading Result through the polling
+        // loop: the original code already silently dropped errors
+        // here, so we keep the same behaviour.
         Stats const current = parseProcNetDev(buf, name);
 
         // Find previous entry for speed calculation

@@ -33,11 +33,12 @@ AuditorModule::AuditorModule(QObject *parent)
 //  Public API
 // ═══════════════════════════════════════════════════════════════════════════════
 
-std::expected<AuditResult, QString>
+IPView::Result<AuditResult>
 AuditorModule::auditHost(const QString &host, int port, int timeoutMs) noexcept
 {
     if (host.trimmed().isEmpty()) {
-        return std::unexpected(QStringLiteral("Empty hostname provided"));
+        return IPView::unexpected(IPView::Error::InvalidHostname,
+            std::string{"Empty hostname provided"});
     }
 
     emit auditStarted(host);

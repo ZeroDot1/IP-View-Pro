@@ -19,6 +19,7 @@
 #include <chrono>
 
 #include "Timeouts.hpp"
+#include "Error.hpp"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Telemetry {
@@ -57,8 +58,8 @@ public:
     ~TelemetryModule() override = default;
 
     // ── Public API ──────────────────────────────────────────────────────────
-    [[nodiscard]] std::expected<Stats, std::string> fetchStats(std::string_view interface) noexcept;
-    [[nodiscard]] QStringList                       availableInterfaces() const noexcept;
+    [[nodiscard]] IPView::Result<Stats> fetchStats(std::string_view interface) noexcept;
+    [[nodiscard]] QStringList           availableInterfaces() const noexcept;
 
     void startMonitoring(int intervalMs =
                              static_cast<int>(IPView::Timeouts::POLL_TELEMETRY_DEFAULT.count())) noexcept;

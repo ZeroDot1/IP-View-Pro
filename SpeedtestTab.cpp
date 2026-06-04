@@ -445,8 +445,8 @@ void SpeedtestTab::onMultiTestClicked()
         logArea->append(QStringLiteral("Fetching server list\u2026"));
         auto servers = serverSelector->getAvailableServers(8000);
         if (!servers.has_value()) {
-            logArea->append(QStringLiteral("Failed to fetch servers: ") + servers.error());
-            return;
+            logArea->append(QStringLiteral("Failed to fetch servers: ") +
+                            QString::fromStdString(servers.error().format()));
         }
         serverCache = std::move(*servers);
     }
@@ -629,8 +629,8 @@ void SpeedtestTab::onBrowseServers()
         if (result.has_value()) {
             servers = *result;
         } else {
-            statusLabel->setText(QStringLiteral("Server fetch failed: %1").arg(result.error()));
-            return;
+            statusLabel->setText(QStringLiteral("Server fetch failed: %1")
+                                     .arg(QString::fromStdString(result.error().format())));
         }
     } else {
         servers = serverCache;
