@@ -15,7 +15,7 @@
 
 #include <chrono>
 #include <utility>
-#include <vector>
+#include <inplace_vector>   // C++26: stack-allocated fixed-capacity vector
 
 #include "Timeouts.hpp"
 
@@ -71,9 +71,21 @@ private:
 
     // ── API Configuration ───────────────────────────────────────────────────
     //  C++26: std::pair replaces QPair; first = display name, second = URL.
+    //
+    //  Storage is std::inplace_vector<..., N> with N chosen to
+    //  cover every entry in the static IPv4_APIS / IPv6_APIS
+    //  tables. The two arrays are bounded at compile time and
+    //  never grow at runtime, so the heap allocation that a
+    //  std::vector would do at construction is pure waste.
+    //  inplace_vector keeps the storage inline (on the
+    //  NetworkManager's stack frame / heap block, no extra
+    //  allocation), and std::vector<>'s growth-doubling
+    //  reallocation path simply cannot fire.
     using ApiEntry = std::pair<QString, QString>;
-    std::vector<ApiEntry> apiList;
-    std::vector<ApiEntry> ipv6ApiList;
+    static constexpr std::size_t kIPv4ApiCapacity = 16;
+    static constexpr std::size_t kIPv6ApiCapacity = 8;
+    std::inplace_vector<ApiEntry, kIPv4ApiCapacity> apiList;
+    std::inplace_vector<ApiEntry, kIPv6ApiCapacity> ipv6ApiList;
 
     // ── State ─────────────────────────────────────────────────────────────
     int         currentApiIndex{0};
