@@ -11,6 +11,7 @@
 #include "TelemetryTab.h"
 #include "AuditorTab.h"
 #include "Theme.h"
+#include "Timeouts.hpp"
 #include <QApplication>
 #include <QClipboard>
 #include <QDateTime>
@@ -144,7 +145,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
         event->ignore();
         trayIcon->showMessage(QStringLiteral("IP View Pro"),
                               QStringLiteral("Application running in tray."),
-                              QSystemTrayIcon::Information, 2000);
+                              QSystemTrayIcon::Information,
+                              static_cast<int>(IPView::Timeouts::TRAY_TOOLTIP.count()));
     } else {
         // Really quit — save everything first
         saveSettings();
@@ -480,7 +482,7 @@ void MainWindow::loadSettings() noexcept
 void MainWindow::setupPacketModule() noexcept
 {
     mPacketModule = new IPView::Packet::PacketModule(this);
-    mPacketModule->startPolling(5000);  // poll every 5 seconds
+    mPacketModule->startPolling(static_cast<int>(IPView::Timeouts::POLL_PACKET_DEFAULT.count()));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

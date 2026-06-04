@@ -10,6 +10,7 @@
 #include "PacketTab.h"
 #include "Theme.h"
 #include "SecurityUtil.h"
+#include "Timeouts.hpp"
 
 #include <QHeaderView>
 #include <QTimer>
@@ -32,9 +33,9 @@ PacketTab::PacketTab(IPView::Packet::PacketModule *module, QWidget *parent)
     setupUI();
     setupConnections();
 
-    // Auto-refresh every 5 seconds
+    // Auto-refresh at the default packet polling interval
     mRefreshTimer = new QTimer(this);
-    mRefreshTimer->setInterval(5000);
+    mRefreshTimer->setInterval(IPView::Timeouts::POLL_PACKET_DEFAULT);
     connect(mRefreshTimer, &QTimer::timeout, this, &PacketTab::refreshData);
     if (mAutoRefresh) mRefreshTimer->start();
 

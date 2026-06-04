@@ -7,6 +7,7 @@
 
 #include "AlertTab.h"
 #include "Theme.h"
+#include "Timeouts.hpp"
 
 #include <QHeaderView>
 #include <QDateTime>
@@ -26,9 +27,9 @@ AlertTab::AlertTab(IPView::Alert::AlertEngine *engine, QWidget *parent) noexcept
                 this, &AlertTab::onAlertsChanged);
     }
 
-    // Auto-refresh every 3 seconds
+    // Auto-refresh at the configured alert polling interval
     mRefreshTimer = new QTimer(this);
-    mRefreshTimer->setInterval(3000);
+    mRefreshTimer->setInterval(IPView::Timeouts::POLL_ALERT);
     connect(mRefreshTimer, &QTimer::timeout, this, &AlertTab::refreshDisplay);
     mRefreshTimer->start();
 

@@ -10,6 +10,7 @@
 #include "TelemetryTab.h"
 #include "Theme.h"
 #include "ConfigManager.h"
+#include "Timeouts.hpp"
 
 #include <QHeaderView>
 #include <QFrame>
@@ -287,7 +288,7 @@ void TelemetryTab::onToggleMonitoring()
         statusLabel->setText(QStringLiteral("Monitoring stopped."));
         mMonitoring = false;
     } else {
-        mTelemetry->startMonitoring(2000);
+        mTelemetry->startMonitoring(static_cast<int>(IPView::Timeouts::POLL_TELEMETRY_DEFAULT.count()));
         toggleButton->setText(QStringLiteral("\u23F9 Stop Monitoring"));
         toggleButton->setStyleSheet(QStringLiteral(
             "QPushButton { background-color: %1; color: %2; "
@@ -303,7 +304,7 @@ void TelemetryTab::onRefreshInterfaces()
     if (mMonitoring) {
         statusLabel->setText(QStringLiteral("Refreshing..."));
         mTelemetry->stopMonitoring();
-        mTelemetry->startMonitoring(2000);
+        mTelemetry->startMonitoring(static_cast<int>(IPView::Timeouts::POLL_TELEMETRY_DEFAULT.count()));
     } else {
         QStringList const ifaces = mTelemetry->availableInterfaces();
         QList<IPView::Telemetry::InterfaceInfo> infos;

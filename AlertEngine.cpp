@@ -9,6 +9,7 @@
 #include "AlertEngine.h"
 #include "TelemetryModule.h"   // InterfaceInfo
 #include "AuditorModule.h"     // AuditResult
+#include "Timeouts.hpp"
 
 #include <algorithm>
 #include <ranges>
@@ -113,7 +114,9 @@ bool AlertEngine::isOnCooldown(const QString &ruleName) const noexcept
     // Find the matching rule to get its cooldown period
     auto ruleIt = std::ranges::find_if(mRules,
                                        [&](const Rule &r) { return r.name == ruleName; });
-    int const cooldownSec = (ruleIt != mRules.end()) ? ruleIt->cooldownSec : 300;
+    int const cooldownSec = (ruleIt != mRules.end())
+                                ? ruleIt->cooldownSec
+                                : static_cast<int>(IPView::Timeouts::COOLDOWN_DEFAULT.count());
 
     auto const elapsed = it->lastFired.secsTo(QDateTime::currentDateTimeUtc());
     return elapsed < cooldownSec;
@@ -294,7 +297,9 @@ void AlertEngine::fireAlert(Alert &&alert) noexcept
     QDateTime const now = QDateTime::currentDateTimeUtc();
     if (cdIt != mCooldowns.end()) {
         auto const elapsed = cdIt->lastFired.secsTo(now);
-        if (elapsed < 300) return; // 5 min default cooldown
+        if (elapsed < static_cast<qint64>(IPView::Timeouts::COOLDOWN_DEFAULT.count())) {
+            return; // Still in default cooldown window
+        }
         cdIt->lastFired = now;
     } else {
         mCooldowns.push_back(CooldownEntry{alert.id, now});
@@ -316,8 +321,8 @@ void AlertEngine::registerDefaultRules() noexcept
     bwRule.description      = QStringLiteral("Alert on high bandwidth usage");
     bwRule.category         = Category::Telemetry;
     bwRule.severity         = Severity::Warning;
-    bwRule.warningThreshold = 100.0 * 1024.0 * 1024.0;     // 100 MB/s
-    bwRule.criticalThreshold= 500.0 * 1024.0 * 1024.0;     // 500 MB/s
+    bwRule.warningThreshold = IPView::Timeouts::ALERT_BW_WARN_MBPS  * 1024.0 * 1024.0;
+    bwRule.criticalThreshold= IPView::Timeouts::ALERT_BW_CRIT_MBPS  * 1024.0 * 1024.0;
     bwRule.cooldownSec      = 120;
     bwRule.enabled          = true;
     mRules.push_back(bwRule);
@@ -328,9 +333,9 @@ void AlertEngine::registerDefaultRules() noexcept
     errRule.description      = QStringLiteral("Alert on many interface errors");
     errRule.category         = Category::Telemetry;
     errRule.severity         = Severity::Warning;
-    errRule.warningThreshold = 100.0;     // 100 errors
-    errRule.criticalThreshold= 1000.0;    // 1000 errors
-    errRule.cooldownSec      = 300;
+    errRule.warningThreshold = static_cast<double>(IPView::Timeouts::ALERT_ERROR_WARN);
+    errRule.criticalThreshold= static_cast<double>(IPView::Timeouts::ALERT_ERROR_CRIT);
+    errRule.cooldownSec      = static_cast<int>(IPView::Timeouts::COOLDOWN_DEFAULT.count());
     errRule.enabled          = true;
     mRules.push_back(errRule);
 

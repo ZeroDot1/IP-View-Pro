@@ -18,6 +18,8 @@
 #include <cstdint>
 #include <chrono>
 
+#include "Timeouts.hpp"
+
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Telemetry {
 
@@ -58,7 +60,8 @@ public:
     [[nodiscard]] std::expected<Stats, std::string> fetchStats(std::string_view interface) noexcept;
     [[nodiscard]] QStringList                       availableInterfaces() const noexcept;
 
-    void startMonitoring(int intervalMs = 2000) noexcept;
+    void startMonitoring(int intervalMs =
+                             static_cast<int>(IPView::Timeouts::POLL_TELEMETRY_DEFAULT.count())) noexcept;
     void stopMonitoring()                         noexcept;
     [[nodiscard]] bool isMonitoring() const       noexcept;
 
@@ -93,8 +96,8 @@ private:
 
     // ── Dynamic interval bounds (Item 41) ────────────────────────────
     int  mBaseIntervalMs{2000};
-    int  mMinIntervalMs{500};
-    int  mMaxIntervalMs{10000};
+    int  mMinIntervalMs{static_cast<int>(IPView::Timeouts::POLL_TELEMETRY_MIN.count())};
+    int  mMaxIntervalMs{static_cast<int>(IPView::Timeouts::POLL_TELEMETRY_MAX.count())};
     bool mDynamicAdjustment{true};
 };
 

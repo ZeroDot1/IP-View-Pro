@@ -7,6 +7,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "PacketModule.h"
+#include "Timeouts.hpp"
 
 #include <QFile>
 #include <QTextStream>
@@ -60,7 +61,9 @@ ConnectionSnapshot PacketModule::pollNow() noexcept
 // ═══════════════════════════════════════════════════════════════════════════════
 void PacketModule::startPolling(int intervalMs) noexcept
 {
-    if (intervalMs < 1000) intervalMs = 1000;  // minimum 1s
+    if (intervalMs < static_cast<int>(IPView::Timeouts::POLL_PACKET_MIN.count())) {
+        intervalMs = static_cast<int>(IPView::Timeouts::POLL_PACKET_MIN.count());
+    }
     mTimer->start(intervalMs);
 }
 

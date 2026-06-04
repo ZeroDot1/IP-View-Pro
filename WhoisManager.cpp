@@ -6,6 +6,7 @@
 
 #include "WhoisManager.h"
 #include "SecurityUtil.h"
+#include "Timeouts.hpp"
 #include <QUrl>
 #include <QNetworkRequest>
 #include <QJsonArray>
@@ -46,7 +47,7 @@ void WhoisManager::lookup(const QString &ip, const QString &apiName) noexcept
 
     QNetworkRequest request(url);
     request.setRawHeader("User-Agent", QByteArrayLiteral("IPView/2.0"));
-    request.setTransferTimeout(15000);
+    request.setTransferTimeout(IPView::Timeouts::HTTP_TRANSFER);
 
     QNetworkReply * const reply = manager->get(request);
 
@@ -57,8 +58,10 @@ void WhoisManager::lookup(const QString &ip, const QString &apiName) noexcept
         onReplyFinished(reply);
     });
 
-    // Safety timeout
-    QTimer::singleShot(20000, reply, [reply]() {
+    // Safety timeout — give the OS-level transfer timeout a chance plus
+    // a generous grace period before we forcibly abort the reply.
+    QTimer::singleShot(IPView::Timeouts::HTTP_TRANSFER + std::chrono::seconds{5},
+                       reply, [reply]() {
         if (reply && !reply->isFinished()) {
             reply->abort();
         }

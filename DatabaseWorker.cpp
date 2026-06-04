@@ -7,6 +7,7 @@
 #include "DatabaseWorker.h"
 #include "DatabaseModule.h"
 #include "Logger.h"
+#include "Timeouts.hpp"
 
 #include <QMutexLocker>
 
@@ -39,7 +40,7 @@ void DatabaseWorker::shutdown() noexcept
         QMutexLocker lock(&mMutex);
         mCond.wakeAll();
     }
-    wait(3000);
+    wait(static_cast<unsigned long>(IPView::Timeouts::DB_WORKER_QUIT.count()));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -57,7 +58,8 @@ void DatabaseWorker::run()
             QMutexLocker lock(&mMutex);
             if (mQueue.empty()) {
                 emit allJobsCompleted();
-                mCond.wait(&mMutex, 1000); // 1s wakeup interval
+                mCond.wait(&mMutex,
+                           static_cast<unsigned long>(IPView::Timeouts::DB_WORKER_TICK.count()));
                 if (mQueue.empty()) continue;
             }
             job = mQueue.front();

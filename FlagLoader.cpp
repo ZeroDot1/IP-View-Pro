@@ -7,6 +7,7 @@
 #include "FlagLoader.h"
 #include "SecurityUtil.h"
 #include "Logger.h"
+#include "Timeouts.hpp"
 #include <QUrl>
 #include <QNetworkRequest>
 #include <QTimer>
@@ -38,7 +39,7 @@ void FlagLoader::loadFlag(const QString &cc, QLabel *label) noexcept
                        .arg(lowerCc));
     QNetworkRequest request(url);
     request.setRawHeader("User-Agent", QByteArrayLiteral("IPView/2.0"));
-    request.setTransferTimeout(10000);
+    request.setTransferTimeout(IPView::Timeouts::HTTP_FALLBACK);
 
     QNetworkReply * const reply = manager->get(request);
 
@@ -54,8 +55,10 @@ void FlagLoader::loadFlag(const QString &cc, QLabel *label) noexcept
         onReplyFinished(reply);
     });
 
-    // Security timeout (15 s)
-    QTimer::singleShot(15000, reply, [reply]() {
+    // Security timeout — same length as the OS transfer timeout plus a
+    // small grace window before the reply is forcibly aborted.
+    QTimer::singleShot(IPView::Timeouts::HTTP_FALLBACK + std::chrono::seconds{5},
+                       reply, [reply]() {
         if (reply && !reply->isFinished()) {
             reply->abort();
         }

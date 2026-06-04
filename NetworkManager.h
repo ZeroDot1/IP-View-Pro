@@ -13,7 +13,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+#include <chrono>
 #include <vector>
+
+#include "Timeouts.hpp"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  NetworkManager — Asynchronous Fetch and Failover for Geo-IP APIs
@@ -73,7 +76,7 @@ private:
     // ── State ─────────────────────────────────────────────────────────────
     int         currentApiIndex{0};
     int         currentIPv6ApiIndex{0};
-    int         timeoutMs{10000};
+    int         timeoutMs{static_cast<int>(IPView::Timeouts::HTTP_DEFAULT.count())};
     QJsonObject lastData;
     bool        isIPv6{false};
 

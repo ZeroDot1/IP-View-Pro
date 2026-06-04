@@ -7,6 +7,7 @@
 
 #include "SpeedtestTab.h"
 #include "Theme.h"
+#include "Timeouts.hpp"
 
 #include <QApplication>
 #include <QClipboard>
@@ -47,7 +48,7 @@ SpeedtestTab::~SpeedtestTab()
 {
     if (process->state() == QProcess::Running) {
         process->kill();
-        process->waitForFinished(2000);
+        process->waitForFinished(static_cast<int>(IPView::Timeouts::PROCESS_QUIT.count()));
     }
 }
 
@@ -367,7 +368,7 @@ void SpeedtestTab::startProcess(const QStringList &args) noexcept
 {
     if (process->state() != QProcess::NotRunning) {
         process->kill();
-        process->waitForFinished(2000);
+        process->waitForFinished(static_cast<int>(IPView::Timeouts::PROCESS_QUIT.count()));
     }
     process->setProcessChannelMode(QProcess::MergedChannels);
     process->start(findSpeedtest(), args);
@@ -377,7 +378,7 @@ void SpeedtestTab::onStartClicked()
 {
     if (process->state() != QProcess::NotRunning) {
         process->kill();
-        process->waitForFinished(2000);
+        process->waitForFinished(static_cast<int>(IPView::Timeouts::PROCESS_QUIT.count()));
     }
 
     QString const program = findSpeedtest();
@@ -416,11 +417,11 @@ void SpeedtestTab::onStartClicked()
     isServerListMode = false;
 
     elapsedTimer.start();
-    progressTimer->start(200);
+    progressTimer->start(static_cast<int>(std::chrono::milliseconds{200}.count()));
 
     startProcess(args);
 
-    if (!process->waitForStarted(5000)) {
+    if (!process->waitForStarted(static_cast<int>(IPView::Timeouts::PROCESS_QUIT_SLOW.count()))) {
         statusLabel->setText(QStringLiteral("Failed to start process"));
         setControlsEnabled(true);
         progressTimer->stop();
@@ -484,7 +485,7 @@ void SpeedtestTab::onMultiTestClicked()
         mMultiTimer = new QTimer(this);
         connect(mMultiTimer, &QTimer::timeout, this, &SpeedtestTab::onMultiProgressTick);
     }
-    mMultiTimer->start(500);
+    mMultiTimer->start(static_cast<int>(IPView::Timeouts::POLL_TELEMETRY_MIN.count()));
 
     // ── Prozesse parallel starten ──────────────────────────────────────
     for (int i = 0; i < count; ++i) {

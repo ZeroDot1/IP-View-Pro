@@ -7,6 +7,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "ServerSelectionModule.h"
+#include "Timeouts.hpp"
 
 #include <QRegularExpression>
 #include <QStandardPaths>
@@ -45,7 +46,7 @@ ServerSelectionModule::getAvailableServers(int timeoutMs) noexcept
 
     if (!listProc.waitForFinished(timeoutMs)) {
         listProc.kill();
-        listProc.waitForFinished(2000);
+        listProc.waitForFinished(static_cast<int>(IPView::Timeouts::PROCESS_QUIT.count()));
         emit serverFetchError(QStringLiteral("Server list fetch timed out"));
         return std::unexpected(QStringLiteral("Server list fetch timed out after %1 ms")
                                    .arg(timeoutMs));
@@ -82,7 +83,7 @@ std::vector<ServerInfo>
 ServerSelectionModule::parseServerList(const QString &rawText) noexcept
 {
     std::vector<ServerInfo> servers;
-    servers.reserve(128);   // Typical: 100–200 servers
+    servers.reserve(IPView::Timeouts::SERVERS_RESERVE);   // typical: 100–200 servers
 
     static QRegularExpression const re(
         QStringLiteral(R"(^\s*(\d+)\)\s+(.*)\s+\((.*)\)\s+\[([\d.]+)\s*km\]$)"));

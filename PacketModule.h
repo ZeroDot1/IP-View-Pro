@@ -18,6 +18,8 @@
 
 #include <cstdint>
 
+#include "Timeouts.hpp"
+
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Packet {
 
@@ -71,7 +73,8 @@ public:
     [[nodiscard]] ConnectionSnapshot pollNow() noexcept;
 
     // ── Polling control ──────────────────────────────────────────────────
-    void startPolling(int intervalMs = 5000) noexcept;
+    void startPolling(int intervalMs =
+                          static_cast<int>(IPView::Timeouts::POLL_PACKET_DEFAULT.count())) noexcept;
     void stopPolling() noexcept;
     [[nodiscard]] bool isPolling() const noexcept { return mTimer && mTimer->isActive(); }
 

@@ -19,6 +19,7 @@
 #include "DatabaseModule.h"
 #include "ConfigManager.h"
 #include "Logger.h"
+#include "Timeouts.hpp"
 #include "version.hpp"
 
 // Application metadata functions live in version.cpp (single source of truth).
@@ -84,10 +85,10 @@ int main(int argc, char* argv[])
         QLocalSocket socket;
         socket.connectToServer(QLatin1StringView(localServerKey()));
 
-        if (socket.waitForConnected(500)) {
+        if (socket.waitForConnected(IPView::Timeouts::INSTANCE_CONNECT.count())) {
             socket.write("show\n");
             socket.flush();
-            socket.waitForBytesWritten(300);
+            socket.waitForBytesWritten(IPView::Timeouts::INSTANCE_FLUSH.count());
             socket.disconnectFromServer();
         }
 
@@ -127,7 +128,7 @@ int main(int argc, char* argv[])
     QObject::connect(&localServer, &QLocalServer::newConnection, [&]() {
         QLocalSocket *client = localServer.nextPendingConnection();
         if (client) {
-            client->waitForReadyRead(200);
+            client->waitForReadyRead(IPView::Timeouts::INSTANCE_READ.count());
             client->deleteLater();
         }
         // Bring window to the foreground

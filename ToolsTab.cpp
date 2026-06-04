@@ -7,6 +7,7 @@
 #include "ToolsTab.h"
 #include "Theme.h"
 #include "SecurityUtil.h"
+#include "Timeouts.hpp"
 #include "Iperf3Window.h"
 #include "TracerouteTab.h"
 
@@ -92,7 +93,7 @@ void ToolsTab::onPingClicked()
     // Terminate previous process
     if (pingProcess && pingProcess->state() == QProcess::Running) {
         pingProcess->kill();
-        pingProcess->waitForFinished(1000);
+        pingProcess->waitForFinished(static_cast<int>(IPView::Timeouts::PROCESS_QUIT_FAST.count()));
     }
 
     outputArea->clear();

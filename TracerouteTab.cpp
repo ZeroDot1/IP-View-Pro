@@ -7,6 +7,7 @@
 #include "TracerouteTab.h"
 #include "Theme.h"
 #include "SecurityUtil.h"
+#include "Timeouts.hpp"
 #include <QDateTime>
 #include <QStandardPaths>
 #include <QProcessEnvironment>
@@ -96,7 +97,7 @@ void TracerouteTab::onTraceClicked()
 
     if (process->state() == QProcess::Running) {
         process->kill();
-        process->waitForFinished(500);
+        process->waitForFinished(static_cast<int>(IPView::Timeouts::PROCESS_TRACEROUTE.count()));
     }
 
     outputArea->clear();

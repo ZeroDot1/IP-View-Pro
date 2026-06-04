@@ -7,6 +7,7 @@
 #include "Iperf3Window.h"
 #include "Theme.h"
 #include "SecurityUtil.h"
+#include "Timeouts.hpp"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QProcess>
@@ -39,7 +40,7 @@ Iperf3Window::~Iperf3Window()
 {
     if (iperf3Process->state() == QProcess::Running) {
         iperf3Process->terminate();
-        iperf3Process->waitForFinished(2000);
+        iperf3Process->waitForFinished(static_cast<int>(IPView::Timeouts::PROCESS_QUIT.count()));
     }
 }
 
@@ -243,7 +244,7 @@ void Iperf3Window::onStartClicked()
 
     totalTransfer = 0.0;
     startTime = QDateTime::currentMSecsSinceEpoch();
-    statsTimer->start(1000);
+    statsTimer->start(IPView::Timeouts::IPERF3_STATS_PERIOD_MS);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -253,7 +254,7 @@ void Iperf3Window::onStopClicked()
 
     if (iperf3Process->state() == QProcess::Running) {
         iperf3Process->terminate();
-        iperf3Process->waitForFinished(1000);
+        iperf3Process->waitForFinished(static_cast<int>(IPView::Timeouts::PROCESS_QUIT_FAST.count()));
     }
     statsTimer->stop();
     isRunning = false;
