@@ -22,6 +22,7 @@
 #include "Error.hpp"
 
 #include <array>             // C++26: constexpr std::array
+#include <span>             // C++26: std::span (contiguous range)
 #include <vector>            // C++26: stack-based dynamic container
 #include <string_view>       // C++17 / C++26: lightweight string views
 
@@ -86,12 +87,15 @@ namespace DataNormalizer {
     }
 
     // ── Type-safe retrieval from QJsonObject ─────────────────────────────────
-    //  C++26: Template parameter with std::array<std::string_view, N>
-    //  for compile-time key lists without heap allocation.
-    template<std::size_t N>
+    //  C++26: Template parameter with std::span<const std::string_view>
+    //  accepts any contiguous range of string_view keys —
+    //  std::array<std::string_view, N> from std::to_array,
+    //  std::vector, std::initializer_list — without forcing
+    //  a fixed compile-time N and without the std::array
+    //  template noise at every call site.
     [[nodiscard]]
     QString getString(const QJsonObject &obj,
-                      const std::array<std::string_view, N> &keys) noexcept
+                      std::span<const std::string_view> keys) noexcept
     {
         for (std::string_view const keySv : keys) {
             QString const key = QString::fromUtf8(keySv.data(), static_cast<qsizetype>(keySv.size()));
