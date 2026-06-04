@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.4 — tests/test_error.cpp
+//  IPView Pro v2.15.5 — tests/test_error.cpp
 //
 //  Validates the IPView::Error enum, ErrorInfo formatting, and
 //  the IPVIEW_TRY / IPVIEW_UNWRAP macros (when present).

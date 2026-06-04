@@ -2,6 +2,69 @@
 
 All notable changes to this project are documented here.
 
+## [2.15.5] — 2026-06-04
+
+### Added
+
+- **Light theme.** A full light-mode stylesheet (`appStyleSheetLight()`)
+  using the same Teal Amber brand hues on a near-white surface. Defined
+  via a parallel set of `C_L_BG / C_L_BG_ELEVATED / C_L_SURFACE /
+  C_L_BORDER / C_L_TEXT / C_L_TEXT_SEC / C_L_TEXT_DIM / C_L_TEXT_MUTED /
+  C_L_TEXT_INV / C_L_MUTED` tokens, plus `C_L_CARET`,
+  `C_L_SELECTION_BG / C_L_SELECTION_FG`, `C_L_FOCUS_OUTLINE`, and
+  accent / primary / status fallbacks. Designed for daylight and
+  projector use.
+- **High-Contrast theme.** A WCAG-AAA accessibility stylesheet
+  (`appStyleSheetHighContrast()`) with pure black + pure white +
+  saturated cyan / yellow / red / green accents, `2px` borders
+  everywhere, no `border-radius`, slightly larger fonts (14 px base,
+  13 px tab), larger `QCheckBox` indicator (18 px). Tokens:
+  `C_HC_BG / C_HC_SURFACE / C_HC_BORDER / C_HC_TEXT / C_HC_PRIMARY /
+  C_HC_ACCENT / C_HC_SUCCESS / C_HC_WARNING / C_HC_ERROR /
+  C_HC_CRITICAL / C_HC_MUTED` plus caret / selection / focus variants.
+- **Theme-mode dispatch.** `ThemeMode` enum (`Dark=0 / Light=1 /
+  HighContrast=2`) with `themeModeName(mode)` returning
+  `"Dark (OLED)"` / `"Light"` / `"High Contrast"`. New entry point
+  `IPView::Theme::applyTheme(QApplication&, ThemeMode)` plus a
+  `QCoreApplication` no-op overload and `refreshTheme()` for runtime
+  toggles. `appStyleSheet()` is kept as a back-compat alias returning
+  the dark theme.
+- **Data-visualization palettes.**
+  - `C_CHART_0..9` — 10-colour categorical palette (teal / amber /
+    teal-green / red / purple / deep-orange / cyan / lime / pink /
+    blue-grey) for NetworkDiscovery, PortScanner, Telemetry graphs.
+  - `C_STATE_ESTABLISHED / LISTEN / TIME_WAIT / CLOSE_WAIT /
+    FIN_WAIT / CLOSED / SYN_SENT / UDP` — connection-state palette
+    for `PacketModule`.
+  - `C_LATENCY_EXCELLENT / GOOD / FAIR / POOR / TIMEOUT` — latency
+    gradient for Topology + Iperf3.
+- **Pure-function colour helpers** (no QObject dep, safe from any
+  thread): `chartColor(int index)`, `connectionStateColor(state)`,
+  `latencyColorMs(ms)`, `speedColorMbps(mbps)`.
+- **Form-validation variants of `inputStyle()`**:
+  `inputStyleWarning()` (amber-700 border),
+  `inputStyleSuccess()` (teal-green border),
+  `inputStyleError()` (red border).
+- **New widget styles in `Theme.h`:** `btnSmallStyle`,
+  `treeWidgetStyle`, `listWidgetStyle`, `toolbarStyle`. New QSS
+  selectors in `appStyleSheetDark()`: `QSpinBox / QDoubleSpinBox`,
+  `QTreeWidget / QListWidget`, `QToolButton / QToolBar`, plus
+  vertical+horizontal scrollbar styling.
+- **`constexpr std::array<std::string_view>` token tables** in
+  `namespace IPView::Theme` for tooling / CI lint:
+  `COLOR_TOKENS_DARK` (70+), `COLOR_TOKENS_LIGHT` (20),
+  `COLOR_TOKENS_HC` (26), `SPACING_TOKENS` (16), `RADIUS_TOKENS` (8),
+  `SIZING_TOKENS` (16), `TYPOGRAPHY_TOKENS` (19), `ANIMATION_TOKENS`
+  (11), `SHADOW_TOKENS` (9), `Z_INDEX_TOKENS` (9), `OPACITY_TOKENS`
+  (5), `BORDER_TOKENS` (8), `BREAKPOINT_TOKENS` (4).
+
+### Compatibility
+
+- `appStyleSheet()` is unchanged at the API level — it now delegates
+  to `appStyleSheetDark()`. Existing call sites in `main.cpp` and
+  the rest of the project keep working. New code should call
+  `appStyleSheetFor(ThemeMode)` or `applyTheme(app, ThemeMode)`.
+
 ## [2.15.4] — 2026-06-04
 
 ### Fixed

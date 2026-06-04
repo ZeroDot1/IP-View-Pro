@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.4 — Contracts.hpp
+//  IPView Pro v2.15.5 — Contracts.hpp
 //
 //  C++26 contracts (P2900) compatibility shim.
 //

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.4 — FlagLoader.h
+//  IPView Pro v2.15.5 — FlagLoader.h
 //  C++26: [[nodiscard]], const-correctness, default member init
 //  Loads country flag images asynchronously with an in-memory cache.
 //

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.4 — NetworkManager.cpp
+//  IPView Pro v2.15.5 — NetworkManager.cpp
 //  C++26: structured bindings, std::array, [[nodiscard]], consteval
 //  Asynchronous API failover with timeout and sparse-data detection.
 //  v2.15.4: All endpoints now use https:// — the v2.0 list had three

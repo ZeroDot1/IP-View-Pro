@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.4 — tests/main.cpp
+//  IPView Pro v2.15.5 — tests/main.cpp
 //
 //  Test binary entry point. Pulls in all test translation units and
 //  drives the IPView::Test::registry() cases.
@@ -12,7 +12,7 @@
 int main()
 {
     using namespace IPView::Test;
-    std::fprintf(stderr, "IPView Pro v2.15.4 — test runner\n");
+    std::fprintf(stderr, "IPView Pro v2.15.5 — test runner\n");
     std::fprintf(stderr, "─────────────────────────────────\n");
 
     for (auto const& c : registry()) {

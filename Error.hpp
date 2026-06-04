@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.4 — Error.hpp
+//  IPView Pro v2.15.5 — Error.hpp
 //  Single source of truth for the error model used across the project.
 //
 //  Prior to v2.15.0 each module invented its own error type: some returned

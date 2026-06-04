@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.4 — FlagLoader.cpp
+//  IPView Pro v2.15.5 — FlagLoader.cpp
 //  C++26: auto, const-correctness, noexcept, QPointer for label lifetime
 //  Loads country flags asynchronously with in-memory caching.
 //

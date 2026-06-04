@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.4 — test_configmanager.cpp
+//  IPView Pro v2.15.5 — test_configmanager.cpp
 //
 //  Unit tests for ConfigManager::loadClampedInt() (Phase 4-B).
 //  These tests touch the real QSettings layer so they need to

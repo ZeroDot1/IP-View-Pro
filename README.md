@@ -283,7 +283,7 @@ cmake --build build -j"$(nproc)"
 ### Build Options
 
 ```bash
-./build.sh              # Release + max compression + tests (v2.15.4 default)
+./build.sh              # Release + max compression + tests (v2.15.5 default)
 ./build.sh Debug        # Debug build (MINSIZE auto-disabled)
 
 # With AddressSanitizer + UndefinedBehaviorSanitizer:
@@ -302,14 +302,14 @@ the local build matches what gets shipped in the AppImage:
 | `MINSIZE=on` | `-Os`, `--gc-sections`, `--as-needed`, `--build-id=none`, `-z,nodump`, forces LTO | −20 %          |
 | `STRIP=on`   | drops `.symtab` / `.strtab` / `.comment` / `.note` via `strip --strip-all` | −16 %          |
 | `COMPRESS=on`| wraps the binary with `upx --best` (transparent on exec)| −66 %          |
-| **all three**| end-to-end pipeline (the v2.15.4 default)                 | **~ −78 %**    |
+| **all three**| end-to-end pipeline (the v2.15.5 default)                 | **~ −78 %**    |
 
 A plain `./build.sh` produces a binary of **≈ 272 KiB** (UPX
 ratio 33.65 %) — down from ≈ 1.2 MiB. To opt out, pass the
 explicit `off` to the relevant positional argument:
 
 ```bash
-# Maximum-compression Release (v2.15.4 default)
+# Maximum-compression Release (v2.15.5 default)
 ./build.sh
 # → 272 KiB, 57/57 tests pass
 
@@ -560,4 +560,4 @@ This project is released under **Public Domain**. It may be freely used, copied,
 
 ---
 
-*IPView Pro v2.15.4 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*
+*IPView Pro v2.15.5 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*

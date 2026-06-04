@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.4 — Concepts.h
+//  IPView Pro v2.15.5 — Concepts.h
 //  C++26: concepts, requires, type-traits
 //  Type constraints used across the project (network targets, ports,
 //  buffers, time points, hashable types, result types).

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.4 — SafeProcess.hpp
+//  IPView Pro v2.15.5 — SafeProcess.hpp
 //
 //  A thin wrapper around QProcess that enforces a project-wide
 //  baseline of safety checks before launching any external program:

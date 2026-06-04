@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.4 — MainWindow.cpp
+//  IPView Pro v2.15.5 — MainWindow.cpp
 //  C++26: std::array for compile-time constants, auto, [[maybe_unused]]
 //  QStringLiteral, structured bindings
 //  Dashboard functionality extracted into DashboardView (IPView::UI).

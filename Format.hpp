@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.4 — Format.hpp
+//  IPView Pro v2.15.5 — Format.hpp
 //  Central compile-time string format constants. All values are
 //  `inline constexpr std::string_view` so the linker dedupes the
 //  storage and the compiler folds .arg() chains at compile time.

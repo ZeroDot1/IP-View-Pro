@@ -16,7 +16,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 project(IPView
-    VERSION      2.15.4
+    VERSION      2.15.5
     DESCRIPTION  "Professional IP Monitoring & Network Analysis Tool"
     LANGUAGES    CXX
 )
@@ -30,7 +30,7 @@ project(IPView
 #  by .github/workflows/release-on-changelog.yml.
 set(IPVIEW_VERSION_MAJOR  2)
 set(IPVIEW_VERSION_MINOR  15)
-set(IPVIEW_VERSION_PATCH  4)
+set(IPVIEW_VERSION_PATCH  5)
 set(IPVIEW_VERSION_COMMITS 0)
 
 # Git-aware commit count (best-effort, falls back to 0)

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.4 — MainWindow.h
+//  IPView Pro v2.15.5 — MainWindow.h
 //  C++26: [[nodiscard]], default member init, structured bindings
 //  Main window of the IPView application with tab interface and system tray.
 //  Features: Dashboard, Whois, Tools (Ping/Traceroute/Scanner),
