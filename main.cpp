@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.7.0 — main.cpp
+//  IPView Pro v2.15.0 — main.cpp
 //  C++26 (ISO/IEC 14882:2026) + Qt 6.11
 //  consteval for compile-time metadata
 //  Single-instance guard via QSharedMemory + QLocalServer
@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
     app.setStyleSheet(appStyleSheet() + QLatin1Char('\n') + tooltipStyleSheet());
 
     // ════════════════════════════════════════════════════════════════════
-    //  CONFIG MANAGER (per-user, XDG-konform ~/.config/IPView/IPView.conf)
+    //  CONFIG MANAGER (per-user, XDG-compliant: ~/.config/IPView/IPView.conf)
     // ════════════════════════════════════════════════════════════════════
     IPView::Config::Manager::initialize();
 

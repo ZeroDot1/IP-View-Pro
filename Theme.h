@@ -1,9 +1,17 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.7.0 — Theme.h
+//  IPView Pro v2.15.0 — Theme.h
 //  Central design token system for Qt Style Sheets (QSS).
-//  All colors, spacings, radii, and shadows in one place.
+//  All colors, spacings, radii, and shadows are defined here.
 //
-//  C++26 constexpr — guaranteed to be resolved at compile time.
+//  Palette: Teal Amber OLED
+//    Primary (Teal):  #00BCD4 — cool, professional, high-contrast on OLED black
+//    Accent  (Amber): #FFB300 — warm highlight, badges, interactive focus
+//    Base:            #000000 — true OLED black (zero power on OLED displays)
+//
+//  OLED Support: All backgrounds use pure black (#000000) wherever possible.
+//  No light theme is provided — this is an exclusively dark, OLED-optimized UI.
+//
+//  C++26 inline constexpr — resolved at compile time.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -11,53 +19,59 @@
 #define THEME_H
 
 #include <QString>
-#include <QStringBuilder>   // efficient string concatenation
+#include <QStringBuilder>   // Efficient string concatenation
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  COLOR PALETTE — OLED Dark Theme
-//  Inspired by modern dashboards: dark, rich accents, high contrast.
+//  COLOR PALETTE — Teal Amber OLED Dark Theme
 //
-//  Primary: cool tech blue   (#00d4ff → #0077AA)
-//  Accent:  signal red        (#e94560 → #c0392b)
-//  Success: vibrant green    (#00ff88 → #00cc6a)
-//  Base:    deep black        (#0f0f1a → #060612)
+//  Primary (Teal):   #00BCD4 → #0097A7  — cool, professional
+//  Accent  (Amber):  #FFB300 → #FF8F00  — warm highlight, interactive focus
+//  Base (OLED):      #000000            — true OLED black
+//  Success (Teal):   #26A69A            — teal-green for positive states
+//  Error:            #EF5350            — red for errors and critical alerts
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ── Base colors ─────────────────────────────────────────────────────────────
-inline constexpr auto C_BG          = "#0f0f1a";
-inline constexpr auto C_BG_ELEVATED = "#1a1a2e";
-inline constexpr auto C_BG_SUNKEN   = "#050510";
-inline constexpr auto C_BG_HOVER    = "#22223a";
+// ── Base colors (OLED black hierarchy) ───────────────────────────────────────
+inline constexpr auto C_BG          = "#000000";   // True OLED black — main background
+inline constexpr auto C_BG_ELEVATED = "#0D0D0D";   // Slightly elevated surface (cards, panels)
+inline constexpr auto C_BG_SUNKEN   = "#000000";   // Sunken areas (code/output regions)
+inline constexpr auto C_BG_HOVER    = "#1A1A1A";   // Hover overlay on black
 
-inline constexpr auto C_SURFACE     = "#1a1a2e";
-inline constexpr auto C_SURFACE_HVR = "#252540";
-inline constexpr auto C_SURFACE_ACT = "#303050";
+inline constexpr auto C_SURFACE     = "#0D0D0D";   // Default card/pane surface
+inline constexpr auto C_SURFACE_HVR = "#1A1A1A";   // Surface hover state
+inline constexpr auto C_SURFACE_ACT = "#262626";   // Surface active/pressed state
 
-inline constexpr auto C_BORDER      = "#2a2a3e";
-inline constexpr auto C_BORDER_HVR  = "#e94560";
-inline constexpr auto C_BORDER_FOC  = "#00d4ff";
+inline constexpr auto C_BORDER      = "#1E1E1E";   // Subtle border on OLED black
+inline constexpr auto C_BORDER_HVR  = "#FFB300";   // Amber border on hover
+inline constexpr auto C_BORDER_FOC  = "#00BCD4";   // Teal focus ring
 
-inline constexpr auto C_TEXT        = "#ffffff";
-inline constexpr auto C_TEXT_SEC    = "#a0a0b8";
-inline constexpr auto C_TEXT_DIM    = "#666680";
-inline constexpr auto C_TEXT_MUTED  = "#888888";
+// ── Text colors ───────────────────────────────────────────────────────────────
+inline constexpr auto C_TEXT        = "#F5F5F5";   // Primary text — near-white
+inline constexpr auto C_TEXT_SEC    = "#B0BEC5";   // Secondary text — blue-grey
+inline constexpr auto C_TEXT_DIM    = "#607D8B";   // Dimmed label text
+inline constexpr auto C_TEXT_MUTED  = "#546E7A";   // Muted/placeholder text
 
-inline constexpr auto C_ACCENT      = "#e94560";
-inline constexpr auto C_ACCENT_HVR  = "#ff5a7a";
-inline constexpr auto C_ACCENT_ACT  = "#c0392b";
-inline constexpr auto C_PRIMARY     = "#00d4ff";
-inline constexpr auto C_PRIMARY_HVR = "#33ddff";
-inline constexpr auto C_PRIMARY_ACT = "#0099cc";
-inline constexpr auto C_SUCCESS     = "#00ff88";
-inline constexpr auto C_SUCCESS_HVR = "#33ffaa";
-inline constexpr auto C_WARNING     = "#ffaa00";
-inline constexpr auto C_ERROR       = "#ff4444";
-inline constexpr auto C_INFO        = "#00d4ff";
+// ── Teal primary ─────────────────────────────────────────────────────────────
+inline constexpr auto C_PRIMARY     = "#00BCD4";   // Teal primary — focus, links, progress
+inline constexpr auto C_PRIMARY_HVR = "#26C6DA";   // Teal hover
+inline constexpr auto C_PRIMARY_ACT = "#0097A7";   // Teal active/pressed
+
+// ── Amber accent ─────────────────────────────────────────────────────────────
+inline constexpr auto C_ACCENT      = "#FFB300";   // Amber accent — badges, selected tabs
+inline constexpr auto C_ACCENT_HVR  = "#FFCA28";   // Amber hover
+inline constexpr auto C_ACCENT_ACT  = "#FF8F00";   // Amber active/pressed
+
+// ── Semantic colors ───────────────────────────────────────────────────────────
+inline constexpr auto C_SUCCESS     = "#26A69A";   // Teal-green — positive/online states
+inline constexpr auto C_SUCCESS_HVR = "#4DB6AC";   // Success hover
+inline constexpr auto C_WARNING     = "#FFB300";   // Amber — warnings (same as accent)
+inline constexpr auto C_ERROR       = "#EF5350";   // Red — errors, critical alerts
+inline constexpr auto C_INFO        = "#00BCD4";   // Teal — informational
 
 // ── Spacing ────────────────────────────────────────────────────────────────
-// Tabs: compact — all 8 tabs fit without scrolling
+// Tabs: compact — all 12 tabs fit without scrolling
 inline constexpr auto PADDING_TAB   = "6px 12px";
-inline constexpr auto PADDING_TAB_L = "6px 18px";   // for optional wider tabs
+inline constexpr auto PADDING_TAB_L = "6px 18px";   // Optional wider tab variant
 inline constexpr auto PADDING_BTN   = "8px 20px";
 inline constexpr auto PADDING_BTN_S = "6px 14px";
 inline constexpr auto PADDING_INP   = "8px 12px";
@@ -72,9 +86,10 @@ inline constexpr auto RADIUS_XL   = "12px";
 inline constexpr auto RADIUS_2XL  = "14px";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  GLOBAL APP STYLESHEET
-//  Set once in main.cpp via app.setStyleSheet().
+//  GLOBAL APP STYLESHEET — Teal Amber OLED Dark Theme
+//  Applied once in main.cpp via app.setStyleSheet().
 //  Covers all widget types: buttons, inputs, scrollbars, tabs, etc.
+//  No light theme. OLED black (#000000) everywhere possible.
 // ═══════════════════════════════════════════════════════════════════════════════
 [[nodiscard]]
 inline QString appStyleSheet() noexcept
@@ -105,15 +120,12 @@ inline QString appStyleSheet() noexcept
         "  border-top-left-radius: %6; border-top-right-radius: %6;"
         "  font-weight: bold; font-size: 11px; border: none;"
         "  margin-right: 1px; margin-left: 0;"
-        "  transition: background 0.12s cubic-bezier(0.4,0,0.2,1),"
-        "              color 0.12s cubic-bezier(0.4,0,0.2,1),"
-        "              border-bottom 0.12s cubic-bezier(0.4,0,0.2,1);"
-        "  min-width: 0;"  // allow shrinking, no scroll buttons
+        "  min-width: 0;"  // Allow shrinking; no scroll buttons
         "}"
         "QTabBar::tab:selected {"
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
         "    stop:0 %4, stop:1 %19);"
-        "  color: %2;"
+        "  color: %1;"  // OLED black text on amber tab for contrast
         "}"
         "QTabBar::tab:hover:!selected {"
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
@@ -125,8 +137,6 @@ inline QString appStyleSheet() noexcept
         "  background-color: %3; color: %2;"
         "  border: 1px solid %10; border-radius: %11;"
         "  padding: %12; font-weight: bold;"
-        "  transition: background 0.12s ease, border-color 0.12s ease,"
-        "              color 0.12s ease;"
         "}"
         "QPushButton:hover {"
         "  background-color: %9; border-color: %13;"
@@ -137,9 +147,9 @@ inline QString appStyleSheet() noexcept
         "QPushButton:disabled {"
         "  color: %15; border-color: %16; background-color: %17;"
         "}"
-        // ── Accent button (Refresh, Lookup, Ping, GO) ──────────────────
+        // ── Accent button (Refresh, Lookup, Ping, GO) — Amber ──────────
         "QPushButton[accent=\"true\"] {"
-        "  background-color: %4; color: %2; border: none;"
+        "  background-color: %4; color: %1; border: none;"  // Black text on amber
         "}"
         "QPushButton[accent=\"true\"]:hover {"
         "  background-color: %18;"
@@ -151,8 +161,7 @@ inline QString appStyleSheet() noexcept
         "QLineEdit {"
         "  background-color: %3; color: %2;"
         "  border: 1px solid %10; border-radius: %11;"
-        "  padding: %20; selection-background-color: %4;"
-        "  transition: border-color 0.12s ease;"
+        "  padding: %20; selection-background-color: %21;"
         "}"
         "QLineEdit:focus {"
         "  border-color: %21;"
@@ -181,6 +190,7 @@ inline QString appStyleSheet() noexcept
         "QComboBox QAbstractItemView {"
         "  background-color: %3; color: %2;"
         "  selection-background-color: %4; border: 1px solid %10;"
+        "  selection-color: %1;"  // Black text on amber selection
         "  outline: none;"
         "}"
         // ── QCheckBox ─────────────────────────────────────────────────
@@ -205,7 +215,7 @@ inline QString appStyleSheet() noexcept
         "}"
         "QProgressBar::chunk {"
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0,"
-        "    stop:0 %4, stop:0.5 %21, stop:1 %22);"
+        "    stop:0 %19, stop:0.5 %4, stop:1 %18);"  // Amber gradient
         "  border-radius: 5px;"
         "}"
         // ── QTableWidget ───────────────────────────────────────────────
@@ -216,14 +226,14 @@ inline QString appStyleSheet() noexcept
         "}"
         "QTableWidget::item { padding: 6px 8px; }"
         "QTableWidget::item:selected {"
-        "  background-color: %4; color: %2;"
+        "  background-color: %4; color: %1;"  // Black text on amber selection
         "}"
         "QHeaderView::section {"
         "  background-color: %3; color: %7;"
         "  border: none; border-bottom: 1px solid %10;"
         "  padding: 8px; font-weight: bold; font-size: 11px;"
         "}"
-        // ── QScrollBar (dark theme) ────────────────────────────────────
+        // ── QScrollBar (OLED dark theme) ────────────────────────────────
         "QScrollBar:vertical {"
         "  background: %1; width: 10px; margin: 0;"
         "}"
@@ -231,7 +241,7 @@ inline QString appStyleSheet() noexcept
         "  background: %10; border-radius: 5px; min-height: 30px;"
         "}"
         "QScrollBar::handle:vertical:hover {"
-        "  background: %15;"
+        "  background: %4;"  // Amber handle on hover
         "}"
         "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
         "  height: 0; background: none; border: none;"
@@ -246,7 +256,7 @@ inline QString appStyleSheet() noexcept
         "  background: %10; border-radius: 5px; min-width: 30px;"
         "}"
         "QScrollBar::handle:horizontal:hover {"
-        "  background: %15;"
+        "  background: %4;"  // Amber handle on hover
         "}"
         "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {"
         "  width: 0; background: none; border: none;"
@@ -270,7 +280,7 @@ inline QString appStyleSheet() noexcept
         "  border: 1px solid %10; border-radius: %11; padding: 4px;"
         "}"
         "QMenu::item { padding: 6px 24px; border-radius: 4px; }"
-        "QMenu::item:selected { background-color: %4; color: %2; }"
+        "QMenu::item:selected { background-color: %4; color: %1; }"  // Black text on amber
         "QMenu::separator {"
         "  height: 1px; background: %10; margin: 4px 8px;"
         "}"
@@ -303,65 +313,63 @@ inline QString appStyleSheet() noexcept
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  QUICK HELPERS — for widget-specific individual styles
+//  QUICK HELPERS — Widget-specific inline styles
+//  All helpers follow the Teal Amber OLED palette.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ── Buttons: accent (red) ──────────────────────────────────────────────────
+// ── Accent button (Amber) ─────────────────────────────────────────────────
 [[nodiscard]] inline QString btnAccentStyle() noexcept
 {
     return QStringLiteral(
         "QPushButton { background-color: %1; color: %2; border: none;"
-        "  border-radius: %3; padding: %4; font-weight: bold;"
-        "  transition: background 0.12s ease; }"
+        "  border-radius: %3; padding: %4; font-weight: bold; }"
         "QPushButton:hover { background-color: %5; }"
         "QPushButton:pressed { background-color: %6; }"
-    ).arg(C_ACCENT, C_TEXT, RADIUS_MD, PADDING_BTN, C_ACCENT_HVR, C_ACCENT_ACT);
+    ).arg(C_ACCENT, C_BG, RADIUS_MD, PADDING_BTN, C_ACCENT_HVR, C_ACCENT_ACT);
+    //   ^Amber    ^Black text for contrast
 }
 
-// ── Buttons: secondary (outline) ────────────────────────────────────────────
+// ── Secondary button (outline / subtle) ────────────────────────────────────
 [[nodiscard]] inline QString btnSecondaryStyle() noexcept
 {
     return QStringLiteral(
         "QPushButton { background-color: %1; color: %2;"
-        "  border: 1px solid %3; border-radius: %4; padding: %5;"
-        "  transition: background 0.12s ease, border-color 0.12s ease; }"
-        "QPushButton:hover { background-color: %6; border-color: %3; }"
-        "QPushButton:pressed { background-color: %7; }"
+        "  border: 1px solid %3; border-radius: %4; padding: %5; }"
+        "QPushButton:hover { background-color: %6; border-color: %7; }"
+        "QPushButton:pressed { background-color: %8; }"
     ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER, RADIUS_MD, PADDING_BTN,
-          C_BG_HOVER, C_SURFACE_ACT);
+          C_BG_HOVER, C_PRIMARY, C_SURFACE_ACT);
 }
 
-// ── Buttons: small (outline) ───────────────────────────────────────────────
+// ── Small button (outline, compact) ───────────────────────────────────────
 [[nodiscard]] inline QString btnSmallStyle() noexcept
 {
     return QStringLiteral(
         "QPushButton { background-color: %1; color: %2;"
-        "  border: 1px solid %3; border-radius: %4; padding: %5; font-size: 11px;"
-        "  transition: background 0.12s ease, border-color 0.12s ease; }"
-        "QPushButton:hover { background-color: %6; border-color: %3; }"
-    ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER, RADIUS_MD, PADDING_BTN_S, C_BG_HOVER);
+        "  border: 1px solid %3; border-radius: %4; padding: %5; font-size: 11px; }"
+        "QPushButton:hover { background-color: %6; border-color: %7; }"
+    ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER, RADIUS_MD, PADDING_BTN_S,
+          C_BG_HOVER, C_PRIMARY);
 }
 
-// ── Input field (LineEdit) ─────────────────────────────────────────────────
+// ── Input field (normal state) ────────────────────────────────────────────
 [[nodiscard]] inline QString inputStyle() noexcept
 {
     return QStringLiteral(
         "QLineEdit { background-color: %1; color: %2;"
-        "  border: 1px solid %3; border-radius: %4; padding: %5;"
-        "  transition: border-color 0.12s ease; }"
-        "QLineEdit:focus { border-color: %6; }"
-        "QLineEdit:hover:!focus { border-color: %7; }"
+        "  border: 1px solid %3; border-radius: %4; padding: %5; }"
+        "QLineEdit:focus { border-color: %6; }"  // Teal focus ring
+        "QLineEdit:hover:!focus { border-color: %7; }"  // Amber hover border
     ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER, RADIUS_MD, PADDING_INP,
           C_PRIMARY, C_ACCENT);
 }
 
-// ── Input field (error state) ────────────────────────────────────────────
+// ── Input field (error state) ─────────────────────────────────────────────
 [[nodiscard]] inline QString inputStyleError() noexcept
 {
     return QStringLiteral(
         "QLineEdit { background-color: %1; color: %2;"
-        "  border: 1px solid %3; border-radius: %4; padding: %5;"
-        "  transition: border-color 0.12s ease; }"
+        "  border: 1px solid %3; border-radius: %4; padding: %5; }"
         "QLineEdit:focus { border-color: %3; }"
     ).arg(C_BG_ELEVATED, C_TEXT, C_ERROR, RADIUS_MD, PADDING_INP);
 }
@@ -372,7 +380,7 @@ inline QString appStyleSheet() noexcept
     return QStringLiteral(
         "QComboBox { background-color: %1; color: %2;"
         "  border: 1px solid %3; border-radius: %4; padding: %5; }"
-        "QComboBox:hover { border-color: %6; }"
+        "QComboBox:hover { border-color: %6; }"  // Amber hover border
         "QComboBox::drop-down { border: none; width: 24px; }"
         "QComboBox::down-arrow {"
         "  image: none; border-left: 5px solid transparent;"
@@ -380,12 +388,14 @@ inline QString appStyleSheet() noexcept
         "  border-top: 6px solid %2; margin-right: 6px; }"
         "QComboBox QAbstractItemView {"
         "  background-color: %1; color: %2;"
-        "  selection-background-color: %7; border: 1px solid %3; outline: none; }"
+        "  selection-background-color: %7; selection-color: %8;"
+        "  border: 1px solid %3; outline: none; }"
     ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER, RADIUS_MD, PADDING_INP,
-          C_ACCENT, C_ACCENT);
+          C_ACCENT, C_ACCENT, C_BG);
+    //                        ^ Amber selection  ^ Black text on amber
 }
 
-// ── Output / monospace area ──────────────────────────────────────────────────
+// ── Monospace output area (terminal/code output) ──────────────────────────
 [[nodiscard]] inline QString monoStyle() noexcept
 {
     return QStringLiteral(
@@ -394,6 +404,7 @@ inline QString appStyleSheet() noexcept
         "  font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;"
         "  font-size: 12px; }"
     ).arg(C_BG_SUNKEN, C_SUCCESS, RADIUS_LG, PADDING_M);
+    //                 ^ Teal-green text for terminal output
 }
 
 // ── Card / Frame ──────────────────────────────────────────────────────────
@@ -402,7 +413,7 @@ inline QString appStyleSheet() noexcept
     return QStringLiteral(
         "QFrame { background-color: %1; border-radius: %2;"
         "  border: 1px solid %3; padding: %4; }"
-        "QFrame:hover { border-color: %5; }"
+        "QFrame:hover { border-color: %5; }"  // Amber border on hover
     ).arg(C_BG_ELEVATED, RADIUS_XL, C_BORDER, PADDING_CRD, C_ACCENT);
 }
 
@@ -411,15 +422,27 @@ inline QString appStyleSheet() noexcept
 {
     return QStringLiteral(
         "QLabel { color: %1; font-size: 10px; padding: 5px; }"
-    ).arg(C_ACCENT);
+    ).arg(C_TEXT_DIM);
 }
 
-// ── Online label (green) ────────────────────────────────────────────────────
+// ── Online / positive state label (teal-green) ────────────────────────────
 [[nodiscard]] inline QString onlineLabelStyle() noexcept
 {
     return QStringLiteral(
         "QLabel { color: %1; font-weight: bold; }"
     ).arg(C_SUCCESS);
+}
+
+// ── Teal primary button (links, navigation actions) ───────────────────────
+[[nodiscard]] inline QString btnPrimaryStyle() noexcept
+{
+    return QStringLiteral(
+        "QPushButton { background-color: %1; color: %2; border: none;"
+        "  border-radius: %3; padding: %4; font-weight: bold; }"
+        "QPushButton:hover { background-color: %5; }"
+        "QPushButton:pressed { background-color: %6; }"
+    ).arg(C_PRIMARY, C_BG, RADIUS_MD, PADDING_BTN, C_PRIMARY_HVR, C_PRIMARY_ACT);
+    //   ^Teal       ^Black text for contrast
 }
 
 #endif // THEME_H

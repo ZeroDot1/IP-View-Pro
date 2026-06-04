@@ -77,7 +77,7 @@ private:
     void updateTrayTooltip(const QJsonObject &data) noexcept;
     void updateHistory(const QJsonObject &data) noexcept;
 
-    // ── Config (per-user, XDG-konform) ─────────────────────────────────
+    // ── Per-user configuration (XDG-compliant: ~/.config/IPView/) ─────────
     void saveSettings() noexcept;
     void loadSettings() noexcept;
 
@@ -91,7 +91,7 @@ private:
     IPView::UI::DashboardView *dashboardView{nullptr};
     QLabel      *statusLabel{nullptr};
 
-    // ── Tab-Zugriff (Convenience-Zeiger, zeigen in die Registry) ────────
+    // ── Tab access (convenience pointers into the registry) ─────────────
     WhoisTab     *whoisTab{nullptr};
     ToolsTab     *toolsTab{nullptr};
     ScannerTab   *scannerTab{nullptr};

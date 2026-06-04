@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.8.0 — MainWindow.cpp
+//  IPView Pro v2.15.0 — MainWindow.cpp
 //  C++26: std::array for compile-time constants, auto, [[maybe_unused]]
 //  QStringLiteral, structured bindings
 //  Dashboard functionality extracted into DashboardView (IPView::UI).
@@ -55,9 +55,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(dashboardView, &IPView::UI::DashboardView::exportJsonRequested,
             this, &MainWindow::onExportJsonRequested);
 
-    // ── Event-based tab distribution (Item 2) ──────────────────────────
-    //  Statt direkter Methodenaufrufe werden Signale emittiert,
-    //  to which tabs can attach themselves independently.
+    // ── Event-based tab distribution ────────────────────────────────────
+    //  Instead of direct method calls, signals are emitted so that
+    //  tabs can subscribe independently without tight coupling.
     connect(this, &MainWindow::dataRefreshed, this, [this](const QJsonObject &d) {
         dashboardView->updateDisplay(d);
         QString const cc = d[QStringLiteral("country_code")].toString();
@@ -75,7 +75,7 @@ MainWindow::MainWindow(QWidget *parent)
         historyTab->updateHistory(h);
     });
 
-    // ── Network-Signale ─────────────────────────────────────────────────
+    // ── Network signals ─────────────────────────────────────────────────────
     connect(networkManager, &NetworkManager::dataReceived,
             this, &MainWindow::onDataReceived);
     connect(networkManager, &NetworkManager::errorOccurred, this, [this](QString const& err) {
@@ -83,7 +83,7 @@ MainWindow::MainWindow(QWidget *parent)
         dashboardView->setStatusMessage(err);
     });
 
-    // ── Restore per-user configuration (XDG: ~/.config/IPView/) ──────────
+    // ── Restore per-user configuration (XDG-compliant: ~/.config/IPView/) ──
     loadSettings();
 
     onRefreshClicked();
@@ -417,8 +417,9 @@ void MainWindow::onExportJsonRequested()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Per-user configuration (XDG Base Directory: ~/.config/IPView/IPView.conf)
-//  Each user has their own config + SQLite database.
+//  Per-user configuration persistence
+//  XDG Base Directory compliant: settings stored at ~/.config/IPView/IPView.conf
+//  Each user maintains an independent configuration and SQLite database.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 void MainWindow::saveSettings() noexcept
@@ -429,7 +430,7 @@ void MainWindow::saveSettings() noexcept
     Manager::saveWindowGeometry(saveGeometry());
     Manager::saveLastTab(tabWidget->currentIndex());
 
-    // ── Network ─────────────────────────────────────────────────────────────
+    // ── Network signals ─────────────────────────────────────────────────────────
     Manager::saveNetworkSettings(
         networkManager->getSelectedApiIndex(),
         dashboardView->isIPv6Mode(),
@@ -459,7 +460,7 @@ void MainWindow::loadSettings() noexcept
     int const apiIndex = Manager::loadApiIndex();
     if (apiIndex >= 0) {
         networkManager->setSelectedAPI(apiIndex);
-            dashboardView->setApiIndex(apiIndex);  // Sync ComboBox
+        dashboardView->setApiIndex(apiIndex);  // Synchronize the combo box
     }
 
     bool const ipv6 = Manager::loadIPv6Mode();

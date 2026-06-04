@@ -1,6 +1,6 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
-#  IPView Pro v2.9.1 – Build Script
+#  IPView Pro v2.15.0 — Build Script
 #  Qt 6.11 · C++26 (GCC 14+ / Clang 18+) · Arch Linux
 #  Public Domain — No License — No Restrictions
 # ═══════════════════════════════════════════════════════════════
@@ -13,7 +13,7 @@ BUILD_DIR="$SCRIPT_DIR/build"
 BINARY="$BUILD_DIR/IPView"
 
 echo "╔═══════════════════════════════════════════════╗"
-echo "║      IPView Pro v2.9.1 — C++26 · Qt 6.11     ║"
+echo "║      IPView Pro v2.15.0 — C++26 · Qt 6.11    ║"
 echo "╚═══════════════════════════════════════════════╝"
 echo ""
 echo "  Build type : $BUILD_TYPE"
@@ -30,17 +30,17 @@ if [ -n "$MISSING" ]; then
     exit 1
 fi
 
-# ── CMake konfigurieren ───────────────────────────────
+# ── Configure with CMake ──────────────────────────────
 echo "  Configuring with CMake ($BUILD_TYPE)..."
 mkdir -p "$BUILD_DIR"
 cmake -S "$SCRIPT_DIR" -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE="$BUILD_TYPE"
 
-# ── Bauen ─────────────────────────────────────────────
+# ── Build ─────────────────────────────────────────────
 echo ""
 echo "  Building..."
 cmake --build "$BUILD_DIR" -j"$(nproc)"
 
-# ── Fertig ────────────────────────────────────────────
+# ── Done ──────────────────────────────────────────────
 echo ""
 echo "╔═══════════════════════════════════════════════╗"
 echo "║      Build complete!                         ║"
@@ -48,5 +48,5 @@ echo "╚═══════════════════════�
 echo "  Binary: $BINARY"
 echo "  Run  : $BINARY"
 echo ""
-echo   "  Usage: $0 [Release|Debug]"
-  echo "  Install: sudo ./install.sh"
+echo "  Usage: $0 [Release|Debug]"
+echo "  Install: sudo ./install.sh"
