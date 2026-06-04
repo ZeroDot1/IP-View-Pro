@@ -20,6 +20,7 @@
 #include <unordered_map>
 #include <string_view>
 #include <utility>
+#include <span>
 
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::UI {
@@ -104,6 +105,17 @@ public:
     [[nodiscard]] std::size_t count() const noexcept
     {
         return static_cast<std::size_t>(mOrder.size());
+    }
+
+    /// All registered entries in insertion order. Read-only view
+    /// intended for iteration by tray sub-menus, tool palettes,
+    /// and any other consumer that needs the full (icon, title,
+    /// widget) tuple. The returned span is invalidated by any
+    /// registerTab() / clear() call — copy if you need to keep
+    /// it across mutations.
+    [[nodiscard]] std::span<const TabEntry> entries() const noexcept
+    {
+        return std::span<const TabEntry>(mOrder.cbegin(), mOrder.cend());
     }
 
     /// Check if a tab is registered.

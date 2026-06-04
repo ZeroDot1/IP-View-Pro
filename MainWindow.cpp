@@ -1,8 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.0 — MainWindow.cpp
+//  IPView Pro v2.15.4 — MainWindow.cpp
 //  C++26: std::array for compile-time constants, auto, [[maybe_unused]]
 //  QStringLiteral, structured bindings
 //  Dashboard functionality extracted into DashboardView (IPView::UI).
+//  v2.15.4: Full tray view — status header, refresh, show/hide, tab
+//  submenu, auto-refresh toggle, quit. Tray icon tooltip is rebuilt
+//  on every data refresh; a notification fires on every IP change.
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -23,6 +26,13 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTextStream>
+#include <QIcon>
+
+// Forward declaration for the file-static helper that turns an
+// ISO-3166 alpha-2 country code into the corresponding Unicode
+// regional indicator flag. Used by the tray menu status header
+// and the tray tooltip builder further down.
+[[nodiscard]] static QString countryCodeToFlag(const QString &cc) noexcept;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 MainWindow::MainWindow(QWidget *parent)
@@ -60,6 +70,11 @@ MainWindow::MainWindow(QWidget *parent)
     //  Instead of direct method calls, signals are emitted so that
     //  tabs can subscribe independently without tight coupling.
     connect(this, &MainWindow::dataRefreshed, this, [this](const QJsonObject &d) {
+        // IP-change notification fires before the data is committed
+        // to currentData so notifyIpChange can compare the old
+        // and new IPs against `history.first()`.
+        notifyIpChange(currentData, d);
+
         dashboardView->updateDisplay(d);
         QString const cc = d[QStringLiteral("country_code")].toString();
         if (!cc.isEmpty()) {
@@ -69,6 +84,7 @@ MainWindow::MainWindow(QWidget *parent)
         whoisTab->setIp(d[QStringLiteral("ip")].toString());
         toolsTab->setTargetIp(d[QStringLiteral("ip")].toString());
         updateTrayTooltip(d);
+        updateTrayMenuStatus(d);
         statusLabel->setText(QStringLiteral("Last update successful"));
     });
 
@@ -91,7 +107,27 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  System Tray
+//  System Tray — full tray view (v2.15.4)
+//
+//  The tray icon is the application's "always-visible" entry point
+//  when the user has minimised the main window. The menu and
+//  tooltip give the user a complete overview without re-opening
+//  the main window:
+//    • Status header (disabled QAction) shows the current IP and
+//      country flag without hovering.
+//    • Refresh now — kicks the same code path as the dashboard's
+//      refresh button.
+//    • Show / hide window — toggle, not a one-shot "show".
+//    • Go to tab → 12-entry submenu built from the TabRegistry.
+//    • Auto-refresh — checkable action that mirrors the dashboard
+//      checkbox state.
+//    • Quit — terminates the application with `reallyQuit = true`
+//      so the close event doesn't intercept and re-hide.
+//
+//  The icon is updated by QSystemTrayIcon::setIcon() at refresh
+//  time to indicate status (offline → red dot icon would be nice
+//  but we use the same icon for now and let the tooltip / menu
+//  carry the state — keeps the resource tree slim).
 // ═══════════════════════════════════════════════════════════════════════════════
 
 void MainWindow::setupTray() noexcept
@@ -100,18 +136,114 @@ void MainWindow::setupTray() noexcept
     trayIcon->setIcon(QIcon(QStringLiteral(":/icon.svg")));
     trayIcon->setToolTip(QStringLiteral("IP View Pro"));
 
-    trayMenu = new QMenu(this);
-    restoreAction = trayMenu->addAction(QStringLiteral("Restore Window"),
-                                        this, &QWidget::showNormal);
-    trayMenu->addSeparator();
-    exitAction = trayMenu->addAction(QStringLiteral("Exit"),
-                                     this, &MainWindow::onExitRequested);
+    buildTrayMenu();
 
     trayIcon->setContextMenu(trayMenu);
     trayIcon->show();
 
     connect(trayIcon, &QSystemTrayIcon::activated,
             this, &MainWindow::onTrayIconActivated);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void MainWindow::buildTrayMenu() noexcept
+{
+    // The QMenu is parented to the tray icon so the standard
+    // "delete on parent destruction" rule applies. The actions
+    // are added to the menu and live as long as the menu does.
+    trayMenu = new QMenu(this);
+
+    // ── Status header (read-only) ────────────────────────────────────────
+    trayStatusAction = trayMenu->addAction(
+        QStringLiteral("IP View Pro — initialising…"));
+    trayStatusAction->setEnabled(false);
+
+    trayMenu->addSeparator();
+
+    // ── Refresh now ──────────────────────────────────────────────────────
+    trayRefreshAction = trayMenu->addAction(
+        QIcon(QStringLiteral(":/svgs/chart-bar.svg")),
+        QStringLiteral("Refresh now"),
+        this, &MainWindow::onRefreshClicked);
+
+    // ── Show / hide window ───────────────────────────────────────────────
+    trayShowHideAction = trayMenu->addAction(
+        QIcon(QStringLiteral(":/svgs/info.svg")),
+        QStringLiteral("Show / hide window"),
+        this, &MainWindow::onTrayShowHideTriggered);
+
+    trayMenu->addSeparator();
+
+    // ── "Go to tab" submenu ──────────────────────────────────────────────
+    trayTabsMenu = trayMenu->addMenu(
+        QIcon(QStringLiteral(":/svgs/topology.svg")),
+        QStringLiteral("Go to tab"));
+    populateTrayTabsSubmenu();
+
+    trayMenu->addSeparator();
+
+    // ── Auto-refresh toggle ───────────────────────────────────────────────
+    trayAutoRefreshAction = trayMenu->addAction(
+        QStringLiteral("Auto-refresh every 5 min"));
+    trayAutoRefreshAction->setCheckable(true);
+    trayAutoRefreshAction->setChecked(autoRefreshTimer
+                                      && autoRefreshTimer->isActive());
+    connect(trayAutoRefreshAction, &QAction::toggled,
+            this, [this](bool checked) { onAutoRefreshToggled(checked); });
+
+    // ── Quit ──────────────────────────────────────────────────────────────
+    trayExitAction = trayMenu->addAction(
+        QIcon(QStringLiteral(":/svgs/wastebasket.svg")),
+        QStringLiteral("Quit"),
+        this, &MainWindow::onExitRequested);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void MainWindow::populateTrayTabsSubmenu() noexcept
+{
+    if (!trayTabsMenu) return;
+    trayTabsMenu->clear();
+
+    // Build the entries directly from the registry so adding a new
+    // tab in setupUI() shows up in the tray submenu without any
+    // extra wiring. The QAction carries the target widget as
+    // `setData(QVariant::fromValue<QWidget*>(...))` so
+    // onTraySwitchTabTriggered can cast it back without a name
+    // lookup.
+    for (auto const &entry : mTabRegistry.entries()) {
+        auto *act = trayTabsMenu->addAction(entry.icon, entry.title);
+        act->setData(QVariant::fromValue<QWidget*>(entry.widget));
+        connect(act, &QAction::triggered,
+                this, &MainWindow::onTraySwitchTabTriggered);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void MainWindow::updateTrayMenuStatus(const QJsonObject &jsonData) noexcept
+{
+    if (!trayStatusAction) return;
+
+    QString const ip  = jsonData[QStringLiteral("ip")].toString();
+    QString const cc  = jsonData[QStringLiteral("country_code")].toString();
+    QString const cn  = jsonData[QStringLiteral("country_name")].toString();
+    QString const org = jsonData[QStringLiteral("org")].toString();
+
+    QString line;
+    if (ip.isEmpty()) {
+        line = QStringLiteral("IP View Pro — refreshing…");
+    } else {
+        // "🇩🇪 1.2.3.4 — Germany · Acme ISP"
+        QStringList parts;
+        if (!cc.isEmpty()) parts.append(countryCodeToFlag(cc));
+        parts.append(ip);
+        if (!cn.isEmpty()) parts.append(cn);
+        if (!org.isEmpty()) parts.append(org);
+        line = QStringLiteral("IP View Pro — ") + parts.join(QStringLiteral(" · "));
+    }
+    trayStatusAction->setText(line);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -127,8 +259,53 @@ void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
             showNormal();
             activateWindow();
         }
+    } else if (reason == QSystemTrayIcon::MiddleClick) {
+        // Middle-click is a fast way to kick a refresh, matching
+        // common UX (browsers, chat clients).
+        onRefreshClicked();
+    } else if (reason == QSystemTrayIcon::DoubleClick) {
+        // Double-click always brings up the main window — the
+        // "already visible" case is a no-op via showNormal().
+        showNormal();
+        activateWindow();
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void MainWindow::onTrayShowHideTriggered()
+{
+    if (isVisible()) {
+        hide();
+    } else {
+        showNormal();
+        activateWindow();
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void MainWindow::onTraySwitchTabTriggered()
+{
+    auto *act = qobject_cast<QAction*>(sender());
+    if (!act) return;
+    auto *target = act->data().value<QWidget*>();
+    if (!target || !tabWidget) return;
+
+    int const idx = tabWidget->indexOf(target);
+    if (idx >= 0) {
+        tabWidget->setCurrentIndex(idx);
+        // Bring the window forward so the user can see the switch
+        // — switching the active tab is meaningless if the window
+        // is hidden in the tray.
+        if (!isVisible()) {
+            showNormal();
+            activateWindow();
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 
 void MainWindow::onExitRequested()
 {
@@ -136,17 +313,22 @@ void MainWindow::onExitRequested()
     QApplication::quit();
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (!reallyQuit && trayIcon->isVisible()) {
-        // Minimize to tray – save settings regardless
+    if (!reallyQuit && trayIcon && trayIcon->isVisible()) {
+        // Minimize to tray — save settings regardless
         saveSettings();
         hide();
         event->ignore();
-        trayIcon->showMessage(QStringLiteral("IP View Pro"),
-                              QStringLiteral("Application running in tray."),
-                              QSystemTrayIcon::Information,
-                              static_cast<int>(IPView::Timeouts::TRAY_TOOLTIP.count()));
+        if (trayIcon->supportsMessages()) {
+            trayIcon->showMessage(QStringLiteral("IP View Pro"),
+                                  QStringLiteral("Running in the system tray. "
+                                                 "Click the icon to restore."),
+                                  QIcon(QStringLiteral(":/icon.svg")),
+                                  static_cast<int>(IPView::Timeouts::TRAY_TOOLTIP.count()));
+        }
     } else {
         // Really quit — save everything first
         saveSettings();
@@ -215,6 +397,48 @@ void MainWindow::updateTrayTooltip(const QJsonObject &jsonData) noexcept
     tip += QStringLiteral("\u2517\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u251B");
 
     trayIcon->setToolTip(tip);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  notifyIpChange — fire a single QSystemTrayIcon::showMessage()
+//  notification when the IP changes between two refreshes. Silently
+//  no-ops if the new data is empty (still loading) or if the new
+//  IP is the same as the previous one (refresh, no change). Also
+//  no-ops if the OS shell doesn't support notifications (common on
+//  Linux without a notification daemon).
+// ═══════════════════════════════════════════════════════════════════════════════
+
+void MainWindow::notifyIpChange(const QJsonObject &oldData,
+                                const QJsonObject &newData) noexcept
+{
+    if (!trayIcon || !trayIcon->supportsMessages()) return;
+
+    QString const newIp = newData[QStringLiteral("ip")].toString();
+    bool const oldHasCc = !oldData.value(QStringLiteral("country_code"))
+                                .toString().isEmpty();
+    QString const oldIp = oldHasCc
+                              ? oldData[QStringLiteral("ip")].toString()
+                              : QString();
+
+    if (newIp.isEmpty() || newIp == mLastNotifiedIp) return;
+    if (!oldIp.isEmpty() && newIp == oldIp) return;   // First refresh after launch.
+
+    mLastNotifiedIp = newIp;
+
+    QString const cc  = newData[QStringLiteral("country_code")].toString();
+    QString const cn  = newData[QStringLiteral("country_name")].toString();
+    QString const org = newData[QStringLiteral("org")].toString();
+
+    QString const title = QStringLiteral("IP address changed");
+    QString const body  = QStringLiteral("%1 — %2%3%4")
+        .arg(newIp,
+             countryCodeToFlag(cc),
+             cn.isEmpty() ? QString() : QStringLiteral(" ") + cn,
+             org.isEmpty() ? QString() : QStringLiteral(" · ") + org);
+
+    trayIcon->showMessage(title, body,
+                          QIcon(QStringLiteral(":/icon.svg")),
+                          static_cast<int>(IPView::Timeouts::TRAY_TOOLTIP.count()));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

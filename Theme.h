@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.0 — Theme.h
+//  IPView Pro v2.15.4 — Theme.h
 //  Central design token system for Qt Style Sheets (QSS).
-//  All colors, spacings, radii, and shadows are defined here.
+//  All colors, spacings, radii, shadows, animations, and typography live here.
 //
 //  Palette: Teal Amber OLED
 //    Primary (Teal):  #00BCD4 — cool, professional, high-contrast on OLED black
@@ -20,6 +20,11 @@
 
 #include <QString>
 #include <QStringBuilder>   // Efficient string concatenation
+
+#include <array>            // C++26: constexpr std::array
+#include <chrono>           // std::chrono::milliseconds
+#include <cstddef>          // std::size_t
+#include <string_view>      // std::string_view for constexpr token tables
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  COLOR PALETTE — Teal Amber OLED Dark Theme
@@ -50,6 +55,7 @@ inline constexpr auto C_TEXT        = "#F5F5F5";   // Primary text — near-whit
 inline constexpr auto C_TEXT_SEC    = "#B0BEC5";   // Secondary text — blue-grey
 inline constexpr auto C_TEXT_DIM    = "#607D8B";   // Dimmed label text
 inline constexpr auto C_TEXT_MUTED  = "#546E7A";   // Muted/placeholder text
+inline constexpr auto C_TEXT_INV    = "#000000";   // Inverted text (for amber/teal backgrounds)
 
 // ── Teal primary ─────────────────────────────────────────────────────────────
 inline constexpr auto C_PRIMARY     = "#00BCD4";   // Teal primary — focus, links, progress
@@ -66,24 +72,131 @@ inline constexpr auto C_SUCCESS     = "#26A69A";   // Teal-green — positive/on
 inline constexpr auto C_SUCCESS_HVR = "#4DB6AC";   // Success hover
 inline constexpr auto C_WARNING     = "#FFB300";   // Amber — warnings (same as accent)
 inline constexpr auto C_ERROR       = "#EF5350";   // Red — errors, critical alerts
+inline constexpr auto C_ERROR_HVR   = "#E57373";   // Error hover
 inline constexpr auto C_INFO        = "#00BCD4";   // Teal — informational
+inline constexpr auto C_CRITICAL    = "#D32F2F";   // Deep red — critical alerts
+inline constexpr auto C_MUTED       = "#37474F";   // Disabled / very low contrast
 
-// ── Spacing ────────────────────────────────────────────────────────────────
-// Tabs: compact — all 12 tabs fit without scrolling
+// ── Severity scale (alert engine) ────────────────────────────────────────────
+inline constexpr auto C_SEVERITY_INFO     = "#00BCD4";   // Informational
+inline constexpr auto C_SEVERITY_WARNING  = "#FFB300";   // Warning
+inline constexpr auto C_SEVERITY_CRITICAL = "#EF5350";   // Critical
+
+// ── Status dot (used in tray, dashboard, alerts) ─────────────────────────────
+inline constexpr auto C_DOT_ONLINE  = "#26A69A";   // Green dot — connected
+inline constexpr auto C_DOT_OFFLINE = "#EF5350";   // Red dot — disconnected
+inline constexpr auto C_DOT_PENDING = "#FFB300";   // Amber dot — refreshing
+inline constexpr auto C_DOT_IDLE    = "#546E7A";   // Grey dot — idle
+
+// ── Spacing scale (8 px base, with 4-px half-step) ────────────────────────────
+//  Tabs: compact — all 12 tabs fit without scrolling
+inline constexpr auto PADDING_NONE  = "0px";
+inline constexpr auto PADDING_XS    = "2px";
+inline constexpr auto PADDING_S     = "4px";
+inline constexpr auto PADDING_M     = "8px";
+inline constexpr auto PADDING_L     = "10px";
+inline constexpr auto PADDING_XL    = "12px";
+inline constexpr auto PADDING_2XL   = "16px";
+inline constexpr auto PADDING_3XL   = "20px";
+
 inline constexpr auto PADDING_TAB   = "6px 12px";
 inline constexpr auto PADDING_TAB_L = "6px 18px";   // Optional wider tab variant
 inline constexpr auto PADDING_BTN   = "8px 20px";
 inline constexpr auto PADDING_BTN_S = "6px 14px";
 inline constexpr auto PADDING_INP   = "8px 12px";
 inline constexpr auto PADDING_CRD   = "20px";
-inline constexpr auto PADDING_M     = "10px";
 
-// ── Radii ──────────────────────────────────────────────────────────────────
-inline constexpr auto RADIUS_SM   = "4px";
-inline constexpr auto RADIUS_MD   = "6px";
-inline constexpr auto RADIUS_LG   = "8px";
-inline constexpr auto RADIUS_XL   = "12px";
-inline constexpr auto RADIUS_2XL  = "14px";
+// ── Radii (border-radius) ────────────────────────────────────────────────────
+inline constexpr auto RADIUS_NONE  = "0px";
+inline constexpr auto RADIUS_XS    = "2px";
+inline constexpr auto RADIUS_SM    = "4px";
+inline constexpr auto RADIUS_MD    = "6px";
+inline constexpr auto RADIUS_LG    = "8px";
+inline constexpr auto RADIUS_XL    = "12px";
+inline constexpr auto RADIUS_2XL   = "14px";
+inline constexpr auto RADIUS_PILL  = "9999px";     // For pill-shaped badges/buttons
+
+// ── Sizing tokens (fixed heights, widths, icon sizes) ────────────────────────
+inline constexpr auto ICON_SZ_XS   = "10px";
+inline constexpr auto ICON_SZ_SM   = "14px";
+inline constexpr auto ICON_SZ_MD   = "16px";
+inline constexpr auto ICON_SZ_LG   = "20px";
+inline constexpr auto ICON_SZ_XL   = "24px";
+inline constexpr auto ICON_SZ_2XL  = "32px";
+
+inline constexpr auto TRAY_ICON_SZ = 64;           // System tray icon (px)
+inline constexpr auto FLAG_W       = 64;           // Dashboard flag (px)
+inline constexpr auto FLAG_H       = 42;
+inline constexpr auto BTN_MIN_W    = 80;           // Min width for dialog buttons
+inline constexpr auto ROW_H_TABLE  = 28;           // Default table row height
+
+// ── Typography scale ─────────────────────────────────────────────────────────
+inline constexpr auto FONT_FAMILY      = "'Segoe UI', 'Noto Sans', 'Ubuntu', sans-serif";
+inline constexpr auto FONT_MONOSPACE   = "'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace";
+
+inline constexpr auto FONT_SIZE_XS     = "10px";
+inline constexpr auto FONT_SIZE_SM     = "11px";
+inline constexpr auto FONT_SIZE_BASE   = "12px";
+inline constexpr auto FONT_SIZE_MD     = "13px";
+inline constexpr auto FONT_SIZE_LG     = "14px";
+inline constexpr auto FONT_SIZE_XL     = "16px";
+inline constexpr auto FONT_SIZE_2XL    = "18px";
+inline constexpr auto FONT_SIZE_3XL    = "20px";
+inline constexpr auto FONT_SIZE_DISPLAY= "26px";    // Dashboard IP card
+
+// ── Animation durations (C++ side; CSS still uses ms) ────────────────────────
+inline constexpr std::chrono::milliseconds ANIM_HOVER    {120};
+inline constexpr std::chrono::milliseconds ANIM_PRESS    {80};
+inline constexpr std::chrono::milliseconds ANIM_FADE     {200};
+inline constexpr std::chrono::milliseconds ANIM_TOAST    {300};
+inline constexpr std::chrono::milliseconds ANIM_TRAYTIP  {2000};
+
+// ── Shadow tokens (used for hover/elevation effects) ─────────────────────────
+//  CSS box-shadow strings; reusable across widgets.
+inline constexpr auto SHADOW_NONE   = "none";
+inline constexpr auto SHADOW_SM     = "0 1px 2px rgba(0, 0, 0, 0.4)";
+inline constexpr auto SHADOW_MD     = "0 2px 6px rgba(0, 0, 0, 0.5)";
+inline constexpr auto SHADOW_LG     = "0 4px 12px rgba(0, 0, 0, 0.6)";
+inline constexpr auto SHADOW_FOCUS  = "0 0 0 2px rgba(0, 188, 212, 0.4)";   // Teal focus ring
+inline constexpr auto SHADOW_GLOW_T = "0 0 12px rgba(0, 188, 212, 0.5)";     // Teal glow
+inline constexpr auto SHADOW_GLOW_A = "0 0 12px rgba(255, 179, 0, 0.5)";     // Amber glow
+
+// ── Z-index / elevation tokens (for QGraphicsView, overlay layers) ───────────
+inline constexpr int Z_BASE         = 0;
+inline constexpr int Z_RAISED       = 10;
+inline constexpr int Z_TOOLTIP      = 100;
+inline constexpr int Z_TOAST        = 200;
+inline constexpr int Z_MODAL        = 1000;
+
+// ── Opacity / alpha tokens (for disabled, hover overlays) ────────────────────
+inline constexpr auto OPACITY_DISABLED = "0.5";
+inline constexpr auto OPACITY_HINT     = "0.7";
+inline constexpr auto OPACITY_FULL     = "1.0";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  CONSTEXPR TOKEN TABLES
+//  Type-safe iteration over the design tokens. C++26 std::array
+//  guarantees the storage is in .rodata and indexed at compile time.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+namespace IPView::Theme {
+
+// All known color tokens. Useful for tooling, palette dumps, and
+// consistency checks (e.g. CI lint that catches hard-coded hex).
+inline constexpr auto COLOR_TOKENS = std::to_array<std::string_view>({
+    "C_BG", "C_BG_ELEVATED", "C_BG_SUNKEN", "C_BG_HOVER",
+    "C_SURFACE", "C_SURFACE_HVR", "C_SURFACE_ACT",
+    "C_BORDER", "C_BORDER_HVR", "C_BORDER_FOC",
+    "C_TEXT", "C_TEXT_SEC", "C_TEXT_DIM", "C_TEXT_MUTED", "C_TEXT_INV",
+    "C_PRIMARY", "C_PRIMARY_HVR", "C_PRIMARY_ACT",
+    "C_ACCENT", "C_ACCENT_HVR", "C_ACCENT_ACT",
+    "C_SUCCESS", "C_SUCCESS_HVR", "C_WARNING", "C_ERROR", "C_ERROR_HVR",
+    "C_INFO", "C_CRITICAL", "C_MUTED",
+    "C_SEVERITY_INFO", "C_SEVERITY_WARNING", "C_SEVERITY_CRITICAL",
+    "C_DOT_ONLINE", "C_DOT_OFFLINE", "C_DOT_PENDING", "C_DOT_IDLE",
+});
+
+} // namespace IPView::Theme
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  GLOBAL APP STYLESHEET — Teal Amber OLED Dark Theme
@@ -146,6 +259,7 @@ inline QString appStyleSheet() noexcept
         "}"
         "QPushButton:disabled {"
         "  color: %15; border-color: %16; background-color: %17;"
+        "  opacity: 0.5;"
         "}"
         // ── Accent button (Refresh, Lookup, Ping, GO) — Amber ──────────
         "QPushButton[accent=\"true\"] {"
@@ -156,6 +270,31 @@ inline QString appStyleSheet() noexcept
         "}"
         "QPushButton[accent=\"true\"]:pressed {"
         "  background-color: %19;"
+        "}"
+        // ── Primary button (Teal) ────────────────────────────────────
+        "QPushButton[primary=\"true\"] {"
+        "  background-color: %20; color: %1; border: none;"
+        "}"
+        "QPushButton[primary=\"true\"]:hover {"
+        "  background-color: %21;"
+        "}"
+        "QPushButton[primary=\"true\"]:pressed {"
+        "  background-color: %22;"
+        "}"
+        // ── Danger button (Destructive actions) ─────────────────────
+        "QPushButton[danger=\"true\"] {"
+        "  background-color: %23; color: %2; border: none;"
+        "}"
+        "QPushButton[danger=\"true\"]:hover {"
+        "  background-color: %24;"
+        "}"
+        // ── Ghost button (transparent, no fill) ──────────────────────
+        "QPushButton[ghost=\"true\"] {"
+        "  background-color: transparent; color: %2;"
+        "  border: 1px solid %10;"
+        "}"
+        "QPushButton[ghost=\"true\"]:hover {"
+        "  background-color: %9; border-color: %13;"
         "}"
         // ── QLineEdit / QTextEdit / QPlainTextEdit ─────────────────────
         "QLineEdit {"
@@ -207,6 +346,7 @@ inline QString appStyleSheet() noexcept
         "QCheckBox::indicator:hover {"
         "  border-color: %13;"
         "}"
+        "QCheckBox:disabled { color: %25; }"
         // ── QProgressBar ───────────────────────────────────────────────
         "QProgressBar {"
         "  background: %3; border-radius: 5px; border: none;"
@@ -300,6 +440,29 @@ inline QString appStyleSheet() noexcept
         "QDialogButtonBox QPushButton {"
         "  min-width: 80px;"
         "}"
+        // ── QStatusBar (status row at the bottom of the main window) ───
+        "QStatusBar {"
+        "  background: %1; color: %7;"
+        "  border-top: 1px solid %10;"
+        "  padding: 2px 8px; font-size: 11px;"
+        "}"
+        // ── QLabel[statusdot=\"online\"|\"offline\"|\"pending\"|\"idle\"] ──
+        //  Status indicators (round coloured dot in a QLabel) — used in
+        //  the dashboard and the tray tooltip.
+        "QLabel[statusdot=\"online\"]  { color: %26; font-weight: bold; }"
+        "QLabel[statusdot=\"offline\"] { color: %23; font-weight: bold; }"
+        "QLabel[statusdot=\"pending\"] { color: %4;  font-weight: bold; }"
+        "QLabel[statusdot=\"idle\"]    { color: %15; font-weight: bold; }"
+        // ── QLabel[badge=\"info\"|\"warning\"|\"critical\"|\"success\"] ───
+        //  Pill-shaped badges used by the alert engine.
+        "QLabel[badge=\"true\"] {"
+        "  border-radius: %5; padding: 2px 8px;"
+        "  font-size: 10px; font-weight: bold;"
+        "}"
+        "QLabel[badge=\"info\"]     { background: %21; color: %1; }"
+        "QLabel[badge=\"warning\"]  { background: %4;  color: %1; }"
+        "QLabel[badge=\"critical\"] { background: %23; color: %2; }"
+        "QLabel[badge=\"success\"]  { background: %5;  color: %1; }"
     )
         .arg(C_BG,          C_TEXT,        C_BG_ELEVATED,  //  1  2  3
              C_ACCENT,       RADIUS_SM,     RADIUS_LG,      //  4  5  6
@@ -308,7 +471,8 @@ inline QString appStyleSheet() noexcept
              C_ACCENT_HVR,   C_ACCENT_ACT,  C_TEXT_MUTED,    // 13 14 15
              C_BORDER,       C_BG_SUNKEN,   C_ACCENT_HVR,    // 16 17 18
              C_ACCENT_ACT,   PADDING_INP,   C_PRIMARY,       // 19 20 21
-             C_SUCCESS,      C_BG_ELEVATED, PADDING_CRD)     // 22 23 24
+             C_SUCCESS,      C_BG_ELEVATED, PADDING_CRD,    // 22 23 24
+             C_MUTED,        C_DOT_ONLINE)                   // 25 26
         ;
 }
 
@@ -325,8 +489,24 @@ inline QString appStyleSheet() noexcept
         "  border-radius: %3; padding: %4; font-weight: bold; }"
         "QPushButton:hover { background-color: %5; }"
         "QPushButton:pressed { background-color: %6; }"
-    ).arg(C_ACCENT, C_BG, RADIUS_MD, PADDING_BTN, C_ACCENT_HVR, C_ACCENT_ACT);
+        "QPushButton:disabled { background-color: %7; color: %8; }"
+    ).arg(C_ACCENT, C_BG, RADIUS_MD, PADDING_BTN,
+          C_ACCENT_HVR, C_ACCENT_ACT, C_MUTED, C_TEXT_MUTED);
     //   ^Amber    ^Black text for contrast
+}
+
+// ── Primary button (Teal) ─────────────────────────────────────────────────
+[[nodiscard]] inline QString btnPrimaryStyle() noexcept
+{
+    return QStringLiteral(
+        "QPushButton { background-color: %1; color: %2; border: none;"
+        "  border-radius: %3; padding: %4; font-weight: bold; }"
+        "QPushButton:hover { background-color: %5; }"
+        "QPushButton:pressed { background-color: %6; }"
+        "QPushButton:disabled { background-color: %7; color: %8; }"
+    ).arg(C_PRIMARY, C_BG, RADIUS_MD, PADDING_BTN,
+          C_PRIMARY_HVR, C_PRIMARY_ACT, C_MUTED, C_TEXT_MUTED);
+    //   ^Teal       ^Black text for contrast
 }
 
 // ── Secondary button (outline / subtle) ────────────────────────────────────
@@ -337,8 +517,9 @@ inline QString appStyleSheet() noexcept
         "  border: 1px solid %3; border-radius: %4; padding: %5; }"
         "QPushButton:hover { background-color: %6; border-color: %7; }"
         "QPushButton:pressed { background-color: %8; }"
+        "QPushButton:disabled { color: %9; border-color: %10; }"
     ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER, RADIUS_MD, PADDING_BTN,
-          C_BG_HOVER, C_PRIMARY, C_SURFACE_ACT);
+          C_BG_HOVER, C_PRIMARY, C_SURFACE_ACT, C_TEXT_MUTED, C_MUTED);
 }
 
 // ── Small button (outline, compact) ───────────────────────────────────────
@@ -348,8 +529,30 @@ inline QString appStyleSheet() noexcept
         "QPushButton { background-color: %1; color: %2;"
         "  border: 1px solid %3; border-radius: %4; padding: %5; font-size: 11px; }"
         "QPushButton:hover { background-color: %6; border-color: %7; }"
+        "QPushButton:disabled { color: %8; border-color: %9; }"
     ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER, RADIUS_MD, PADDING_BTN_S,
-          C_BG_HOVER, C_PRIMARY);
+          C_BG_HOVER, C_PRIMARY, C_TEXT_MUTED, C_MUTED);
+}
+
+// ── Danger button (destructive actions) ────────────────────────────────────
+[[nodiscard]] inline QString btnDangerStyle() noexcept
+{
+    return QStringLiteral(
+        "QPushButton { background-color: %1; color: %2; border: none;"
+        "  border-radius: %3; padding: %4; font-weight: bold; }"
+        "QPushButton:hover { background-color: %5; }"
+        "QPushButton:pressed { background-color: %6; }"
+    ).arg(C_ERROR, C_TEXT, RADIUS_MD, PADDING_BTN, C_ERROR_HVR, C_CRITICAL);
+}
+
+// ── Ghost button (transparent) ──────────────────────────────────────────────
+[[nodiscard]] inline QString btnGhostStyle() noexcept
+{
+    return QStringLiteral(
+        "QPushButton { background-color: transparent; color: %1;"
+        "  border: 1px solid %2; border-radius: %3; padding: %4; }"
+        "QPushButton:hover { background-color: %5; border-color: %6; }"
+    ).arg(C_TEXT, C_BORDER, RADIUS_MD, PADDING_BTN, C_BG_HOVER, C_PRIMARY);
 }
 
 // ── Input field (normal state) ────────────────────────────────────────────
@@ -360,8 +563,9 @@ inline QString appStyleSheet() noexcept
         "  border: 1px solid %3; border-radius: %4; padding: %5; }"
         "QLineEdit:focus { border-color: %6; }"  // Teal focus ring
         "QLineEdit:hover:!focus { border-color: %7; }"  // Amber hover border
+        "QLineEdit:disabled { color: %8; background: %9; }"
     ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER, RADIUS_MD, PADDING_INP,
-          C_PRIMARY, C_ACCENT);
+          C_PRIMARY, C_ACCENT, C_TEXT_MUTED, C_BG_SUNKEN);
 }
 
 // ── Input field (error state) ─────────────────────────────────────────────
@@ -433,16 +637,44 @@ inline QString appStyleSheet() noexcept
     ).arg(C_SUCCESS);
 }
 
-// ── Teal primary button (links, navigation actions) ───────────────────────
-[[nodiscard]] inline QString btnPrimaryStyle() noexcept
+// ── Status dot (used in dashboard and tray) ───────────────────────────────
+[[nodiscard]] inline QString statusDotStyle(const QString &color) noexcept
+{
+    // Used for inline dot rendering: setStyleSheet(colorDotStyle(C_DOT_ONLINE))
+    return QStringLiteral(
+        "QLabel { color: %1; font-weight: bold; font-size: 14px; }"
+    ).arg(color);
+}
+
+// ── Severity badge style (alert engine) ──────────────────────────────────
+[[nodiscard]] inline QString severityBadgeStyle(const QString &bg,
+                                                const QString &fg) noexcept
 {
     return QStringLiteral(
-        "QPushButton { background-color: %1; color: %2; border: none;"
-        "  border-radius: %3; padding: %4; font-weight: bold; }"
-        "QPushButton:hover { background-color: %5; }"
-        "QPushButton:pressed { background-color: %6; }"
-    ).arg(C_PRIMARY, C_BG, RADIUS_MD, PADDING_BTN, C_PRIMARY_HVR, C_PRIMARY_ACT);
-    //   ^Teal       ^Black text for contrast
+        "QLabel { background-color: %1; color: %2; border-radius: %3;"
+        "  padding: 2px 8px; font-size: 10px; font-weight: bold; }"
+    ).arg(bg, fg, RADIUS_PILL);
+}
+
+// ── Notification / Toast ──────────────────────────────────────────────────
+[[nodiscard]] inline QString toastStyle() noexcept
+{
+    return QStringLiteral(
+        "QFrame { background-color: %1; color: %2;"
+        "  border: 1px solid %3; border-radius: %4;"
+        "  padding: 12px 16px; }"
+    ).arg(C_BG_ELEVATED, C_TEXT, C_ACCENT, RADIUS_LG);
+}
+
+// ── Splitter (used in AuditorTab, Connections) ────────────────────────────
+[[nodiscard]] inline QString splitterStyle() noexcept
+{
+    return QStringLiteral(
+        "QSplitter::handle { background-color: %1; }"
+        "QSplitter::handle:horizontal { width: 1px; }"
+        "QSplitter::handle:vertical   { height: 1px; }"
+        "QSplitter::handle:hover { background-color: %2; }"
+    ).arg(C_BORDER, C_ACCENT);
 }
 
 #endif // THEME_H
