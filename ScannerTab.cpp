@@ -167,6 +167,19 @@ void ScannerTab::setupUI() noexcept
 //  Slots
 // ═══════════════════════════════════════════════════════════════════════════════
 
+void ScannerTab::setTargetAndStart(const QString &ip) noexcept
+{
+    if (ip.isEmpty()) return;
+    targetEdit->setText(ip);
+    targetEdit->setStyleSheet(inputStyle());
+    // Delegate to the regular start path so all the visual
+    // feedback (status text, progress bar, table reset) stays
+    // in one place.
+    onStartScan();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+
 void ScannerTab::onStartScan()
 {
     QString const target = targetEdit->text().trimmed();

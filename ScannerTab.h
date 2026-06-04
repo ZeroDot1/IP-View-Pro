@@ -31,6 +31,12 @@ public:
     explicit ScannerTab(QWidget *parent = nullptr);
     ~ScannerTab() override = default;
 
+    // Cross-tab entry point: set the target field and start a
+    // quick scan (28 known ports) in one call. Used by the
+    // Network scan sub-tab of ToolsTab when the user clicks
+    // the per-row "Port scan" button next to a discovered device.
+    void setTargetAndStart(const QString &ip) noexcept;
+
 private slots:
     void onStartScan();
     void onCancelScan();
