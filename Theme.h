@@ -20,6 +20,7 @@
 
 #include <QString>
 #include <QStringBuilder>   // Efficient string concatenation
+#include <QStringView>      // QStringView for colorStyle()
 #include <QTableWidget>     // For applyTableStyle()
 #include <QHeaderView>      // QHeaderView for verticalHeader() call
 #include <QAbstractItemView>// QAbstractItemView::SelectionBehavior / EditTrigger
@@ -678,6 +679,15 @@ inline QString appStyleSheet() noexcept
         "QSplitter::handle:vertical   { height: 1px; }"
         "QSplitter::handle:hover { background-color: %2; }"
     ).arg(C_BORDER, C_ACCENT);
+}
+
+/// Inline `color: <c>;` QSS fragment for a single label / widget that
+/// cannot be matched by a global selector. Cheap to call: a single
+/// QStringLiteral + .arg(). The argument is `const char*` so the
+/// `C_*` hex-token constants can be passed without explicit conversion.
+[[nodiscard]] inline QString colorStyle(const char *color) noexcept
+{
+    return QStringLiteral("color: %1;").arg(QString::fromLatin1(color));
 }
 
 // ─── Behavior helpers ────────────────────────────────────────────────────────

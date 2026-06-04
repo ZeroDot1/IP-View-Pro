@@ -105,10 +105,8 @@ void Iperf3Window::setupUI() noexcept
     // ── IP Display ────────────────────────────────────────────────────────
     auto *topRow = new QHBoxLayout();
     auto *ipTextLabel = new QLabel(QStringLiteral("Target IP:"));
-    ipTextLabel->setStyleSheet(QStringLiteral("color: %1;").arg(C_TEXT));
-    ipLabel = new QLabel();
+    ipTextLabel->setStyleSheet(colorStyle(C_TEXT));
     ipLabel->setStyleSheet(QStringLiteral("color: %1; font-weight: bold;").arg(C_PRIMARY));
-    ipLabel->setText(QStringLiteral("(Click button to get from IP View)"));
     ipTextLabel->setFixedWidth(80);
     topRow->addWidget(ipTextLabel);
     topRow->addWidget(ipLabel);
@@ -124,9 +122,9 @@ void Iperf3Window::setupUI() noexcept
     hostEdit->setText(QStringLiteral("localhost"));
 
     auto *modeLabel = new QLabel(QStringLiteral("Mode:"));
-    modeLabel->setStyleSheet(QStringLiteral("color: %1;").arg(C_TEXT));
+    modeLabel->setStyleSheet(colorStyle(C_TEXT));
     auto *hostLabel = new QLabel(QStringLiteral("Host:"));
-    hostLabel->setStyleSheet(QStringLiteral("color: %1;").arg(C_TEXT));
+    hostLabel->setStyleSheet(colorStyle(C_TEXT));
 
     controlRow->addWidget(modeLabel);
     controlRow->addWidget(roleCombo);
@@ -170,10 +168,10 @@ void Iperf3Window::setupUI() noexcept
     ).arg(C_SUCCESS));
 
     transferLabel = new QLabel(QStringLiteral("Transferred: 0.00 MB"));
-    transferLabel->setStyleSheet(QStringLiteral("color: %1;").arg(C_TEXT));
+    transferLabel->setStyleSheet(colorStyle(C_TEXT));
 
     timeLabel = new QLabel(QStringLiteral("Time: 00:00"));
-    timeLabel->setStyleSheet(QStringLiteral("color: %1;").arg(C_TEXT_DIM));
+    timeLabel->setStyleSheet(colorStyle(C_TEXT_DIM));
 
     // ── Output ────────────────────────────────────────────────────────────
     outputEdit = new QTextEdit();

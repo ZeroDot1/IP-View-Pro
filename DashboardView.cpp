@@ -17,6 +17,7 @@
 #include <QHeaderView>
 #include <QJsonDocument>
 #include <QMessageBox>
+#include "Format.hpp"
 
 // ── Compile-time field definitions ─────────────────────────────────────────
 //  C++26 std::array: guaranteed stack-allocated, constexpr
@@ -75,7 +76,7 @@ void DashboardView::setupUI() noexcept
     auto *ipCardLayout = new QVBoxLayout(ipCard);
     ipLabel = new QLabel(QStringLiteral("Loading IP..."));
     ipLabel->setFont(QFont(QStringLiteral("Segoe UI"), 26, QFont::Bold));
-    ipLabel->setStyleSheet(QStringLiteral("color: %1;").arg(C_PRIMARY));
+    ipLabel->setStyleSheet(colorStyle(C_PRIMARY));
     ipLabel->setAlignment(Qt::AlignCenter);
     ipCardLayout->addWidget(ipLabel);
 
@@ -174,7 +175,8 @@ void DashboardView::updateDisplay(const QJsonObject &jsonData) noexcept
     }
 
     timestampLabel->setText(QStringLiteral("Updated: ")
-                            + QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss")));
+                            + QDateTime::currentDateTime().toString(QString::fromLatin1(IPView::Format::TIME_HMS.data(),
+                                                                                                static_cast<int>(IPView::Format::TIME_HMS.size()))));
     onlineLabel->setText(QStringLiteral("\u25CF Online"));
     onlineLabel->setStyleSheet(onlineLabelStyle());
 }

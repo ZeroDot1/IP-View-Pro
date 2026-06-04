@@ -15,6 +15,7 @@
 #include <QLabel>
 #include <QTextCursor>
 #include <QJsonDocument>
+#include "Format.hpp"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 HistoryTab::HistoryTab(QWidget *parent)
@@ -39,7 +40,7 @@ HistoryTab::HistoryTab(QWidget *parent)
     // ── Persistence toggle ─────────────────────────────────────────────────
     persistCheckBox = new QCheckBox(QStringLiteral("SQLite persist"));
     persistCheckBox->setChecked(true);
-    persistCheckBox->setStyleSheet(QStringLiteral("color: %1;").arg(C_TEXT_SEC));
+    persistCheckBox->setStyleSheet(colorStyle(C_TEXT_SEC));
 
     // ── Clear Button ──────────────────────────────────────────────────────
     clearButton = new QPushButton(QIcon(QStringLiteral(":/svgs/wastebasket.svg")),
@@ -110,7 +111,8 @@ void HistoryTab::loadPersistedHistory() noexcept
 
         text += QStringLiteral("  #%1  %2\n")
                     .arg(idx++, 2)
-                    .arg(entry.timestamp.toString(QStringLiteral("yyyy-MM-dd hh:mm:ss")));
+                    .arg(entry.timestamp.toString(QString::fromLatin1(IPView::Format::DATETIME_SEC.data(),
+                                                                          static_cast<int>(IPView::Format::DATETIME_SEC.size()))));
         text += QStringLiteral("       IP:     %1\n")
                     .arg(ip.isEmpty()  ? QStringLiteral("N/A") : ip);
         text += QStringLiteral("       Org:    %1\n")
@@ -172,7 +174,8 @@ void HistoryTab::updateHistory(const QList<QJsonObject> &history) noexcept
 
         text += QStringLiteral("  #%1  %2\n")
                     .arg(idx++, 2)
-                    .arg(timestamp.toString(QStringLiteral("yyyy-MM-dd hh:mm:ss")));
+                    .arg(timestamp.toString(QString::fromLatin1(IPView::Format::DATETIME_SEC.data(),
+                                                                  static_cast<int>(IPView::Format::DATETIME_SEC.size()))));
         text += QStringLiteral("       IP:     %1\n")
                     .arg(ip.isEmpty()  ? QStringLiteral("N/A") : ip);
         text += QStringLiteral("       Org:    %1\n")

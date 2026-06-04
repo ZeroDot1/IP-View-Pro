@@ -12,6 +12,7 @@
 #include <QHeaderView>
 #include <QDateTime>
 #include "ErrorDialog.h"
+#include "Format.hpp"
 
 namespace IPView::UI {
 
@@ -148,7 +149,8 @@ void AlertTab::populateTable() noexcept
         mTable->insertRow(row);
 
         mTable->setItem(row, 0, new QTableWidgetItem(
-            alert.timestamp.toString(QStringLiteral("hh:mm:ss"))));
+            alert.timestamp.toString(QString::fromLatin1(IPView::Format::TIME_HMS.data(),
+                                                       static_cast<int>(IPView::Format::TIME_HMS.size())))));
 
         auto *sevItem = new QTableWidgetItem(severityIcon(alert.severity) + QStringLiteral(" ") +
             [alert]() {

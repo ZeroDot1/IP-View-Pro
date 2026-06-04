@@ -27,6 +27,7 @@
 #include <QHBoxLayout>
 #include <QTextStream>
 #include <QIcon>
+#include "Format.hpp"
 
 // Forward declaration for the file-static helper that turns an
 // ISO-3166 alpha-2 country code into the corresponding Unicode
@@ -392,7 +393,8 @@ void MainWindow::updateTrayTooltip(const QJsonObject &jsonData) noexcept
 
     tip += QStringLiteral("\u2523\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u252B\n");
     tip += QStringLiteral("\u2503  %1\n")
-              .arg(QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss")));
+              .arg(QDateTime::currentDateTime().toString(QString::fromLatin1(IPView::Format::TIME_HMS.data(),
+                                                                             static_cast<int>(IPView::Format::TIME_HMS.size()))));
 
     tip += QStringLiteral("\u2517\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u251B");
 

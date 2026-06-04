@@ -96,7 +96,7 @@ void AboutTab::setupUI() noexcept
     // ── App Name ──────────────────────────────────────────────────────────
     auto *titleLabel = new QLabel(QStringLiteral("IPView Pro"));
     titleLabel->setFont(QFont(QStringLiteral("Segoe UI"), 28, QFont::Bold));
-    titleLabel->setStyleSheet(QStringLiteral("color: %1;").arg(C_ACCENT));
+    titleLabel->setStyleSheet(colorStyle(C_ACCENT));
     titleLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(titleLabel);
 
