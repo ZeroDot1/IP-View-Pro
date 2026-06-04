@@ -341,6 +341,35 @@ cmake --build build -j"$(nproc)"
 # → build/IPView ≈ 256 KiB
 ```
 
+### System-Wide Install (v2.15.5+)
+
+The bundled `install.sh` registers IPView Pro in the system menu
+and installs the binary to `/usr/bin/ipview-pro` (lowercase, the
+long-standing install convention). The menu shortcut's `Exec=`
+points at that exact name.
+
+```bash
+sudo ./install.sh           # install
+sudo ./install.sh uninstall # remove
+```
+
+After installation:
+- **CLI**: type `ipview-pro`
+- **Menu**: *Network → IP Monitor*
+- **Files**:
+  - `/usr/bin/ipview-pro` — binary
+  - `/usr/share/applications/ipview-pro.desktop` — menu entry
+  - `/usr/share/icons/hicolor/scalable/apps/ipview-pro.svg` — app icon
+  - `/usr/share/pixmaps/ipview-pro.svg` — pixmap alias
+  - `/usr/share/ipview-pro/svgs/` — toolbar icons
+  - `/usr/share/doc/ipview-pro/{README,CHANGELOG}.md` — docs
+
+The AppImage uses a different distribution model — it embeds the
+binary at `AppDir/usr/bin/IPView` (uppercase, matches the in-tree
+build artefact) and ships its own `ipview.desktop` inside the
+AppDir. End users who download the AppImage don't run
+`install.sh`.
+
 ---
 
 ## Usage

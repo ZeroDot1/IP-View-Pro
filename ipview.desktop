@@ -2,7 +2,7 @@
 Name=IPView Pro
 Comment=Professional IP monitoring & network analysis tool
 GenericName=IP Monitor
-Exec=IPView
+Exec=ipview-pro
 Icon=ipview-pro
 Type=Application
 Categories=Network;Monitor;Utility;

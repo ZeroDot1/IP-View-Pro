@@ -4,6 +4,47 @@ All notable changes to this project are documented here.
 
 ## [2.15.5] — 2026-06-04
 
+### Fixed
+
+- **`Unknown property caret-color` warnings flooded the console.**
+  The three QSS strings in `Theme.h` (`appStyleSheetDark()`,
+  `appStyleSheetLight()`, `appStyleSheetHighContrast()`) plus the
+  per-widget `inputStyle()` helper set the caret colour via the
+  W3C `caret-color` property. Qt's QSS engine does **not** support
+  that property on QLineEdit / QTextEdit / QSpinBox / QPlainTextEdit
+  — it is a QQuickItem-only feature. Every focus event on every
+  input field re-parsed the stylesheet and emitted one
+  `Unknown property caret-color` warning, so a typical session
+  produced several hundred of them. The `caret-color` declarations
+  are removed; selection colour is still set via the supported
+  `selection-color` property, and the caret now inherits from the
+  palette like every other unstyled Qt widget.
+- **`qt.svg.draw: The requested buffer size is too big, ignoring`
+  warnings when rendering the bundled icons and country flags.**
+  Qt 6 caps `QImageReader` / `QSvgRenderer` allocation at 128 MiB
+  by default (DoS defence). The bundled `icon.svg` is 512×512 and
+  the country flags come from `flagcdn.com`; on a 4K HiDPI display
+  the rasterised buffer can easily exceed 128 MiB. `main.cpp` now
+  raises the cap to 1 GiB (both via the env var
+  `QT_IMAGE_READER_ALLOCATION_LIMIT=1073741824` and the
+  `QImageReader::setAllocationLimit(1073741824)` C++ API), which
+  is comfortably above what any legitimate icon would ever need
+  while still defending against truly absurd payloads.
+- **Menu shortcut pointed at a non-existent binary.** `ipview.desktop`
+  had `Exec=IPView` (capitalised, matching the in-AppImage
+  AppDir layout), but `install.sh` installs the binary to
+  `/usr/bin/ipview-pro` (lowercase, the long-standing install
+  convention). Clicking the menu item after `sudo ./install.sh`
+  therefore launched a `Failed to execute child process
+  "IPView"` error. `ipview.desktop`'s `Exec=` is now
+  `ipview-pro` to match the installed binary. (The AppImage ships
+  its own embedded desktop with the in-AppDir path intact.)
+- **`install.sh` banner was stuck at v2.9.1.** Updated to v2.15.5
+  so the script's `--help` and the uninstall dialogue reflect the
+  current version.
+
+## [2.15.5] — 2026-06-04
+
 ### Added
 
 - **Light theme.** A full light-mode stylesheet (`appStyleSheetLight()`)

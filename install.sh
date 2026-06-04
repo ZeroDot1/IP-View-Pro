@@ -1,6 +1,6 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════════════
-#  IPView Pro v2.9.1 – Install / Uninstall Script
+#  IPView Pro v2.15.5 – Install / Uninstall Script
 #  Usage:
 #    sudo ./install.sh            # Install
 #    sudo ./install.sh uninstall  # Uninstall

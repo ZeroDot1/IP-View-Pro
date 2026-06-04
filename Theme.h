@@ -628,7 +628,7 @@ inline QString appStyleSheetDark() noexcept
         "  background-color: %3; color: %2;"
         "  border: 1px solid %10; border-radius: %11;"
         "  padding: %20; selection-background-color: %21;"
-        "  caret-color: %25;"
+        "  selection-color: %1;"
         "}"
         "QLineEdit:focus {"
         "  border-color: %21;"
@@ -641,7 +641,7 @@ inline QString appStyleSheetDark() noexcept
         "  background-color: %3; color: %2;"
         "  border: 1px solid %10; border-radius: %11;"
         "  padding: %20; selection-background-color: %21;"
-        "  caret-color: %25;"
+        "  selection-color: %1;"
         "}"
         "QTextEdit:focus, QPlainTextEdit:focus {"
         "  border-color: %21;"
@@ -929,7 +929,6 @@ inline QString appStyleSheetLight() noexcept
         "  background-color: %3; color: %2;"
         "  border: 1px solid %4; border-radius: %5;"
         "  padding: %6; selection-background-color: %18; selection-color: %1;"
-        "  caret-color: %19;"
         "}"
         "QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus,"
         "QSpinBox:focus, QDoubleSpinBox:focus {"
@@ -1100,7 +1099,7 @@ inline QString appStyleSheetHighContrast() noexcept
         "  background-color: %1; color: %2;"
         "  border: 2px solid %3; border-radius: 0;"
         "  padding: 8px 12px; selection-background-color: %2;"
-        "  selection-color: %1; caret-color: %2;"
+        "  selection-color: %1;"
         "}"
         "QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus,"
         "QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {"
@@ -1300,13 +1299,13 @@ inline QString appStyleSheetFor(ThemeMode mode) noexcept
         "QLineEdit { background-color: %1; color: %2;"
         "  border: 1px solid %3; border-radius: %4; padding: %5;"
         "  selection-background-color: %6; selection-color: %7;"
-        "  caret-color: %8; }"
-        "QLineEdit:focus { border-color: %9;"
-        "  outline: 2px solid %10; outline-offset: 1px; }"
-        "QLineEdit:hover:!focus { border-color: %11; }"
-        "QLineEdit:disabled { color: %12; background: %13; }"
+        "}"
+        "QLineEdit:focus { border-color: %8;"
+        "  outline: 2px solid %9; outline-offset: 1px; }"
+        "QLineEdit:hover:!focus { border-color: %10; }"
+        "QLineEdit:disabled { color: %11; background: %12; }"
     ).arg(C_BG_ELEVATED, C_TEXT, C_BORDER, RADIUS_MD, PADDING_INP,
-          C_SELECTION_BG, C_SELECTION_FG, C_CARET,
+          C_SELECTION_BG, C_SELECTION_FG,
           C_PRIMARY, C_FOCUS_OUTLINE, C_ACCENT,
           C_TEXT_MUTED, C_BG_SUNKEN);
 }

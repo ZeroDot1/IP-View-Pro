@@ -9,6 +9,7 @@
 #include <QApplication>
 #include <QStyleFactory>
 #include <QIcon>
+#include <QImageReader>
 #include <QSharedMemory>
 #include <QLocalServer>
 #include <QLocalSocket>
@@ -52,7 +53,26 @@ consteval auto localServerKey() noexcept { return "IPView-Pro-LocalServer"; }
 // ═══════════════════════════════════════════════════════════════════════════════
 int main(int argc, char* argv[])
 {
+    // ── SVG / image allocation limit (must be set before QApplication) ─
+    //  Qt 6 defaults to a 128 MB cap on QImageReader/QSvgRenderer buffer
+    //  allocation to defend against malicious oversized SVG/XML payloads.
+    //  For a desktop IP-monitor that renders its own bundled icons
+    //  (icon.svg is 512x512) plus country flags from flagcdn.com, this
+    //  cap is too tight on HiDPI displays — at 4K with 2× scaling the
+    //  rasterised buffer can exceed 128 MB and Qt emits
+    //  "qt.svg.draw: The requested buffer size is too big, ignoring"
+    //  which blanks the affected icon. 1 GiB is comfortably above what
+    //  any legitimate icon would ever need, and the cap is still in
+    //  place against truly absurd payloads.
+    qputenv("QT_IMAGE_READER_ALLOCATION_LIMIT", "1073741824");
+
     QApplication app(argc, argv);
+
+    // Same limit via the public C++ API, in case any code path reads
+    // the value through QImageReader rather than the env var. 0 means
+    // "unlimited" in Qt 6.6+ but we use the explicit 1 GiB value to
+    // match the env-var setting.
+    QImageReader::setAllocationLimit(1073741824);
 
     // ── Application metadata — resolved at compile time ──────────────
     QApplication::setApplicationName(    QLatin1StringView(appName()));
