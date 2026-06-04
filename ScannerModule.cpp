@@ -14,6 +14,8 @@
 
 #include <algorithm>
 #include <array>
+#include <ranges>
+#include <string_view>
 #include <utility>
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -263,43 +265,49 @@ void ScannerModule::finalizeResults() noexcept
 
 QString ScannerModule::getServiceName(int port) noexcept
 {
-    // Known port services (most common)
-    struct PortService { int port; const char* name; };
-    static constexpr std::array services = {
-        PortService{21,   "ftp"},
-        PortService{22,   "ssh"},
-        PortService{23,   "telnet"},
-        PortService{25,   "smtp"},
-        PortService{53,   "dns"},
-        PortService{80,   "http"},
-        PortService{110,  "pop3"},
-        PortService{111,  "rpcbind"},
-        PortService{135,  "epmap"},
-        PortService{139,  "netbios-ssn"},
-        PortService{143,  "imap"},
-        PortService{443,  "https"},
-        PortService{445,  "microsoft-ds"},
-        PortService{993,  "imaps"},
-        PortService{995,  "pop3s"},
-        PortService{1433, "ms-sql-s"},
-        PortService{1521, "oracle"},
-        PortService{2049, "nfs"},
-        PortService{3306, "mysql"},
-        PortService{3389, "ms-wbt-server"},
-        PortService{5432, "postgresql"},
-        PortService{5900, "vnc"},
-        PortService{5984, "couchdb"},
-        PortService{6379, "redis"},
-        PortService{8080, "http-alt"},
-        PortService{8443, "https-alt"},
-        PortService{9090, "cockpit"},
-        PortService{27017, "mongod"}
-    };
+    // Known port services (most common). We use a sorted
+    // std::array and std::ranges::lower_bound for O(log n)
+    // lookups; the array itself lives in .rodata, so this is
+    // also cache-friendly. (std::flat_map is not yet
+    // constexpr-constructible in GCC 16.1.1, so we hand-roll
+    // the equivalent.)
+    struct PortService { int port; std::string_view name; };
+    static constexpr auto kServices = std::to_array<PortService>({
+        {21,     "ftp"},
+        {22,     "ssh"},
+        {23,     "telnet"},
+        {25,     "smtp"},
+        {53,     "dns"},
+        {80,     "http"},
+        {110,    "pop3"},
+        {111,    "rpcbind"},
+        {135,    "epmap"},
+        {139,    "netbios-ssn"},
+        {143,    "imap"},
+        {443,    "https"},
+        {445,    "microsoft-ds"},
+        {993,    "imaps"},
+        {995,    "pop3s"},
+        {1433,   "ms-sql-s"},
+        {1521,   "oracle"},
+        {2049,   "nfs"},
+        {3306,   "mysql"},
+        {3389,   "ms-wbt-server"},
+        {5432,   "postgresql"},
+        {5900,   "vnc"},
+        {5984,   "couchdb"},
+        {6379,   "redis"},
+        {8080,   "http-alt"},
+        {8443,   "https-alt"},
+        {9090,   "cockpit"},
+        {27017,  "mongod"}
+    });
 
-    for (auto const &svc : services) {
-        if (svc.port == port) {
-            return QString::fromUtf8(svc.name);
-        }
+    auto const it = std::ranges::lower_bound(
+        kServices, port, std::less<>{}, &PortService::port);
+    if (it != kServices.end() && it->port == port) {
+        return QString::fromUtf8(it->name.data(),
+                                 static_cast<int>(it->name.size()));
     }
 
     return QString();
