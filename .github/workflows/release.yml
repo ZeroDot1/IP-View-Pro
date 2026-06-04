@@ -80,8 +80,13 @@ jobs:
 
       - name: Download appimagetool
         run: |
+          # The "13" tag on AppImage/AppImageKit is the obsolete
+          # archive and no longer contains a working
+          # appimagetool-x86_64.AppImage. The current build lives
+          # at the "12" tag (the "continuous" tag is even newer
+          # but is rebuilt every night and can be unstable).
           wget -c \
-              "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage"
+              "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage"
           chmod +x appimagetool-x86_64.AppImage
           # --appimage-extract-and-run is required on GitHub
           # runners because FUSE is not available there by default.
@@ -92,7 +97,11 @@ jobs:
           mkdir -p AppDir/usr/bin
           cp build/IPView AppDir/usr/bin/
           cp ipview.desktop AppDir/
-          cp icon.svg       AppDir/
+          # The desktop file's Icon key points at "ipview-pro",
+          # so we provide the icon under that name. The
+          # appimagetool also looks for ipview-pro.{png,svg,...}
+          # at the AppDir root.
+          cp icon.svg AppDir/ipview-pro.svg
           # Bundle the Qt 6 libraries the AppImage needs at
           # runtime. Without this the binary will not start on
           # end-user machines that don't have Qt 6.8+ installed.

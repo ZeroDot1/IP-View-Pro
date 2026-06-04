@@ -2,12 +2,11 @@
 Name=IPView Pro
 Comment=Professional IP monitoring & network analysis tool
 GenericName=IP Monitor
-Exec=ipview-pro
+Exec=IPView
 Icon=ipview-pro
 Type=Application
 Categories=Network;Monitor;Utility;
 Terminal=false
 StartupNotify=true
 StartupWMClass=IPView
-Keywords=ip;network;speedtest;whois;ping;traceroute;iperf3;
 MimeType=
