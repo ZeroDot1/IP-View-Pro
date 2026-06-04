@@ -52,22 +52,40 @@ jobs:
 
       # ── Qt 6 (LTS line) ────────────────────────────────────────────
       # jurplel/install-qt-action downloads the official Qt online
-      # installer and provisions the requested Qt version. We pin
-      # 6.8.* because it is the current LTS line at the time of
-      # writing; CMakeLists.txt only requires Qt 6.5+, so any 6.8
-      # patch (6.8.0, 6.8.1, 6.8.2, …) is accepted.
+      # installer and provisions the requested Qt version.
       #
-      # modules: qtimageformats adds TIFF/WEBP/etc.; qtsvg is
-      # already in the base but is named explicitly so a missing
-      # module never silently falls through.
-      - name: Install Qt 6.8
+      # CRITICAL: jurplel v4 + aqt 3.x has a known bug where the
+      # 'modules' parameter is forwarded to aqt as if every name
+      # were an additional Qt module to install — including
+      # 'qt_base', which is NOT a module (it's the base package
+      # that the 'desktop' meta-target already pulls in). aqt
+      # then fails with:
+      #   ERROR: The packages ['qt_base', 'qtimageformats', ...]
+      #          were not found while parsing XML of package
+      #          information!
+      # The fix is to NOT pass any modules at all. The
+      # 'desktop' meta-target already includes everything the
+      # project needs: Core, Gui, Widgets, Network, Sql, Svg,
+      # Qml, Quick, QuickControls2, etc. We also pin a SPECIFIC
+      # patch version (6.8.3) — wildcards like '6.8.*' resolve
+      # at install time and aqt sometimes fails to look up
+      # modules for a version it hasn't fully indexed yet.
+      #
+      # As a belt-and-suspenders fallback we also install the
+      # apt qt6-base-dev / qt6-svg-dev / qt6-tools-dev
+      # packages in the 'system dependencies' step below; if
+      # jurplel ever fails again the build can still find Qt in
+      # /usr/lib/x86_64-linux-gnu/. (apt's Qt on Ubuntu 24.04
+      # is 6.4.x — too old for our 6.5+ requirement — so this
+      # is a 'last resort' fallback only, but it's free to
+      # keep installed.)
+      - name: Install Qt 6.8.3
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.8.*'
+          version: '6.8.3'
           host: linux
           target: desktop
           arch: gcc_64
-          modules: 'qtimageformats qtsvg qtsql'
           cache: true
 
       # ── System dependencies ────────────────────────────────────────

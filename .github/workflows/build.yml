@@ -47,16 +47,24 @@ jobs:
           sudo apt-get install -y g++-16 gcc-16
           g++-16 --version
 
-      # Qt 6.8 LTS via jurplel. CMakeLists.txt only requires 6.5+,
-      # so any 6.8 patch version is accepted.
-      - name: Install Qt 6.8
+      # Qt 6.8.3 LTS via jurplel. The 'desktop' meta-target
+      # includes Core, Gui, Widgets, Network, Sql, Svg, Qml,
+      # Quick, etc. — everything the project links against.
+      # We do NOT pass a 'modules' parameter because jurplel
+      # v4 + aqt 3.x has a known bug where it forwards
+      # 'qt_base' (which is the base package, not a module)
+      # to aqt and the whole install fails with
+      # 'packages not found in package information XML'.
+      # See the release.yml comment for the full diagnosis.
+      # CMakeLists.txt only requires Qt 6.5+, so 6.8.3 is
+      # well above the floor.
+      - name: Install Qt 6.8.3
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.8.*'
+          version: '6.8.3'
           host: linux
           target: desktop
           arch: gcc_64
-          modules: 'qtimageformats qtsvg qtsql'
           cache: true
 
       - name: Install Linux deps

@@ -108,6 +108,32 @@ All notable changes to this project are documented here.
       `find_package(Qt6 …)` cannot accidentally pick
       up the apt Qt installation when jurplel's
       newer headers are present.
+    - **Round-3 fix (jurplel `qt_base` bug).** The previous
+      attempt passed
+      `modules: 'qtimageformats qtsvg qtsql'` to
+      `jurplel/install-qt-action@v4`. jurplel v4
+      forwards every module name to `aqt` as if it
+      were an additional Qt package to install, and
+      it automatically prepends `qt_base` — but
+      `qt_base` is NOT a module, it's the base
+      package that the `desktop` meta-target
+      already pulls in. `aqt 3.x` then fails with:
+      `ERROR: The packages ['qt_base', 'qtimageformats',
+      'qtsql', 'qtsvg'] were not found while parsing
+      XML of package information!` The fix is to
+      pass NO `modules` parameter at all — the
+      `desktop` meta-target already includes
+      everything the project needs (Core, Gui,
+      Widgets, Network, Sql, Svg, Qml, Quick,
+      QuickControls2, etc.). We also pin a SPECIFIC
+      patch version (`6.8.3`) instead of the
+      previous `6.8.*` wildcard, because aqt
+      sometimes fails to look up packages for a
+      version it hasn't fully indexed yet. This
+      was the only remaining error in the third
+      release attempt; with this fix in place the
+      `Install Qt 6.8.3` step should succeed and
+      the rest of the pipeline runs.
 
 ## [2.15.5] — 2026-06-04
 
