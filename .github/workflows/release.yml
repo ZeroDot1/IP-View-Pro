@@ -56,6 +56,10 @@ jobs:
       # 6.8.* because it is the current LTS line at the time of
       # writing; CMakeLists.txt only requires Qt 6.5+, so any 6.8
       # patch (6.8.0, 6.8.1, 6.8.2, …) is accepted.
+      #
+      # modules: qtimageformats adds TIFF/WEBP/etc.; qtsvg is
+      # already in the base but is named explicitly so a missing
+      # module never silently falls through.
       - name: Install Qt 6.8
         uses: jurplel/install-qt-action@v4
         with:
@@ -63,26 +67,99 @@ jobs:
           host: linux
           target: desktop
           arch: gcc_64
-          modules: 'qtimageformats'
+          modules: 'qtimageformats qtsvg qtsql'
           cache: true
 
       # ── System dependencies ────────────────────────────────────────
-      # libfuse2 is required for appimagetool's --appimage-extract-
-      # and-run fallback; libgl1, libxkbcommon, libdbus are Qt's
-      # X11 / D-Bus / OpenGL runtime deps. libsqlite3 is needed
-      # for Qt6::Sql at runtime; the .so ships in /usr/lib on
-      # Ubuntu 24.04 so we don't have to bundle it.
+      # Three groups:
+      #   1. Build toolchain        — cmake, ninja
+      #   2. Qt 6 runtime + dev     — libgl1, libxkbcommon, libdbus,
+      #                                libsqlite3 (needed for the
+      #                                QSQLITE driver the project
+      #                                uses), libfontconfig1,
+      #                                libfreetype6 (font rendering
+      #                                for the SVG icons), libxcb*
+      #                                (X11 plugins Qt loads on
+      #                                xcb platform even if we run
+      #                                offscreen, because Qt probes
+      #                                them at startup).
+      #   3. AppImage tooling       — fuse + libfuse2 (for the
+      #                                appimagetool fallback),
+      #                                file + zsync, upx-ucl (for
+      #                                the build-time binary
+      #                                compression post-build step
+      #                                in CMakeLists.txt).
+      # The qt6-base-dev / qt6-svg-dev / qt6-tools-dev packages are
+      # installed as a belt-and-suspenders backup. jurplel's
+      # desktop target should already include everything the
+      # project needs, but if the Qt online installer ever serves
+      # a partial payload the apt packages in
+      # /usr/lib/x86_64-linux-gnu/ will satisfy the find_package
+      # call as a fallback.
       - name: Install system dependencies
         run: |
           sudo apt-get install -y \
               cmake ninja-build \
               libgl1-mesa-dev libxkbcommon-dev libxkbcommon-x11-0 libdbus-1-3 \
               libsqlite3-dev \
+              libfontconfig1 libfreetype6 \
+              libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+              libxcb-randr0 libxcb-render0 libxcb-render-util0 \
+              libxcb-shape0 libxcb-shm0 libxcb-sync0 libxcb-xfixes0 \
+              libxcb-xinerama0 libxcb-xkb1 \
+              libxext6 libxrender1 libxi6 \
               fuse libfuse2 \
               file wget zsync \
-              upx-ucl
+              upx-ucl \
+              qt6-base-dev qt6-svg-dev qt6-tools-dev qt6-tools-dev-tools
+
+      # ── Verify the toolchain (defensive diagnostics) ───────────────
+      # If any of these checks fail we want a clear error message
+      # in the log instead of a cryptic "Qt6 not found" later.
+      - name: Verify toolchain
+        run: |
+          echo "=== Compiler ==="
+          g++-16 --version
+          echo
+          echo "=== CMake ==="
+          cmake --version
+          echo
+          echo "=== Qt (jurplel) ==="
+          if [ -n "${Qt6_DIR:-}" ]; then
+            echo "Qt6_DIR = ${Qt6_DIR}"
+            QT_ROOT="$(dirname "$(dirname "${Qt6_DIR}")")"
+            echo "Qt root = ${QT_ROOT}"
+            ls "${QT_ROOT}/lib/cmake/" 2>/dev/null | head -20 || true
+          else
+            echo "WARNING: Qt6_DIR is not set"
+          fi
+          echo
+          echo "=== Qt 6 (apt backup) ==="
+          dpkg -l | grep -E "^ii\s+(qt6-base-dev|qt6-svg-dev|libqt6)" | \
+              awk '{print "  " $2 " " $3}' | head -10
+          echo
+          echo "=== upx ==="
+          if command -v upx >/dev/null 2>&1; then
+            upx --version
+          else
+            echo "ERROR: upx is not installed"
+            exit 1
+          fi
+          echo
+          echo "=== system libs available ==="
+          dpkg -l | grep -E "libxkbcommon|libfontconfig|libgl1-mesa|libsqlite3" | \
+              awk '{print "  " $2 " " $3}' | head -10
 
       # ── Configure ─────────────────────────────────────────────────
+      # CMAKE_PREFIX_PATH is set explicitly to the jurplel Qt root
+      # so find_package(Qt6 ...) cannot accidentally pick the apt
+      # qt6-base-dev installation at /usr/lib/x86_64-linux-gnu/
+      # (jurplel's headers are newer, which is what we want for
+      # 6.8.*; if we omitted this, the configure step would still
+      # succeed — apt's Qt 6.8 also satisfies the 6.5+ requirement
+      # — but the resulting binary would link against the older
+      # system libraries, not the ones we're about to bundle in
+      # the AppDir).
       - name: Configure (Release + tests)
         run: >
           cmake -S . -B build
@@ -94,6 +171,7 @@ jobs:
           -DIPVIEW_STRIP_BINARY=ON
           -DIPVIEW_COMPRESS_BINARY=ON
           -DIPVIEW_SIZE_REPORT=ON
+          -DCMAKE_PREFIX_PATH="${Qt6_DIR}/../.."
 
       # ── Build ─────────────────────────────────────────────────────
       - name: Build
@@ -122,6 +200,26 @@ jobs:
           wget -q -c \
               "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage"
           chmod +x appimagetool-x86_64.AppImage
+          ./appimagetool-x86_64.AppImage --appimage-extract-and-run --version
+
+      # ── Verify built binary (defensive diagnostics) ────────────────
+      # Print the ldd output of the freshly built binary so that
+      # any "missing libfoo.so.N" is visible in the log before the
+      # AppImage step tries to bundle. Also lists the Qt 6 libs
+      # we are about to ship so the diff between "linked" and
+      # "bundled" is auditable.
+      - name: Verify built binary
+        run: |
+          echo "=== ldd build/IPView ==="
+          ldd build/IPView
+          echo
+          echo "=== Missing libs (should be empty) ==="
+          ldd build/IPView | grep "not found" || echo "  (none — all libs resolved)"
+          echo
+          echo "=== UPX status ==="
+          if command -v upx >/dev/null 2>&1; then
+            upx -t build/IPView && echo "  (compressed binary verifies OK)" || echo "  (binary is not UPX-compressed — that's fine, the AppImage step doesn't need it)"
+          fi
 
       # ── Assemble AppDir ───────────────────────────────────────────
       # AppDir is the standard AppImage staging directory. The

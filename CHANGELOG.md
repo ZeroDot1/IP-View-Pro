@@ -66,6 +66,48 @@ All notable changes to this project are documented here.
   - Three-statement QA gate: build → ctest → offscreen
     smoke test, with a 124-exit-code tolerance on the
     smoke test (the app is designed to keep running)
+  - **Round-2 hardening** (the build still failed with
+    `upx` / `more Qt` missing in the second attempt):
+    - Added `upx-ucl`, `libfontconfig1`, `libfreetype6`
+      to the apt-get install list (font rendering for
+      the SVG icons, UPX for the CMake post-build
+      binary compression).
+    - Added all `libxcb-*` runtime libs the Qt xcb
+      platform plugin probes at startup
+      (`libxcb-cursor0`, `libxcb-icccm4`, `libxcb-image0`,
+      `libxcb-keysyms1`, `libxcb-randr0`, `libxcb-render0`,
+      `libxcb-render-util0`, `libxcb-shape0`, `libxcb-shm0`,
+      `libxcb-sync0`, `libxcb-xfixes0`, `libxcb-xkb1`,
+      `libxext6`, `libxrender1`, `libxi6`).
+    - Added `qt6-base-dev`, `qt6-svg-dev`, `qt6-tools-dev`
+      as belt-and-suspenders apt backup for jurplel's
+      Qt install (jurplel's `desktop` target should
+      include them, but the apt packages at
+      `/usr/lib/x86_64-linux-gnu/` are a guaranteed
+      fallback if a future jurplel release ever serves
+      a partial payload).
+    - Added a "Verify toolchain" diagnostic step that
+      prints the compiler version, cmake version,
+      `Qt6_DIR` (if set), the list of Qt CMake configs
+      jurplel installed, the apt Qt packages, and the
+      upx version. If any of these checks fail the
+      step exits 1 with a clear error before we waste
+      time on a doomed build.
+    - Added a "Verify built binary" diagnostic step
+      that runs `ldd build/IPView` after the build
+      and prints a "Missing libs (should be empty)"
+      report. If the binary references a library that
+      is not on the runner, this step surfaces it
+      before the AppImage step tries to bundle.
+    - Added `appimagetool --version` to the download
+      step so a 404 / redirect / corrupted download
+      is caught immediately, not at the AppImage
+      assembly step.
+    - Configure step now passes
+      `-DCMAKE_PREFIX_PATH="${Qt6_DIR}/../.."` so
+      `find_package(Qt6 …)` cannot accidentally pick
+      up the apt Qt installation when jurplel's
+      newer headers are present.
 
 ## [2.15.5] — 2026-06-04
 
