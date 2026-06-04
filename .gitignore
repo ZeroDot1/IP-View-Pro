@@ -62,3 +62,7 @@ src/
 # ── Private / Never upload ────────────────────────────────
 .antigravitycli/
 Entwicklungsplan.md
+AppDir/
+IPView-*.AppImage
+appimagetool*.AppImage
+SHA-256SUMS
