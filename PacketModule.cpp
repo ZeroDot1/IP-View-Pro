@@ -91,14 +91,34 @@ QList<ConnectionEntry> PacketModule::parseProcNet(const QString &path, bool isTC
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         return result;  // file may not exist (IPv6 variants)
 
-    QTextStream stream(&file);
+    // Read the whole file in one shot and split on newlines.
+    //
+    // QTextStream::atEnd() is unreliable on /proc pseudo-files —
+    // they do not advertise a real size to QFileInfo, so the
+    // stream's atEnd() check returns true on the very first
+    // call and the read loop body never runs. The first version
+    // of this function was using that idiom, which is why the
+    // Connections tab stayed empty even when /proc/net/tcp
+    // obviously had rows in it. readAll() + manual split is
+    // both more reliable and easier to reason about.
+    QByteArray const data = file.readAll();
+    if (data.isEmpty()) return result;
+
     int lineNo = 0;
-    while (!stream.atEnd()) {
-        QString const line = stream.readLine();
+    qsizetype pos = 0;
+    const qsizetype size = data.size();
+    while (pos < size) {
+        qsizetype nl = data.indexOf('\n', pos);
+        if (nl < 0) nl = size;
+        QByteArray const lineBytes = data.mid(pos, nl - pos);
+        pos = nl + 1;
         ++lineNo;
         if (lineNo == 1) continue;  // skip header
 
-        auto entry = parseLine(line.trimmed(), isTCP, lineNo - 2);
+        QString const line = QString::fromUtf8(lineBytes).trimmed();
+        if (line.isEmpty()) continue;
+
+        auto entry = parseLine(line, isTCP, lineNo - 2);
         if (entry.slot >= 0) {
             result.append(entry);
         }

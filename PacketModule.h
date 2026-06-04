@@ -82,16 +82,18 @@ public:
     [[nodiscard]] QList<ConnectionEntry> getTCP() const noexcept { return mLastTCP; }
     [[nodiscard]] QList<ConnectionEntry> getUDP() const noexcept { return mLastUDP; }
 
-signals:
-    void connectionsUpdated(const IPView::Packet::ConnectionSnapshot &snapshot);
-
-private:
-    // ── Parsers ──────────────────────────────────────────────────────────
+    // ── Public parsers (used by tests; also reusable for offline
+    //    /proc capture analysis) ─────────────────────────────────────────
     [[nodiscard]] static QList<ConnectionEntry> parseProcNet(const QString &path, bool isTCP) noexcept;
     [[nodiscard]] static ConnectionEntry        parseLine(const QString &line, bool isTCP, int slot) noexcept;
     [[nodiscard]] static QString                hexToIp(const QString &hex) noexcept;
     [[nodiscard]] static uint16_t               hexToPort(const QString &hex) noexcept;
     [[nodiscard]] static ConnectionState        tcpStateFromCode(uint8_t code) noexcept;
+
+signals:
+    void connectionsUpdated(const IPView::Packet::ConnectionSnapshot &snapshot);
+
+private:
 
     QTimer      *mTimer{nullptr};
     QList<ConnectionEntry> mLastTCP;

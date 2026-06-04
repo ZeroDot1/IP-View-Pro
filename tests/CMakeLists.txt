@@ -15,10 +15,12 @@ add_executable(IPViewTests
     test_security.cpp
     test_safeprocess.cpp
     test_configmanager.cpp
+    test_packetmodule.cpp
     # ConfigManager.cpp is compiled directly into the test binary
     # so the loadClampedInt() tests can link against the static
     # method without depending on the IPView executable target.
     ../ConfigManager.cpp
+    ../PacketModule.cpp
 )
 
 target_link_libraries(IPViewTests
