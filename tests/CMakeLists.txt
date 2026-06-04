@@ -16,11 +16,13 @@ add_executable(IPViewTests
     test_safeprocess.cpp
     test_configmanager.cpp
     test_packetmodule.cpp
+    test_networkdiscovery.cpp
     # ConfigManager.cpp is compiled directly into the test binary
     # so the loadClampedInt() tests can link against the static
     # method without depending on the IPView executable target.
     ../ConfigManager.cpp
     ../PacketModule.cpp
+    ../NetworkDiscovery.cpp
 )
 
 target_link_libraries(IPViewTests
@@ -33,6 +35,7 @@ target_link_libraries(IPViewTests
 target_include_directories(IPViewTests
     PRIVATE
         ${CMAKE_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/tests
 )
 
 set_target_properties(IPViewTests PROPERTIES

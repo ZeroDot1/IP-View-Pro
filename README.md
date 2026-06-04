@@ -73,7 +73,7 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
 - **Ping:** 4 ICMP packets with real-time output, **Cancel button**, 60-second auto-timeout.
 - **iPerf3:** Client/server mode with real-time speed visualization and color-coded progress bar (green ≥ 100 Mbps, cyan ≥ 50, orange ≥ 10, red < 10). Progress bar updates automatically with each speed measurement.
 - **Traceroute:** Cross-platform support (Linux: `traceroute`/`tracepath`, Windows: `tracert`) with Cancel button.
-- **Network scan — sequential multi-target port scan:** Enter up to **3 comma-separated IPs** (e.g. `192.168.1.1, 192.168.1.2, 192.168.1.3`) and start a sequential port sweep across all three. Each target is validated through `isValidNetworkTarget()` (the same command-injection guard used everywhere else), bad entries are reported in the status line, and the 28 well-known ports are scanned per target with results flowing into a single table (`Target IP`, `Open Port`, `Service`, `Latency (ms)`). Stop button cancels mid-run.
+- **Network scan — local-network device discovery:** Enter a `/24` subnet prefix (e.g. `192.168.1`, `10.0.0`) or leave the field empty to auto-detect the local subnet, click **Discover** and every reachable host appears in the table with IP, hostname (reverse-DNS), MAC (from `/proc/net/arp`), vendor (OUI lookup against ~400 prefixes) and round-trip latency. A per-row **Port scan** button delegates to the Port Scanner tab and starts a 28-port quick scan against that host in one click. Parallel ping sweep (20 workers, 50 ms dispatch tick) typically finishes a `/24` in ~1.3 s on a 1 Gbps LAN.
 
 ###  IP Change History
 - Automatic recording of all IP changes during the session (up to 50 entries).
@@ -328,7 +328,7 @@ cmake --build build -j"$(nproc)"
    - **Ping:** Send 4 ICMP packets to any target. Cancel anytime.
    - **iPerf3:** Measure network throughput between client and server. Real-time color-coded speed display.
    - **Traceroute:** Trace network hops to any target. Cross-platform (Linux/Windows).
-   - **Network scan:** Scan up to 3 IPs sequentially. Enter comma-separated targets (`192.168.1.1, 192.168.1.2, 192.168.1.3`), click **Start scan**, and watch the results table fill in. Stop button cancels mid-run.
+   - **Network scan:** Discover every device on your local subnet. Enter a subnet prefix (`192.168.1`) or leave empty for auto-detect, click **Discover**, and the table fills with IP / hostname / MAC / vendor / latency. Click **Port scan** in any row to jump to the Port Scanner tab and run a 28-port quick scan on that host.
 
 4. **Port Scanner** : Scan open ports on any target host.
    - **Quick Scan:** 28 well-known ports (SSH, HTTP, HTTPS, MySQL, etc.).
@@ -418,6 +418,7 @@ IPView/
 ├── DatabaseModule.h/.cpp               # SQLite persistence layer (singleton, thread-safe)
 ├── ServerSelectionModule.h/.cpp        # Speedtest server selection & filtering
 ├── ScannerModule.h/.cpp                # Async port scanner (QTcpSocket, non-blocking)
+├── NetworkDiscovery.h/.cpp             # Local-network device discovery (ping sweep + ARP + OUI + rDNS)
 ├── AuditorModule.h/.cpp                # TLS certificate auditor (QSslSocket)
 ├── AuditorTab.h/.cpp                   # TLS Auditor GUI
 ├── AlertEngine.h/.cpp                  # Rule-based alert engine (Item 49)

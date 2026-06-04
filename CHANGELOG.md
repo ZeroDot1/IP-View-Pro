@@ -2,6 +2,58 @@
 
 All notable changes to this project are documented here.
 
+## [2.15.3] — 2026-06-04
+
+### Added
+
+- **Network discovery sub-tab in Network Tools:** the old
+  per-target port-scan sub-tab is replaced by an interactive
+  device discovery flow. Enter a `/24` subnet prefix
+  (e.g. `192.168.1`, `10.0.0`) or leave it empty to auto-detect
+  the local subnet, click *Discover* and the tab populates with
+  every reachable host in under 30 s.
+  - Parallel ping sweep via bounded `QProcess` pool (max 20
+    workers, 50 ms dispatch tick). Total wall time for a /24
+    is roughly 1.3 s on a 1 Gbps LAN; longer on Wi-Fi or with
+    ICMP rate-limiting in the way.
+  - MAC address lookup via `/proc/net/arp` (no extra deps,
+    works on any Linux box, returns "—" for hosts that have
+    not yet sent a frame through the local switch).
+  - Reverse-DNS hostname resolution via `QHostInfo::lookupHost`
+    with a serialized pending queue (QHostInfo callbacks fire
+    out of order, we tag every request with its IP and
+    dequeue on each result).
+  - OUI-based vendor identification against a hand-curated
+    table of ~400 MAC prefixes (Apple, Samsung, HP, Dell,
+    Intel, RPi, Google, Microsoft, VMware, …). OUI lookups
+    are linear — 400 entries fits comfortably in L1 cache.
+  - Per-row **Port scan** button. Clicking it emits
+    `ToolsTab::portScanRequested(ip)`. `MainWindow` catches
+    the signal, switches to the Port Scanner tab, and calls
+    `ScannerTab::setTargetAndStart(ip)` so a quick 28-port
+    scan starts immediately.
+
+### Changed
+
+- `ToolsTab` header rewritten: the old `parseNetScanTargets`
+  helper and the three-line port-scan queue are gone. The new
+  sub-tab is driven by `IPView::Scanner::NetworkDiscovery` and
+  a `QTableWidget` with 5 columns (IP, Hostname, MAC, Vendor,
+  Action).
+- `ScannerTab` gains a public `setTargetAndStart(const QString &)`
+  method as the cross-tab entry point.
+- `MainWindow` wires `toolsTab::portScanRequested` to a lambda
+  that selects the Port Scanner tab and invokes
+  `setTargetAndStart()`.
+
+### Tests
+
+- `tests/test_networkdiscovery.cpp` covers `parseSubnet()`
+  happy path (`a.b.c`, `a.b.c.d/n`), rejection of empty
+  strings, garbage input, and out-of-range octets, plus a
+  smoke check on `detectLocalSubnets()` (loopback is
+  expected to be present on every CI runner).
+
 ## [2.15.2] — 2026-06-04
 
 ### Added
