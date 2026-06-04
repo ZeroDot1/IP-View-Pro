@@ -357,6 +357,58 @@ std::vector<HistoryEntry> DatabaseModule::getHistory(int limit) noexcept
     return entries;
 }
 
+// ── Lazy streaming variant (C++26 std::generator) ─────────────────────────
+//
+// The vector version above materialises every row into RAM
+// before returning. For LIMITs in the thousands — which can
+// happen after a long uptime — that is wasteful when the
+// caller only needs a few matching rows (e.g. incremental
+// search).
+//
+// getHistoryStream() co_yields one row at a time, releasing
+// the row's storage as soon as the caller advances the
+// iterator. The QSqlQuery lives for the whole generator
+// lifetime; the QMutexLocker drops the mutex as soon as the
+// exec() returns, so the consumer can run arbitrary code
+// between rows without blocking other writers.
+std::generator<HistoryEntry> DatabaseModule::getHistoryStream(int limit) noexcept
+{
+    if (!sInitialized) co_return;
+
+    QSqlQuery query(sDb);
+    query.prepare(QStringLiteral(
+        "SELECT id, ip, country, country_code, city, org, asn, json_data, timestamp "
+        "FROM ip_history ORDER BY timestamp DESC LIMIT ?"
+    ));
+    query.addBindValue(limit);
+
+    {
+        QMutexLocker lock(&sMutex);
+        if (!query.exec()) {
+            IPView::Logger::warn("DatabaseModule: getHistoryStream failed: {}",
+                     query.lastError().text().toStdString());
+            co_return;
+        }
+        // Walk the result set inside the lock for the duration
+        // of exec() + the cursor drain; the lock is dropped the
+        // moment the generator is destroyed (co_return) or
+        // when this scope ends (whichever comes first).
+        while (query.next()) {
+            HistoryEntry entry;
+            entry.id          = query.value(0).toLongLong();
+            entry.ip          = query.value(1).toString();
+            entry.countryName = query.value(2).toString();
+            entry.countryCode = query.value(3).toString();
+            entry.city        = query.value(4).toString();
+            entry.org         = query.value(5).toString();
+            entry.asn         = query.value(6).toString();
+            entry.jsonPayload = query.value(7).toString();
+            entry.timestamp   = query.value(8).toDateTime();
+            co_yield entry;
+        }
+    }
+}
+
 std::optional<HistoryEntry> DatabaseModule::getLatestEntry() noexcept
 {
     QMutexLocker lock(&sMutex);

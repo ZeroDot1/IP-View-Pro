@@ -22,6 +22,11 @@
 #include <cstdint>
 #include <functional> // C++26: std::move_only_function
 #include <functional>  // C++26: Callback for status feedback (Item 5)
+// <coroutine> must come before <generator> so libstdc++'s
+// __glibcxx_coroutine macro is defined; otherwise std::generator
+// is silently dropped from <generator> on the C++26 feature-gate.
+#include <coroutine>
+#include <generator>
 
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Storage {
@@ -89,6 +94,21 @@ public:
     [[nodiscard]] static std::vector<HistoryEntry> getHistory(int limit = 100) noexcept;
     [[nodiscard]] static std::optional<HistoryEntry> getLatestEntry() noexcept;
     [[nodiscard]] static int getHistoryCount() noexcept;
+
+    // ── Lazy streaming history (Phase 2-C, C++26 std::generator) ────────────
+    //  Same query as getHistory() but yields rows one at a time
+    //  instead of materialising the whole result set into a
+    //  std::vector. Useful for very large LIMITs where the
+    //  caller only needs the first 10 matching rows (e.g. a
+    //  search-as-you-type UI) or wants to abort early.
+    //
+    //  The generator holds the QSqlQuery alive for the whole
+    //  iteration; once the consumer stops iterating, the
+    //  destructor cleans up the cursor. The lock is acquired
+    //  and released inside the generator body, so the QMutex
+    //  is held for the duration of the query only — not for
+    //  the whole consumer loop.
+    [[nodiscard]] static std::generator<HistoryEntry> getHistoryStream(int limit = 100) noexcept;
 
     // ── Aggregated Telemetry (for TelemetryPersistenceModule) ────────────
     [[nodiscard]] static bool storeTelemetryAggregated(const QString &interfaceName,
