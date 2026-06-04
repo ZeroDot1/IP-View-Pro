@@ -58,7 +58,7 @@ void AuditorTab::setupUI() noexcept
     ).arg(C_BORDER, RADIUS_SM, C_BG_ELEVATED, C_ACCENT, RADIUS_SM));
     mainLayout->addWidget(progressBar);
 
-    // ── Splitter: Tabelle oben, Details unten ────────────────────────────
+    // ── Splitter: Table on top, details below ───────────────────────────
     splitter = new QSplitter(Qt::Vertical);
 
     // ── Result table ───────────────────────────────────────────────────

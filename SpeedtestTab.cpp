@@ -440,7 +440,7 @@ void SpeedtestTab::onMultiTestClicked()
         return;
     }
 
-    // ── Server-Liste laden ──────────────────────────────────────────────
+    // ── Load server list ────────────────────────────────────────────────
     if (serverCache.empty()) {
         logArea->append(QStringLiteral("Fetching server list\u2026"));
         auto servers = serverSelector->getAvailableServers(8000);
@@ -487,7 +487,7 @@ void SpeedtestTab::onMultiTestClicked()
     }
     mMultiTimer->start(static_cast<int>(IPView::Timeouts::POLL_TELEMETRY_MIN.count()));
 
-    // ── Prozesse parallel starten ──────────────────────────────────────
+    // ── Start processes in parallel ─────────────────────────────────────
     for (int i = 0; i < count; ++i) {
         auto const &srv = sorted[static_cast<std::size_t>(i)];
 
@@ -542,7 +542,7 @@ void SpeedtestTab::onMultiProcessFinished(int index, int exitCode)
 
     ++mMultiCompleted;
 
-    // Alle Prozesse fertig?
+    // All processes done?
     if (mMultiCompleted >= mMultiTotal) {
         mMultiTimer->stop();
         mMultiMode = false;

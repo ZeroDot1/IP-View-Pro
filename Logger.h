@@ -60,7 +60,7 @@ public:
         log(LogLevel::Trace, fmt, LogSite{}, std::forward<Args>(args)...);
     }
 
-    /// Formatierten Info-Log ausgeben (ersetzt qInfo).
+    /// Output a formatted info log (replaces qInfo).
     template <typename... Args>
     static void info(std::format_string<Args...> fmt,
                      Args&&... args) noexcept

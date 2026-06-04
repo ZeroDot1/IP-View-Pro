@@ -44,7 +44,7 @@ void DatabaseWorker::shutdown() noexcept
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Thread-Hauptschleife
+//  Worker thread main loop
 // ═══════════════════════════════════════════════════════════════════════════════
 
 void DatabaseWorker::run()

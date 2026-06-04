@@ -30,12 +30,12 @@ namespace IPView::Auditor {
 // ── Result of a single certificate check ────────────────────────────────
 struct CertificateInfo {
     QString subject;               // CN / Subject
-    QString issuer;                // Aussteller
+    QString issuer;                // Issuer
     QDateTime validFrom;           // Valid from
     QDateTime validTo;             // Valid to
     bool     isSelfSigned{false};  // Self-signed?
     bool     isExpired{false};     // Expired?
-    bool     isValid{false};       // Gesamt-Validierung bestanden?
+    bool     isValid{false};       // Full validation passed?
     QStringList subjectAltNames;   // SANs
     QString errorMessage;          // Error details if invalid
 };

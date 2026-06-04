@@ -213,7 +213,7 @@ AuditorModule::validateCertificate(const QSslCertificate &cert) noexcept
     QStringList const altNames = cert.subjectAlternativeNames().values(QSsl::DnsEntry);
     ci.subjectAltNames = altNames;
 
-    // ── Gesamt-Validierung ─────────────────────────────────────────────────
+    // ── Full validation ────────────────────────────────────────────────────
     ci.isValid = (!ci.isExpired && !ci.subject.isEmpty());
 
     if (ci.isExpired) {

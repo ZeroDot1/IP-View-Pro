@@ -246,7 +246,7 @@ bool Manager::validateAll() noexcept
         valid = false;
     }
 
-    // Network/SelectedApiIndex — max 4 APIs vorhanden
+    // Network/SelectedApiIndex — max 4 APIs available
     if (loadClampedInt(QLatin1StringView(Key::API_INDEX), 0, 0, 3) !=
         loadApiIndex()) {
         valid = false;

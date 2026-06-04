@@ -84,7 +84,7 @@ public:
                                double rxSpeed, double txSpeed) noexcept;
 
     // ── Async Write Operations (Item 14) ─────────────────────────────────
-    //  Delegieren an DatabaseWorker → non-blocking.
+    //  Delegate to DatabaseWorker → non-blocking.
     static void asyncStoreResult(const QJsonObject &data) noexcept;
     static void asyncStoreTelemetry(const QString &interfaceName,
                                     quint64 rxBytes, quint64 txBytes,
