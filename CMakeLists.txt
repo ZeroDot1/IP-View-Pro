@@ -153,6 +153,7 @@ qt_add_executable(IPView
     PacketTab.cpp
     AlertTab.cpp
     version.cpp
+    Services.cpp
     resources.qrc
 )
 
