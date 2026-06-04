@@ -5,18 +5,21 @@
 #  Public Domain — No License — No Restrictions
 # ═══════════════════════════════════════════════════════════════
 #
-#  Usage:  ./build.sh [BUILD_TYPE] [SANITIZER] [LTO] [TESTS] [VERBOSE]
+#  Usage:  ./build.sh [BUILD_TYPE] [SANITIZER] [LTO] [TESTS] [VERBOSE] [PGO]
 #
 #    BUILD_TYPE  Release | Debug | RelWithDebInfo | MinSizeRel  (default: Release)
 #    SANITIZER   none | asan | ubsan | tsan                     (default: none)
 #    LTO         on  | off                                      (default: on)
 #    TESTS       on  | off                                      (default: off)
 #    VERBOSE     on  | off                                      (default: off)
+#    PGO         generate | use | off                            (default: off)
 #
 #  Examples:
 #    ./build.sh                                # Release, no sanitizer
 #    ./build.sh Debug asan on on               # Debug + ASan + LTO + tests
 #    ./build.sh Release ubsan off off on       # Release + UBSan, no LTO, no tests, verbose
+#    ./build.sh Release none on off off generate   # Stage-1 PGO instrumented build
+#    ./build.sh Release none on off off use        # Stage-2 PGO optimised build
 #
 set -e
 
@@ -27,6 +30,7 @@ SANITIZER="${2:-none}"
 LTO="${3:-on}"
 TESTS="${4:-off}"
 VERBOSE="${5:-off}"
+PGO="${6:-off}"
 
 # Validate inputs
 case "$BUILD_TYPE" in
@@ -49,6 +53,10 @@ case "$VERBOSE" in
     on|off) ;;
     *) echo "  ERROR: VERBOSE must be on or off"; exit 1 ;;
 esac
+case "$PGO" in
+    generate|use|off) ;;
+    *) echo "  ERROR: PGO must be generate, use, or off"; exit 1 ;;
+esac
 
 BUILD_DIR="$SCRIPT_DIR/build"
 BINARY="$BUILD_DIR/IPView"
@@ -63,6 +71,7 @@ echo "  Sanitizer  : $SANITIZER"
 echo "  LTO        : $LTO"
 echo "  Tests      : $TESTS"
 echo "  Verbose    : $VERBOSE"
+echo "  PGO        : $PGO"
 echo "  Source dir : $SCRIPT_DIR"
 echo "  Build  dir : $BUILD_DIR"
 echo "  Jobs       : $JOBS"
@@ -107,6 +116,26 @@ else
     EXTRA_FLAGS+=("-DBUILD_TESTING=OFF")
 fi
 
+# PGO: stage 1 (generate) instruments with -fprofile-generate;
+# stage 2 (use) feeds the captured .gcda profiles back to the
+# compiler with -fprofile-use. The toolchain merges all files
+# matching "$PROFILE_DIR/*.gcda" into the final binary.
+PROFILE_DIR="$SCRIPT_DIR/build/pgo-profiles"
+case "$PGO" in
+    generate)
+        EXTRA_FLAGS+=("-DCMAKE_CXX_FLAGS=-fprofile-generate=$PROFILE_DIR")
+        EXTRA_FLAGS+=("-DCMAKE_C_FLAGS=-fprofile-generate=$PROFILE_DIR")
+        mkdir -p "$PROFILE_DIR"
+        echo "  PGO stage 1 — instrumented build, profiles in $PROFILE_DIR"
+        echo "  Run the binary, then re-run with PGO=use for the optimised build."
+        ;;
+    use)
+        EXTRA_FLAGS+=("-DCMAKE_CXX_FLAGS=-fprofile-use=$PROFILE_DIR -fprofile-correction")
+        EXTRA_FLAGS+=("-DCMAKE_C_FLAGS=-fprofile-use=$PROFILE_DIR -fprofile-correction")
+        echo "  PGO stage 2 — optimised build using profiles from $PROFILE_DIR"
+        ;;
+esac
+
 # ── Configure with CMake ──────────────────────────────
 echo "  Configuring with CMake ($BUILD_TYPE)..."
 mkdir -p "$BUILD_DIR"
@@ -140,5 +169,5 @@ echo "╚═══════════════════════�
 echo "  Binary: $BINARY"
 echo "  Run  : $BINARY"
 echo ""
-echo "  Usage: $0 [Release|Debug] [none|asan|ubsan|tsan] [on|off] [on|off] [on|off]"
+echo "  Usage: $0 [BUILD_TYPE] [SANITIZER] [LTO] [TESTS] [VERBOSE] [PGO]"
 echo "  Install: sudo ./install.sh"
