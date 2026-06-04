@@ -19,6 +19,7 @@
 #include <QRegularExpression>
 #include <expected>     // C++26: std::expected
 #include "Theme.h"
+#include "Error.hpp"
 
 #include <array>             // C++26: constexpr std::array
 #include <vector>            // C++26: stack-based dynamic container
@@ -152,9 +153,9 @@ namespace DataNormalizer {
     // ── Main normalization method ──────────────────────────────────────
     //  Accepts raw data (JSON string or plain text) and returns a
     //  unified QJsonObject with all 18 standard fields wrapped in
-    //  std::expected — success: QJsonObject, error: error description.
+    //  IPView::Result — success: QJsonObject, error: ErrorInfo.
     [[nodiscard]]
-    std::expected<QJsonObject, QString> normalize(const QByteArray &rawData) noexcept
+    IPView::Result<QJsonObject> normalize(const QByteArray &rawData) noexcept
     {
         QJsonObject normalized;
         QJsonDocument const doc = QJsonDocument::fromJson(rawData);
@@ -170,7 +171,8 @@ namespace DataNormalizer {
             processNestedJson(obj);
 
             if (isErrorResponse(obj)) {
-                return std::unexpected(QStringLiteral("API returned an error response"));
+                return IPView::unexpected(IPView::Error::InvalidJson,
+                                          "API returned an error response");
             }
 
             // ── Core mapping ─────────────────────────────────────────
@@ -212,7 +214,8 @@ namespace DataNormalizer {
         }
 
         if (normalized[QStringLiteral("ip")].toString().isEmpty()) {
-            return std::unexpected(QStringLiteral("No IP address found in raw data"));
+            return IPView::unexpected(IPView::Error::InvalidInput,
+                                      "No IP address found in raw data");
         }
 
         fillMissingFields(normalized);

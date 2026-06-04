@@ -241,7 +241,8 @@ void NetworkManager::onReplyFinished(QNetworkReply *reply)
     auto normalizedResult = DataNormalizer::normalize(rawData);
 
     if (!normalizedResult.has_value()) {
-        IPView::Logger::debug("DataNormalizer: {} — trying next API", normalizedResult.error().toStdString());
+        IPView::Logger::debug("DataNormalizer: {} — trying next API",
+                              normalizedResult.error().format());
         advanceToNextApi();
         reply->deleteLater();
         return;

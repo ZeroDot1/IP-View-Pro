@@ -143,25 +143,20 @@ using Result = std::expected<T, ErrorInfo>;
 
 // ── Bridge helpers for migrating legacy QString errors without breaking
 //    call sites ─────────────────────────────────────────────────────────
-template <typename T = void>
-inline auto unexpected(Error code,
-                       std::string_view message = {},
-                       std::source_location loc = std::source_location::current())
+inline std::unexpected<ErrorInfo> unexpected(
+    Error code,
+    std::string_view message = {},
+    std::source_location loc = std::source_location::current())
 {
-    if constexpr (std::is_void_v<T>) {
-        return std::unexpected(ErrorInfo{code, message, loc});
-    } else {
-        return std::unexpected<Result<T>>(
-            std::in_place, ErrorInfo{code, message, loc});
-    }
+    return std::unexpected<ErrorInfo>(ErrorInfo{code, message, loc});
 }
 
-inline auto unexpectedFromQString(
+inline std::unexpected<ErrorInfo> unexpectedFromQString(
     QString legacyMessage,
     Error fallbackCode = Error::Unknown,
     std::source_location loc = std::source_location::current())
 {
-    return std::unexpected(
+    return std::unexpected<ErrorInfo>(
         ErrorInfo{fallbackCode, legacyMessage.toStdString(), loc});
 }
 
