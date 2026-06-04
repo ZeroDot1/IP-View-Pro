@@ -1,21 +1,25 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.0 — ToolsTab.cpp
+//  IPView Pro v2.15.3 — ToolsTab.cpp
 //  C++26: auto, QStringLiteral, [[maybe_unused]], const-correctness,
-//         std::array, std::span
-//  Ping, iPerf3, and sequential multi-target network scan tools
-//  with QProcess management.
+//         std::array, std::span, std::expected
+//  Ping, iPerf3, Traceroute, and the local-network device discovery
+//  sub-tab. The discovery sub-tab uses IPView::Scanner::NetworkDiscovery
+//  to ping-sweep a /24 subnet, look up MACs in /proc/net/arp, resolve
+//  hostnames via reverse DNS, and identify vendors from the MAC OUI.
+//  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "ToolsTab.h"
 #include "Theme.h"
 #include "SecurityUtil.h"
+#include "Logger.h"
 #include "Timeouts.hpp"
 #include "Iperf3Window.h"
 #include "TracerouteTab.h"
 
 #include <QDateTime>
-#include <QTimer>
 #include <QHeaderView>
+#include <QProgressBar>
 
 #include <algorithm>
 #include <span>
@@ -69,25 +73,65 @@ ToolsTab::ToolsTab(QWidget *parent)
     // ── Traceroute Tab ────────────────────────────────────────────────────
     auto *trace = new TracerouteTab();
 
-    // ── Network-Scan Tab ──────────────────────────────────────────────────
-    // Sequential multi-target port scan. The user types up to
-    // three comma-separated IPs; pressing Start walks the list
-    // and runs ScannerModule::runScan() on each, appending the
-    // results to a single QTableWidget grouped by target IP.
+    // ── Network-Scan Tab (device discovery) ──────────────────────────────
     auto *netScanTab   = new QWidget();
     auto *netScanLayout = new QVBoxLayout(netScanTab);
     netScanLayout->setSpacing(10);
     netScanLayout->setContentsMargins(16, 16, 16, 16);
+    setupNetworkScanTab(netScanLayout);
 
-    auto *inputRow = new QHBoxLayout();
-    auto *inputLbl = new QLabel(QStringLiteral("Target IPs (max. 3, comma-separated):"));
-    inputLbl->setStyleSheet(QStringLiteral("color: %1; font-weight: bold;").arg(C_TEXT));
-    mNetScanTargetsEdit = new QLineEdit();
-    mNetScanTargetsEdit->setPlaceholderText(
-        QStringLiteral("e.g. 192.168.1.1, 192.168.1.2, 192.168.1.3"));
-    mNetScanTargetsEdit->setStyleSheet(inputStyle());
+    toolsTabWidget->addTab(pingIperfTab,  QStringLiteral("Ping / iPerf3"));
+    toolsTabWidget->addTab(trace,         QStringLiteral("Traceroute"));
+    toolsTabWidget->addTab(netScanTab,    QStringLiteral("Network scan"));
 
-    mNetScanStartBtn = new QPushButton(QStringLiteral("▶ Start scan"));
+    mainLayout->addWidget(toolsTabWidget);
+
+    // ── Connections (signal / slot wiring) ───────────────────────────────
+    connect(pingButton,    &QPushButton::clicked, this, &ToolsTab::onPingClicked);
+    connect(stopPingButton, &QPushButton::clicked, this, &ToolsTab::onStopPingClicked);
+    connect(iperfButton,   &QPushButton::clicked, this, &ToolsTab::onIperfClicked);
+
+    // The network-scan sub-tab uses its own NetworkDiscovery
+    // worker. We own it as a child QObject so the lifetime is
+    // tied to ToolsTab.
+    mNetDiscovery = new IPView::Scanner::NetworkDiscovery(this);
+    connect(mNetDiscovery, &IPView::Scanner::NetworkDiscovery::deviceFound,
+            this, &ToolsTab::onNetScanDeviceFound);
+    connect(mNetDiscovery, &IPView::Scanner::NetworkDiscovery::progress,
+            this, &ToolsTab::onNetScanProgress);
+    connect(mNetDiscovery, &IPView::Scanner::NetworkDiscovery::completed,
+            this, &ToolsTab::onNetScanCompleted);
+    connect(mNetDiscovery, &IPView::Scanner::NetworkDiscovery::error,
+            this, &ToolsTab::onNetScanError);
+    connect(mNetDiscovery, &IPView::Scanner::NetworkDiscovery::cancelled,
+            this, &ToolsTab::onNetScanCancelled);
+
+    connect(mNetScanStartBtn, &QPushButton::clicked, this, &ToolsTab::onNetScanStartClicked);
+    connect(mNetScanStopBtn,  &QPushButton::clicked, this, &ToolsTab::onNetScanStopClicked);
+
+    refreshSubnetPlaceholder();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+void ToolsTab::setTargetIp(const QString &ip) noexcept
+{
+    targetEdit->setText(ip);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+void ToolsTab::setupNetworkScanTab(QVBoxLayout *parentLayout) noexcept
+{
+    // ── Subnet input row ────────────────────────────────────────────────
+    auto *subnetRow = new QHBoxLayout();
+    mNetScanSubnetLbl = new QLabel(QStringLiteral("Subnet:"));
+    mNetScanSubnetLbl->setStyleSheet(
+        QStringLiteral("color: %1; font-weight: bold;").arg(C_TEXT));
+    mNetScanSubnetEdit = new QLineEdit();
+    mNetScanSubnetEdit->setPlaceholderText(
+        QStringLiteral("e.g. 192.168.1 (empty = auto-detect)"));
+    mNetScanSubnetEdit->setStyleSheet(inputStyle());
+
+    mNetScanStartBtn = new QPushButton(QStringLiteral("▶ Discover"));
     mNetScanStartBtn->setProperty("accent", true);
     mNetScanStartBtn->setStyleSheet(btnAccentStyle());
     mNetScanStartBtn->setCursor(Qt::PointingHandCursor);
@@ -100,68 +144,76 @@ ToolsTab::ToolsTab(QWidget *parent)
     mNetScanStopBtn->setCursor(Qt::PointingHandCursor);
     mNetScanStopBtn->setEnabled(false);
 
-    inputRow->addWidget(inputLbl);
-    inputRow->addWidget(mNetScanTargetsEdit, 1);
-    inputRow->addWidget(mNetScanStartBtn);
-    inputRow->addWidget(mNetScanStopBtn);
-    netScanLayout->addLayout(inputRow);
+    subnetRow->addWidget(mNetScanSubnetLbl);
+    subnetRow->addWidget(mNetScanSubnetEdit, 1);
+    subnetRow->addWidget(mNetScanStartBtn);
+    subnetRow->addWidget(mNetScanStopBtn);
+    parentLayout->addLayout(subnetRow);
 
+    // ── Status + progress bar ───────────────────────────────────────────
     mNetScanStatusLbl = new QLabel();
-    mNetScanStatusLbl->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(C_TEXT_DIM));
-    mNetScanStatusLbl->setText(QStringLiteral("Ready. Enter IPs and click \"Start scan\"."));
-    netScanLayout->addWidget(mNetScanStatusLbl);
+    mNetScanStatusLbl->setStyleSheet(
+        QStringLiteral("color: %1; font-size: 12px;").arg(C_TEXT_DIM));
+    mNetScanStatusLbl->setText(QStringLiteral(
+        "Ready. Enter a subnet prefix and click Discover."));
+    parentLayout->addWidget(mNetScanStatusLbl);
 
-    mNetScanTable = new QTableWidget(0, 4);
+    mNetScanProgress = new QProgressBar();
+    mNetScanProgress->setRange(0, 254);
+    mNetScanProgress->setValue(0);
+    mNetScanProgress->setTextVisible(true);
+    mNetScanProgress->setFormat(QStringLiteral("%v / %m hosts"));
+    parentLayout->addWidget(mNetScanProgress);
+
+    // ── Results table ───────────────────────────────────────────────────
+    mNetScanTable = new QTableWidget(0, 5);
     mNetScanTable->setHorizontalHeaderLabels({
-        QStringLiteral("Target IP"),
-        QStringLiteral("Open Port"),
-        QStringLiteral("Service"),
-        QStringLiteral("Latency (ms)")
+        QStringLiteral("IP"),
+        QStringLiteral("Hostname"),
+        QStringLiteral("MAC"),
+        QStringLiteral("Vendor"),
+        QStringLiteral("Action"),
     });
     mNetScanTable->horizontalHeader()->setStretchLastSection(false);
     mNetScanTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
     mNetScanTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    mNetScanTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    mNetScanTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    mNetScanTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    mNetScanTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
     mNetScanTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    mNetScanTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
     mNetScanTable->verticalHeader()->setVisible(false);
     mNetScanTable->setEditTriggers(QTableWidget::NoEditTriggers);
     mNetScanTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     mNetScanTable->setAlternatingRowColors(true);
-    netScanLayout->addWidget(mNetScanTable, 1);
-
-    toolsTabWidget->addTab(pingIperfTab,  QStringLiteral("Ping / iPerf3"));
-    toolsTabWidget->addTab(trace,         QStringLiteral("Traceroute"));
-    toolsTabWidget->addTab(netScanTab,    QStringLiteral("Network scan"));
-
-    mainLayout->addWidget(toolsTabWidget);
-
-    // ── Connections ───────────────────────────────────────────────────────
-    connect(pingButton,    &QPushButton::clicked, this, &ToolsTab::onPingClicked);
-    connect(stopPingButton, &QPushButton::clicked, this, &ToolsTab::onStopPingClicked);
-    connect(iperfButton,   &QPushButton::clicked, this, &ToolsTab::onIperfClicked);
-
-    // ── Network-Scan: own ScannerModule instance ──────────────────────────
-    // The module lives for the lifetime of ToolsTab; we kick off
-    // scanCompleted() handlers in a chain so each target waits
-    // for the previous one to finish before starting.
-    mNetScanner = new IPView::Scanner::ScannerModule(this);
-    connect(mNetScanner, &IPView::Scanner::ScannerModule::portFound,
-            this, &ToolsTab::onNetScanPortFound);
-    connect(mNetScanner, &IPView::Scanner::ScannerModule::scanCompleted,
-            this, &ToolsTab::onNetScanCompleted);
-    connect(mNetScanner, &IPView::Scanner::ScannerModule::scanError,
-            this, &ToolsTab::onNetScanError);
-    connect(mNetScanner, &IPView::Scanner::ScannerModule::scanProgress,
-            this, &ToolsTab::onNetScanProgress);
-
-    connect(mNetScanStartBtn, &QPushButton::clicked, this, &ToolsTab::onNetScanStartClicked);
-    connect(mNetScanStopBtn,  &QPushButton::clicked, this, &ToolsTab::onNetScanStopClicked);
+    parentLayout->addWidget(mNetScanTable, 1);
 }
 
-void ToolsTab::setTargetIp(const QString &ip) noexcept
+// ═══════════════════════════════════════════════════════════════════════════════
+void ToolsTab::refreshSubnetPlaceholder() noexcept
 {
-    targetEdit->setText(ip);
+    if (!mNetScanSubnetEdit) return;
+    QStringList const subs = IPView::Scanner::NetworkDiscovery::detectLocalSubnets();
+    if (subs.isEmpty()) return;
+    mNetScanSubnetEdit->setPlaceholderText(
+        QStringLiteral("e.g. %1 (empty = auto-detect)").arg(subs.first()));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+void ToolsTab::addPortScanButton(int row, const QString &ip) noexcept
+{
+    auto *btn = new QPushButton(QStringLiteral("Port scan"));
+    btn->setCursor(Qt::PointingHandCursor);
+    btn->setStyleSheet(QStringLiteral(
+        "QPushButton { background-color: %1; color: %2; border: 1px solid %2; "
+        "border-radius: %3; padding: %4; }"
+    ).arg(C_BG_ELEVATED, C_PRIMARY, RADIUS_MD, PADDING_BTN));
+    // Stash the IP on the button so the slot can recover it
+    // without a per-row index lookup. setProperty is the
+    // idiomatic Qt way to attach a payload to a QObject.
+    btn->setProperty("targetIp", ip);
+    connect(btn, &QPushButton::clicked,
+            this, &ToolsTab::onPortScanButtonClicked);
+    mNetScanTable->setCellWidget(row, 4, btn);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -175,80 +227,53 @@ void ToolsTab::onPingClicked()
         return;
     }
 
-    // Terminate previous process
-    if (pingProcess && pingProcess->state() == QProcess::Running) {
-        pingProcess->kill();
-        pingProcess->waitForFinished(static_cast<int>(IPView::Timeouts::PROCESS_QUIT_FAST.count()));
+    if (pingProcess && pingProcess->state() != QProcess::NotRunning) {
+        return;   // already running
     }
 
-    outputArea->clear();
-    outputArea->append(QStringLiteral("═══ Ping Test: %1 ═══").arg(target));
-    outputArea->append(QStringLiteral("[%1] Starting...")
-                           .arg(QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss"))));
-
-    pingProcess = new QProcess(this);
-
-    connect(pingProcess, &QProcess::readyReadStandardOutput, this, [this]() {
-        if (pingProcess) {
-            outputArea->append(QString::fromLocal8Bit(pingProcess->readAllStandardOutput()));
-        }
-    });
-    connect(pingProcess, &QProcess::readyReadStandardError, this, [this]() {
-        if (pingProcess) {
-            outputArea->append(QString::fromLocal8Bit(pingProcess->readAllStandardError()));
-        }
-    });
-    connect(pingProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            this, [this](int code) {
-        QString const timeStr = QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss"));
-        if (code == 0) {
-            outputArea->append(QStringLiteral("[%1] Ping completed successfully.").arg(timeStr));
-        } else {
-            outputArea->append(QStringLiteral("[%1] Ping finished with exit code %2.")
-                                   .arg(timeStr).arg(code));
-        }
-        pingButton->setEnabled(true);
-        stopPingButton->setEnabled(false);
-        pingProcess->deleteLater();
-        pingProcess = nullptr;
-    });
-
-    // Platform-specific arguments
-    QStringList args;
-#ifdef Q_OS_WIN
-    args << QStringLiteral("-n") << QStringLiteral("4") << target;
-#else
-    args << QStringLiteral("-c") << QStringLiteral("4") << target;
-#endif
-
-    // Security: full path instead of relative command (prevents PATH hijacking)
-    QString const pingPath = findSystemTool(QStringLiteral("ping"));
+    // Resolve absolute path via QStandardPaths (PATH-hijack safe).
+    QString const pingPath = QStandardPaths::findExecutable(QStringLiteral("ping"));
     if (pingPath.isEmpty()) {
-        outputArea->append(QStringLiteral("Error: 'ping' not found on system."));
-        pingProcess->deleteLater();
-        pingProcess = nullptr;
+        outputArea->append(QStringLiteral("ping: command not found in PATH."));
         return;
     }
-    pingProcess->start(pingPath, args);
+
+    if (!pingProcess) {
+        pingProcess = new QProcess(this);
+        connect(pingProcess, &QProcess::readyReadStandardOutput, this, [this]() {
+            outputArea->append(
+                QString::fromLocal8Bit(pingProcess->readAllStandardOutput()));
+        });
+        connect(pingProcess, &QProcess::readyReadStandardError, this, [this]() {
+            outputArea->append(
+                QString::fromLocal8Bit(pingProcess->readAllStandardError()));
+        });
+        connect(pingProcess,
+                QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+                this,
+                [this](int /*code*/, QProcess::ExitStatus /*status*/) {
+                    pingButton->setEnabled(true);
+                    stopPingButton->setEnabled(false);
+                });
+    }
+
     pingButton->setEnabled(false);
     stopPingButton->setEnabled(true);
-
-    // Security timeout: auto-stop after 60 seconds
-    QTimer::singleShot(60000, this, [this]() {
-        if (pingProcess && pingProcess->state() == QProcess::Running) {
-            onStopPingClicked();
-            outputArea->append(QStringLiteral("Ping timed out (60s) – auto-stopped."));
-        }
+    outputArea->append(QStringLiteral("\n── Pinging %1 ──").arg(target));
+    pingProcess->start(pingPath, {
+        QStringLiteral("-c"), QStringLiteral("4"),
+        QStringLiteral("-W"), QStringLiteral("2"),
+        target
     });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 void ToolsTab::onStopPingClicked()
 {
-    if (pingProcess && pingProcess->state() == QProcess::Running) {
+    if (pingProcess && pingProcess->state() != QProcess::NotRunning) {
         pingProcess->kill();
-        outputArea->append(QStringLiteral("[%1] Ping cancelled by user.")
-                               .arg(QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss"))));
+        pingProcess->waitForFinished(
+            static_cast<int>(IPView::Timeouts::PROCESS_QUIT_SLOW.count()));
+        outputArea->append(QStringLiteral("Ping stopped."));
     }
     pingButton->setEnabled(true);
     stopPingButton->setEnabled(false);
@@ -271,202 +296,119 @@ void ToolsTab::onIperfClicked()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Network scan — multi-target sequential port scan
-//
-//  parseNetScanTargets() pulls the user-typed comma-separated
-//  string out of mNetScanTargetsEdit, trims whitespace off
-//  every entry, drops empties, validates each IP via
-//  SecurityUtil::isValidNetworkTarget (the same regex used
-//  by the rest of the app to block command injection), and
-//  caps the result at MAX_NET_SCAN_TARGETS.
-//
-//  Anything beyond the cap is reported in the status label
-//  rather than silently discarded — the user typed the
-//  extra IPs on purpose and deserves to know they were
-//  dropped. Anything that fails isValidNetworkTarget is
-//  reported in the same way with a specific reason.
+//  Network scan / device discovery slots
 // ═══════════════════════════════════════════════════════════════════════════════
-
-QStringList ToolsTab::parseNetScanTargets() const noexcept
-{
-    QStringList result;
-    QString const raw = mNetScanTargetsEdit->text().trimmed();
-    if (raw.isEmpty()) return result;
-
-    // Split on commas, trim each token, drop empties.
-    for (QString const &part : raw.split(QLatin1Char(','), Qt::SkipEmptyParts)) {
-        QString const trimmed = part.trimmed();
-        if (!trimmed.isEmpty()) {
-            result.append(trimmed);
-        }
-    }
-    return result;
-}
 
 void ToolsTab::onNetScanStartClicked()
 {
-    if (mNetScanRunning) return;  // already running — ignore
+    if (mNetDiscovery->isRunning()) return;   // already running
 
-    QStringList const targets = parseNetScanTargets();
-    if (targets.isEmpty()) {
-        mNetScanStatusLbl->setText(QStringLiteral(
-            "⚠ No valid target IPs entered."));
-        mNetScanStatusLbl->setStyleSheet(QStringLiteral(
-            "color: %1; font-size: 12px;").arg(C_WARNING));
-        return;
-    }
+    QString subnet = mNetScanSubnetEdit->text().trimmed();
 
-    // Validate each entry. Build a clean queue containing only
-    // the entries that pass isValidNetworkTarget; report the
-    // dropped ones individually.
-    QStringList valid;
-    QStringList dropped;
-    for (QString const &t : targets) {
-        if (isValidNetworkTarget(t)) valid.append(t);
-        else                          dropped.append(t);
-    }
-
-    if (valid.isEmpty()) {
-        mNetScanStatusLbl->setText(QStringLiteral(
-            "⚠ No valid target IPs (all entries invalid): %1")
-            .arg(dropped.join(QStringLiteral(", "))));
-        mNetScanStatusLbl->setStyleSheet(QStringLiteral(
-            "color: %1; font-size: 12px;").arg(C_ERROR));
-        return;
-    }
-
-    // Hard cap at MAX_NET_SCAN_TARGETS (3). The user wanted
-    // "up to 3 IPs" — anything beyond is dropped with a
-    // notice.
-    if (valid.size() > static_cast<int>(MAX_NET_SCAN_TARGETS)) {
-        dropped.append(valid.mid(static_cast<int>(MAX_NET_SCAN_TARGETS)));
-        valid = valid.mid(0, static_cast<int>(MAX_NET_SCAN_TARGETS));
-    }
-
-    mNetScanQueue      = valid;
-    mNetScanRunning    = true;
+    mNetScanTable->setRowCount(0);
+    mNetScanFoundCount = 0;
+    mNetScanProgress->setValue(0);
+    mNetScanStatusLbl->setText(QStringLiteral(
+        "▶ Discovering devices…"));
+    mNetScanStatusLbl->setStyleSheet(
+        QStringLiteral("color: %1; font-size: 12px;").arg(C_INFO));
     mNetScanStartBtn->setEnabled(false);
     mNetScanStopBtn->setEnabled(true);
-    mNetScanTargetsEdit->setReadOnly(true);
-    mNetScanTable->setRowCount(0);
+    mNetScanSubnetEdit->setReadOnly(true);
 
-    QString statusMsg = QStringLiteral("▶ Starting scan of %1 target(s): %2")
-        .arg(valid.size())
-        .arg(valid.join(QStringLiteral(", ")));
-    if (!dropped.isEmpty()) {
-        statusMsg += QStringLiteral("  (dropped: %1)")
-            .arg(dropped.join(QStringLiteral(", ")));
-    }
-    mNetScanStatusLbl->setText(statusMsg);
-    mNetScanStatusLbl->setStyleSheet(QStringLiteral(
-        "color: %1; font-size: 12px;").arg(C_INFO));
-
-    startNextNetScanTarget();
+    mNetDiscovery->startDiscovery(subnet);
 }
 
 void ToolsTab::onNetScanStopClicked()
 {
-    if (!mNetScanRunning) return;
-    mNetScanner->cancelScan();
-    mNetScanQueue.clear();
-    mNetScanRunning    = false;
+    if (!mNetDiscovery->isRunning()) return;
+    mNetDiscovery->cancel();
+    mNetScanStatusLbl->setText(QStringLiteral("■ Discovery cancelled."));
+    mNetScanStatusLbl->setStyleSheet(
+        QStringLiteral("color: %1; font-size: 12px;").arg(C_WARNING));
     mNetScanStartBtn->setEnabled(true);
     mNetScanStopBtn->setEnabled(false);
-    mNetScanTargetsEdit->setReadOnly(false);
-    mNetScanStatusLbl->setText(QStringLiteral("■ Scan cancelled."));
-    mNetScanStatusLbl->setStyleSheet(QStringLiteral(
-        "color: %1; font-size: 12px;").arg(C_WARNING));
+    mNetScanSubnetEdit->setReadOnly(false);
 }
 
-void ToolsTab::startNextNetScanTarget() noexcept
+void ToolsTab::onNetScanDeviceFound(
+    const IPView::Scanner::DiscoveredDevice &device) noexcept
 {
-    if (mNetScanQueue.isEmpty()) {
-        // All targets done. Reset UI.
-        mNetScanRunning    = false;
-        mNetScanCurrentTarget.clear();
-        mNetScanStartBtn->setEnabled(true);
-        mNetScanStopBtn->setEnabled(false);
-        mNetScanTargetsEdit->setReadOnly(false);
-        mNetScanStatusLbl->setText(QStringLiteral(
-            "✓ Sequential scan completed."));
-        mNetScanStatusLbl->setStyleSheet(QStringLiteral(
-            "color: %1; font-size: 12px;").arg(C_SUCCESS));
-        return;
-    }
-
-    QString const nextTarget = mNetScanQueue.takeFirst();
-    mNetScanCurrentTarget = nextTarget;
-    mNetScanStatusLbl->setText(QStringLiteral(
-        "▶ Scanning %1 (%2 remaining)…")
-        .arg(nextTarget)
-        .arg(mNetScanQueue.size() + 1));
-    mNetScanner->runScan(nextTarget, IPView::Scanner::ScannerModule::defaultPorts());
-}
-
-void ToolsTab::onNetScanPortFound(const IPView::Scanner::ScanResult &result)
-{
-    if (!result.open) return;   // only show open ports
     int const row = mNetScanTable->rowCount();
     mNetScanTable->insertRow(row);
+    mNetScanFoundCount++;
 
-    // Column 0 stays blank — the IP is set by the
-    // scanCompleted handler below once the run for that
-    // target finishes. Showing it per-row would be nicer but
-    // requires keeping the "current target" string around;
-    // the current-target label in the status bar covers
-    // that case.
-    auto *ipItem = new QTableWidgetItem(mNetScanCurrentTarget);
+    // Column 0: IP
+    auto *ipItem = new QTableWidgetItem(device.ip);
     ipItem->setForeground(QBrush(QColor(C_PRIMARY)));
     ipItem->setFont(QFont(QStringLiteral("Segoe UI"), 10, QFont::Bold));
     mNetScanTable->setItem(row, 0, ipItem);
 
-    auto *portItem = new QTableWidgetItem(QString::number(result.port));
-    portItem->setTextAlignment(Qt::AlignCenter);
-    mNetScanTable->setItem(row, 1, portItem);
+    // Column 1: Hostname (or "—" if not resolved)
+    auto *hostItem = new QTableWidgetItem(
+        device.hostname.isEmpty() ? QStringLiteral("—") : device.hostname);
+    mNetScanTable->setItem(row, 1, hostItem);
 
-    auto *serviceItem = new QTableWidgetItem(
-        result.service.isEmpty() ? QStringLiteral("?") : result.service);
-    serviceItem->setTextAlignment(Qt::AlignCenter);
-    mNetScanTable->setItem(row, 2, serviceItem);
+    // Column 2: MAC (or "—" if not in ARP cache)
+    auto *macItem = new QTableWidgetItem(
+        device.mac.isEmpty() ? QStringLiteral("—") : device.mac);
+    macItem->setTextAlignment(Qt::AlignCenter);
+    mNetScanTable->setItem(row, 2, macItem);
 
-    auto *latencyItem = new QTableWidgetItem(QString::number(result.latencyMs));
-    latencyItem->setTextAlignment(Qt::AlignCenter);
-    mNetScanTable->setItem(row, 3, latencyItem);
-}
+    // Column 3: Vendor (or "—" if OUI unknown)
+    auto *vendorItem = new QTableWidgetItem(
+        device.vendor.isEmpty() ? QStringLiteral("—") : device.vendor);
+    mNetScanTable->setItem(row, 3, vendorItem);
 
-void ToolsTab::onNetScanCompleted(const QVector<IPView::Scanner::ScanResult> &results)
-{
-    int const openCount = static_cast<int>(std::ranges::count_if(results,
-        [](const IPView::Scanner::ScanResult &r) { return r.open; }));
+    // Column 4: Port-scan button
+    addPortScanButton(row, device.ip);
+
     mNetScanStatusLbl->setText(QStringLiteral(
-        "✓ %1 completed (%2 open ports). Starting next…")
-        .arg(mNetScanCurrentTarget)
-        .arg(openCount));
-    mNetScanStatusLbl->setStyleSheet(QStringLiteral(
-        "color: %1; font-size: 12px;").arg(C_SUCCESS));
-    Q_UNUSED(results);
-    startNextNetScanTarget();
+        "▶ Scanning… %1 device(s) found so far").arg(mNetScanFoundCount));
 }
 
-void ToolsTab::onNetScanError(const QString &message)
+void ToolsTab::onNetScanProgress(int scanned, int total) noexcept
 {
+    mNetScanProgress->setMaximum(qMax(total, 1));
+    mNetScanProgress->setValue(scanned);
+}
+
+void ToolsTab::onNetScanCompleted() noexcept
+{
+    mNetScanStartBtn->setEnabled(true);
+    mNetScanStopBtn->setEnabled(false);
+    mNetScanSubnetEdit->setReadOnly(false);
     mNetScanStatusLbl->setText(QStringLiteral(
-        "⚠ Error on %1: %2")
-        .arg(mNetScanCurrentTarget, message));
-    mNetScanStatusLbl->setStyleSheet(QStringLiteral(
-        "color: %1; font-size: 12px;").arg(C_ERROR));
-    // Continue with the next target even on error — one bad
-    // IP should not abort the whole multi-target run.
-    startNextNetScanTarget();
+        "✓ Discovery complete — %1 device(s) found.")
+        .arg(mNetScanFoundCount));
+    mNetScanStatusLbl->setStyleSheet(
+        QStringLiteral("color: %1; font-size: 12px;").arg(C_SUCCESS));
 }
 
-void ToolsTab::onNetScanProgress(int current, int total)
+void ToolsTab::onNetScanError(const QString &message) noexcept
 {
-    Q_UNUSED(current);
-    Q_UNUSED(total);
-    // Status label is already updated by onNetScanStartClicked
-    // and onNetScanPortFound; this slot is here for future
-    // progress-bar work and to keep the signal connection
-    // alive so the scanner's signal does not become a
-    // dead-letter warning.
+    mNetScanStartBtn->setEnabled(true);
+    mNetScanStopBtn->setEnabled(false);
+    mNetScanSubnetEdit->setReadOnly(false);
+    mNetScanStatusLbl->setText(QStringLiteral("⚠ %1").arg(message));
+    mNetScanStatusLbl->setStyleSheet(
+        QStringLiteral("color: %1; font-size: 12px;").arg(C_ERROR));
+}
+
+void ToolsTab::onNetScanCancelled() noexcept
+{
+    mNetScanStartBtn->setEnabled(true);
+    mNetScanStopBtn->setEnabled(false);
+    mNetScanSubnetEdit->setReadOnly(false);
+}
+
+void ToolsTab::onPortScanButtonClicked()
+{
+    auto *btn = qobject_cast<QPushButton*>(sender());
+    if (!btn) return;
+    QString const ip = btn->property("targetIp").toString();
+    if (ip.isEmpty()) return;
+    IPView::Logger::info("ToolsTab: port scan requested for %s",
+                         qPrintable(ip));
+    emit portScanRequested(ip);
 }

@@ -266,6 +266,20 @@ void MainWindow::setupUI() noexcept
     toolsTab     = mTabRegistry.registerTab<ToolsTab>(
                        QStringLiteral("tools"),     QStringLiteral(" Network Tools"),
                        QIcon(QStringLiteral(":/svgs/wrench.svg")));
+    // The ToolsTab emits portScanRequested(ip) when the user
+    // clicks the per-row "Port scan" button in the network
+    // discovery sub-tab. We catch it here, switch focus to the
+    // Port Scanner tab, and start the scan via the new
+    // setTargetAndStart() entry point.
+    connect(toolsTab, &ToolsTab::portScanRequested,
+            this, [this](const QString &ip) {
+                if (!scannerTab) return;
+                scannerTab->setTargetAndStart(ip);
+                if (tabWidget) {
+                    int const idx = tabWidget->indexOf(scannerTab);
+                    if (idx >= 0) tabWidget->setCurrentIndex(idx);
+                }
+            });
     speedtestTab = mTabRegistry.registerTab<SpeedtestTab>(
                        QStringLiteral("speedtest"), QStringLiteral(" Speedtest"),
                        QIcon(QStringLiteral(":/svgs/lightning.svg")));

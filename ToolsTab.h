@@ -1,8 +1,13 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.0 — ToolsTab.h
+//  IPView Pro v2.15.3 — ToolsTab.h
 //  C++26: default member init, [[nodiscard]], std::array
-//  Ping, iPerf3, and sequential multi-target network scan tools
-//  with QProcess integration.
+//  Ping, iPerf3, Traceroute, and the local-network device discovery
+//  sub-tab. The discovery sub-tab uses IPView::Scanner::NetworkDiscovery
+//  to ping-sweep a /24 subnet, look up MACs in /proc/net/arp, resolve
+//  hostnames via reverse DNS, and identify vendors from the MAC OUI.
+//  Each discovered device row carries a "Port scan" button that
+//  delegates to ScannerTab::setTargetAndStart() and switches focus.
+//  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #ifndef TOOLSTAB_H
@@ -20,13 +25,17 @@
 #include <QTableWidget>
 #include <QStringList>
 #include <QVector>
+#include <QTimer>
+#include <QProgressBar>
 
 #include <array>
 #include <cstddef>
+#include <vector>
 
 #include "ScannerModule.h"
+#include "NetworkDiscovery.h"
 
-class Iperf3Window; // // Forward declaration (Item 8)
+class Iperf3Window; // Forward declaration
 
 class ToolsTab : public QWidget
 {
@@ -37,28 +46,42 @@ public:
 
     void setTargetIp(const QString &ip) noexcept;
 
+signals:
+    // Emitted when the user clicks the "Port scan" button next
+    // to a discovered device in the network-scan sub-tab. The
+    // main window picks this up, switches to the Port Scanner
+    // tab, and starts a quick scan.
+    void portScanRequested(const QString &ip);
+
 private slots:
     void onPingClicked();
     void onStopPingClicked();
     void onIperfClicked();
 
-    // ── Multi-target network scan ──────────────────
+    // ── Network-scan (device discovery) slots ────────────────────────
     void onNetScanStartClicked();
     void onNetScanStopClicked();
-    void onNetScanPortFound(const IPView::Scanner::ScanResult &result);
-    void onNetScanCompleted(const QVector<IPView::Scanner::ScanResult> &results);
-    void onNetScanError(const QString &message);
-    void onNetScanProgress(int current, int total);
+    void onNetScanDeviceFound(const IPView::Scanner::DiscoveredDevice &device) noexcept;
+    void onNetScanProgress(int scanned, int total) noexcept;
+    void onNetScanCompleted() noexcept;
+    void onNetScanError(const QString &message) noexcept;
+    void onNetScanCancelled() noexcept;
+
+    // The "Port scan" button in a device row calls this.
+    void onPortScanButtonClicked();
 
 private:
-    // Parse the comma-separated target field into a list of
-    // sanitised, validated IPs. Caps the result at
-    // MAX_NET_SCAN_TARGETS and emits a warning into the status
-    // label if the user pasted more.
-    [[nodiscard]] QStringList parseNetScanTargets() const noexcept;
-    // Start scanning the next entry in mNetScanQueue, or
-    // finish the run if the queue is empty.
-    void startNextNetScanTarget() noexcept;
+    // Build the network-scan sub-tab UI (separate from the
+    // ping/iperf sub-tab).
+    void setupNetworkScanTab(QVBoxLayout *parentLayout) noexcept;
+    // Refresh the auto-detected subnet suggestion shown as
+    // placeholder text. Called once on construction and on
+    // every deviceFound() so the user sees the local /24
+    // without having to type it.
+    void refreshSubnetPlaceholder() noexcept;
+    // Append a "Port scan" QPushButton to the given row and
+    // connect it to onPortScanButtonClicked().
+    void addPortScanButton(int row, const QString &ip) noexcept;
 
     // ── UI elements (Ping / iPerf3 sub-tab) ──────────────────────────────
     QLineEdit   *targetEdit{nullptr};
@@ -67,33 +90,21 @@ private:
     QPushButton *stopPingButton{nullptr};
     QPushButton *iperfButton{nullptr};
 
-    // ── UI elements (Network-Scan sub-tab) ───────────────────────────────
-    QLineEdit      *mNetScanTargetsEdit{nullptr};
-    QPushButton    *mNetScanStartBtn{nullptr};
-    QPushButton    *mNetScanStopBtn{nullptr};
-    QLabel         *mNetScanStatusLbl{nullptr};
-    QTableWidget   *mNetScanTable{nullptr};
-    IPView::Scanner::ScannerModule *mNetScanner{nullptr};
+    // ── UI elements (Network-scan / device discovery sub-tab) ───────────
+    QLineEdit              *mNetScanSubnetEdit{nullptr};
+    QPushButton            *mNetScanStartBtn{nullptr};
+    QPushButton            *mNetScanStopBtn{nullptr};
+    QLabel                 *mNetScanStatusLbl{nullptr};
+    QLabel                 *mNetScanSubnetLbl{nullptr};
+    QProgressBar           *mNetScanProgress{nullptr};
+    QTableWidget           *mNetScanTable{nullptr};
+    IPView::Scanner::NetworkDiscovery *mNetDiscovery{nullptr};
+    int                     mNetScanFoundCount{0};
 
-    // The IPs queued for the current run, in user-entered
-    // order. The vector is rebuilt on every Start click.
-    QStringList mNetScanQueue;
-    // The IP we are currently scanning — set in
-    // startNextNetScanTarget() and read by the result
-    // handlers to label the row group. Kept locally because
-    // ScannerModule::mTargetIp is private.
-    QString     mNetScanCurrentTarget;
-    bool        mNetScanRunning{false};
-
-    // Hard cap: the user wanted up to 3 IPs. We do not silently
-    // truncate the user's input — parseNetScanTargets() reports
-    // how many were dropped via the status label.
-    static constexpr std::size_t MAX_NET_SCAN_TARGETS = 3;
-
-    // ── Prozess ───────────────────────────────────────────────────────────
+    // ── Process ──────────────────────────────────────────────────────────
     QProcess *pingProcess{nullptr};
 
-    // ── Embedded Iperf3Window (Item 8) ──────────────────────────────
+    // ── Embedded Iperf3Window ────────────────────────────────────────────
     QTabWidget    *mToolsTabWidget{nullptr};
     Iperf3Window  *mIperfWindow{nullptr};
     int            mIperfTabIndex{-1};
