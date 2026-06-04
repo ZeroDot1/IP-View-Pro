@@ -82,7 +82,7 @@ void HistoryTab::loadPersistedHistory() noexcept
     int idx = 1;
 
     for (auto const &entry : entries) {
-        QPair<QDateTime, QJsonObject> pair;
+        std::pair<QDateTime, QJsonObject> pair;
         pair.first = entry.timestamp;
 
         // JSON-Payload parsen
@@ -145,7 +145,7 @@ void HistoryTab::updateHistory(const QList<QJsonObject> &history) noexcept
     // Save current timestamp for the latest entry
     if (!history.isEmpty()) {
         QDateTime const now = QDateTime::currentDateTime();
-        historyWithTime.prepend(qMakePair(now, history.first()));
+        historyWithTime.prepend(std::make_pair(now, history.first()));
 
         // Save to SQLite (if enabled)
         if (persistCheckBox->isChecked() && IPView::Storage::DatabaseModule::isInitialized()) {

@@ -14,6 +14,7 @@
 #include <QJsonObject>
 
 #include <chrono>
+#include <utility>
 #include <vector>
 
 #include "Timeouts.hpp"
@@ -68,8 +69,8 @@ private:
     [[nodiscard]] QString getIPv6ApiUrl(int index)  const noexcept;
 
     // ── API Configuration ───────────────────────────────────────────────────
-    //  QPair<DisplayName, URL>
-    using ApiEntry = QPair<QString, QString>;
+    //  C++26: std::pair replaces QPair; first = display name, second = URL.
+    using ApiEntry = std::pair<QString, QString>;
     std::vector<ApiEntry> apiList;
     std::vector<ApiEntry> ipv6ApiList;
 

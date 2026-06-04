@@ -44,7 +44,8 @@ private:
     QCheckBox   *persistCheckBox{nullptr};
 
     // ── Data ──────────────────────────────────────────────────────────────
-    QList<QPair<QDateTime, QJsonObject>> historyWithTime;
+    // C++26: std::pair replaces the deprecated QPair throughout.
+    QList<std::pair<QDateTime, QJsonObject>> historyWithTime;
 };
 
 #endif // HISTORYTAB_H
