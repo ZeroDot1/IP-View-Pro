@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.0 — SecurityUtil.h
+//  IPView Pro v2.15.4 — SecurityUtil.h
 //  Core security functions: input validation, IP checking,
 //  SSL handling, command injection prevention.
 //

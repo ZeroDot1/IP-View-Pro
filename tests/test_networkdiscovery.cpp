@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.3 — test_networkdiscovery.cpp
+//  IPView Pro v2.15.4 — test_networkdiscovery.cpp
 //  Unit tests for the public static helpers of NetworkDiscovery:
 //   • parseSubnet()       — subnet string → SubnetRange
 //   • detectLocalSubnets()— QNetworkInterface-based local subnets

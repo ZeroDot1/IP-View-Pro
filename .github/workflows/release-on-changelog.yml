@@ -1,0 +1,135 @@
+name: Release on Changelog Update
+
+# This workflow runs on every push to main. If CHANGELOG.md was
+# changed and its topmost version header differs from the latest
+# git tag of the form v*.*.*, a new tag is created and pushed.
+# The existing release.yml workflow is triggered by the tag push
+# and handles the actual build + GitHub Release upload.
+#
+# This means: bump the version in CMakeLists.txt + add a new
+# heading to CHANGELOG.md, push to main, and a GitHub Release
+# appears within ~10 minutes.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'CHANGELOG.md'
+      - 'CMakeLists.txt'
+  workflow_dispatch:        # Manual trigger for retro-releases.
+
+permissions:
+  contents: write           # Required to create tags and releases.
+
+jobs:
+  detect-and-tag:
+    name: Detect new version & create tag
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # Need full history for the latest tag.
+
+      - name: Extract topmost version from CHANGELOG
+        id: changelog
+        run: |
+          # The first "## [X.Y.Z]" heading in CHANGELOG.md is
+          # the newest release. We accept any 3-part SemVer that
+          # may carry a single-letter pre-release suffix (e.g.
+          # 2.16.0rc1) so we don't have to add a separate regex
+          # branch every time we cut a release candidate.
+          VERSION=$(awk '
+              /^##[[:space:]]+\[[0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.-]*\][[:space:]]/ {
+                  match($0, /\[([0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.-]*)\]/, m)
+                  if (m[1] != "") { print m[1]; exit }
+              }
+          ' CHANGELOG.md)
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not parse any version from CHANGELOG.md"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Latest CHANGELOG version: $VERSION"
+
+      - name: Read canonical CMake version
+        id: cmake
+        run: |
+          # Cross-check the CHANGELOG header against the canonical
+          # version in CMakeLists.txt. If they disagree, fail the
+          # workflow so a release is never cut with mismatched
+          # metadata in the binary.
+          CMAKE_VERSION=$(awk -F'[ "]' '/^[[:space:]]*VERSION[[:space:]]+[0-9]+\.[0-9]+\.[0-9]+/ {
+              for (i=1; i<=NF; i++) if ($i ~ /^[0-9]+\.[0-9]+\.[0-9]+$/) { print $i; exit }
+          }' CMakeLists.txt)
+          if [ -z "$CMAKE_VERSION" ]; then
+            echo "::error::Could not parse project(VERSION ...) from CMakeLists.txt"
+            exit 1
+          fi
+          echo "cmake_version=$CMAKE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Canonical CMake version: $CMAKE_VERSION"
+
+      - name: Verify version consistency
+        if: steps.changelog.outputs.version != steps.cmake.outputs.cmake_version
+        run: |
+          echo "::error::CHANGELOG version (${{ steps.changelog.outputs.version }}) does not match CMakeLists.txt version (${{ steps.cmake.outputs.cmake_version }})"
+          exit 1
+
+      - name: Fetch existing tags
+        id: tags
+        run: |
+          # Pull all remote v*.*.* tags, then sort by SemVer so the
+          # last line is the highest existing version. The head -n
+          # approach avoids git for-each-ref sorting quirks.
+          git fetch --tags --force
+          LATEST=$(git tag -l 'v*.*.*' --sort=-v:refname | head -n1)
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+          echo "Latest existing tag: ${LATEST:-<none>}"
+
+      - name: Decide whether to tag
+        id: decide
+        run: |
+          NEW_VERSION="${{ steps.changelog.outputs.version }}"
+          NEW_TAG="v${NEW_VERSION}"
+          LATEST_TAG="${{ steps.tags.outputs.latest }}"
+
+          # If the latest tag already matches, there's nothing
+          # to do (re-push of the same CHANGELOG, for example).
+          if [ "${LATEST_TAG}" = "${NEW_TAG}" ]; then
+            echo "should_tag=false" >> "$GITHUB_OUTPUT"
+            echo "No new release — latest tag ${LATEST_TAG} already matches CHANGELOG version ${NEW_VERSION}."
+            exit 0
+          fi
+
+          # If we have a prior v-tag, the new one must be a
+          # strictly higher SemVer. We delegate the comparison
+          # to sort -V so that 2.15.10 > 2.15.9 works.
+          if [ -n "${LATEST_TAG}" ] && \
+             [ "$(printf '%s\n%s\n' "${LATEST_TAG#v}" "${NEW_VERSION}" | sort -V | tail -n1)" != "${NEW_VERSION}" ]; then
+            echo "::error::New version ${NEW_VERSION} is not greater than latest tag ${LATEST_TAG}."
+            exit 1
+          fi
+
+          echo "should_tag=true" >> "$GITHUB_OUTPUT"
+          echo "new_tag=${NEW_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Will create tag ${NEW_TAG}."
+
+      - name: Create and push tag
+        if: steps.decide.outputs.should_tag == 'true'
+        env:
+          NEW_TAG: ${{ steps.decide.outputs.new_tag }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${NEW_TAG}" -m "Release ${NEW_TAG}"
+          git push origin "${NEW_TAG}"
+          echo "Pushed ${NEW_TAG} — release.yml will now build and publish the AppImage."
+
+  announce:
+    name: Skipped — no new release
+    needs: detect-and-tag
+    if: steps.decide.outputs.should_tag != 'true'
+    runs-on: ubuntu-22.04
+    steps:
+      - run: |
+          echo "CHANGELOG.md was updated but no new release was needed."
+          echo "Latest tag already matches the CHANGELOG version."

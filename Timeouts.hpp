@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.0 — Timeouts.hpp
+//  IPView Pro v2.15.4 — Timeouts.hpp
 //  Centralized compile-time constants for all timeouts, intervals, and
 //  duration knobs used across the project. Magic numbers in call sites
 //  are replaced with named constants so tuning is a one-line change.

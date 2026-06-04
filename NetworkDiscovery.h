@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.3 — NetworkDiscovery.h
+//  IPView Pro v2.15.4 — NetworkDiscovery.h
 //  C++26: [[nodiscard]], noexcept, structured bindings, std::optional
 //  Discovers devices on a local IPv4 subnet via parallel ICMP ping + ARP
 //  table cross-reference + reverse-DNS hostname resolution.

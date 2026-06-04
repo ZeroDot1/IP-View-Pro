@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.0 — SafeText.hpp
+//  IPView Pro v2.15.4 — SafeText.hpp
 //  HTML and shell-text escaping helpers. Use before passing any
 //  user-controlled string into QTextBrowser::setHtml() or into
 //  a QProcess argument list.

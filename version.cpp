@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.0 — version.cpp
+//  IPView Pro v2.15.4 — version.cpp
 //  Translation unit anchor for the auto-generated version.hpp.
 //
 //  All consteval accessors (appName, appVersion, appOrgName, appOrgDomain,

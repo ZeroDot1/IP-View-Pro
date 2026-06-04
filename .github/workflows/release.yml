@@ -1,45 +1,140 @@
 name: Release
 
+# Triggered by the release-on-changelog.yml workflow pushing a
+# new v*.*.* tag. Runs the full Release pipeline: install system
+# dependencies, build the binary, package it as an AppImage, and
+# attach the AppImage + a SHA-256SUMS file to the GitHub Release.
+
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:        # Manual trigger for emergency rebuilds.
+
+permissions:
+  contents: write           # Required to upload release assets.
 
 jobs:
   build:
+    name: Build & ship AppImage
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install Dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake build-essential qt6-base-dev qt6-svg-dev libsqlite3-dev
+          sudo apt-get install -y \
+              cmake \
+              ninja-build \
+              build-essential \
+              qt6-base-dev \
+              qt6-svg-dev \
+              libqt6core6 \
+              libqt6widgets6 \
+              libqt6network6 \
+              libqt6gui6 \
+              libqt6dbus6 \
+              libqt6svg6 \
+              libgl1-mesa-dev \
+              libxkbcommon-dev \
+              libxkbcommon-x11-0 \
+              libdbus-1-3 \
+              libsqlite3-dev \
+              wget \
+              file \
+              fuse \
+              zsync
+          # libfuse2 is required to actually *run* the AppImage
+          # tool on GitHub-hosted runners; otherwise appimagetool
+          # fails with "fuse: device not found, try '--appimage-extract-and-run'".
+          sudo apt-get install -y libfuse2
 
-      - name: Build
+      - name: Build (Release)
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-          cmake --build build -j$(nproc)
+          cmake -S . -B build \
+              -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_CXX_COMPILER=g++
+          cmake --build build -j"$(nproc)"
 
-      - name: Generate AppImage
+      - name: Run unit tests
         run: |
-          wget -c "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage"
+          ctest --test-dir build --output-on-failure
+
+      - name: Smoke test
+        run: |
+          # Run for 3 seconds with the offscreen platform to
+          # confirm the binary starts, parses config, and exits
+          # cleanly. Exit 124 is the timeout code, which we
+          # treat as success — the app is designed to keep
+          # running.
+          timeout 3 ./build/IPView -platform offscreen || [ $? -eq 124 ]
+
+      - name: Strip binary
+        run: |
+          # Pre-strip before packaging to keep the AppImage small.
+          strip --strip-all build/IPView
+
+      - name: Download appimagetool
+        run: |
+          wget -c \
+              "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage"
           chmod +x appimagetool-x86_64.AppImage
+          # --appimage-extract-and-run is required on GitHub
+          # runners because FUSE is not available there by default.
+          ./appimagetool-x86_64.AppImage --appimage-extract-and-run --version
+
+      - name: Assemble AppDir
+        run: |
           mkdir -p AppDir/usr/bin
           cp build/IPView AppDir/usr/bin/
-          # Assuming you have a desktop file and icon
           cp ipview.desktop AppDir/
-          cp icon.svg AppDir/
-          ./appimagetool-x86_64.AppImage AppDir IPView-x86_64.AppImage
+          cp icon.svg       AppDir/
+          # Bundle the Qt 6 libraries the AppImage needs at
+          # runtime. Without this the binary will not start on
+          # end-user machines that don't have Qt 6.8+ installed.
+          for lib in \
+              libQt6Core.so.6 \
+              libQt6DBus.so.6 \
+              libQt6Gui.so.6 \
+              libQt6Network.so.6 \
+              libQt6Svg.so.6 \
+              libQt6Widgets.so.6; do
+              src=$(ldconfig -p | awk -v l="$lib" '$1==l {print $4; exit}')
+              if [ -z "$src" ]; then
+                echo "::warning::$lib not found in ldconfig — AppImage may not start on bare systems"
+                continue
+              fi
+              cp -P "$src"* AppDir/usr/bin/ 2>/dev/null || cp "$src" AppDir/usr/bin/
+          done
+          ldd build/IPView | grep "not found" || true
+
+      - name: Build AppImage
+        run: |
+          # --appimage-extract-and-run is required on GitHub
+          # runners (no FUSE available by default).
+          ./appimagetool-x86_64.AppImage --appimage-extract-and-run \
+              AppDir \
+              IPView-x86_64.AppImage
         env:
           ARCH: x86_64
+
+      - name: Generate SHA-256SUMS
+        run: |
+          sha256sum IPView-x86_64.AppImage > SHA-256SUMS
+          cat SHA-256SUMS
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: IPView-x86_64.AppImage
+          files: |
+            IPView-x86_64.AppImage
+            SHA-256SUMS
           generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'rc') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

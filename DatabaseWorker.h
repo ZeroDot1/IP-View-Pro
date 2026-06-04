@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.0 — DatabaseWorker.h
+//  IPView Pro v2.15.4 — DatabaseWorker.h
 //  C++26: std::jthread, std::stop_token, std::queue
 //  Async DB worker: write operations are queued
 //  and processed sequentially in a background thread (Item 14).

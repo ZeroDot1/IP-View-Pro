@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.3 — NetworkDiscovery.cpp
+//  IPView Pro v2.15.4 — NetworkDiscovery.cpp
 //  C++26: QStringLiteral, std::optional, structured bindings
 //  Public Domain — No License — No Restrictions.
 // ═══════════════════════════════════════════════════════════════════════════════

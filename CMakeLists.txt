@@ -16,7 +16,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 project(IPView
-    VERSION      2.15.0
+    VERSION      2.15.4
     DESCRIPTION  "Professional IP Monitoring & Network Analysis Tool"
     LANGUAGES    CXX
 )
@@ -25,10 +25,12 @@ project(IPView
 #  version.hpp is generated from version.hpp.in so main.cpp can read
 #  the current version from a compile-time constant. Keeping the
 #  canonical value in CMake means CMakeLists.txt, the about dialog,
-#  and the runtime metadata are always in sync.
+#  and the runtime metadata are always in sync. The version is
+#  mirrored in CHANGELOG.md and is used as the auto-release tag
+#  by .github/workflows/release-on-changelog.yml.
 set(IPVIEW_VERSION_MAJOR  2)
 set(IPVIEW_VERSION_MINOR  15)
-set(IPVIEW_VERSION_PATCH  0)
+set(IPVIEW_VERSION_PATCH  4)
 set(IPVIEW_VERSION_COMMITS 0)
 
 # Git-aware commit count (best-effort, falls back to 0)

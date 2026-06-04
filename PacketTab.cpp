@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// IPView Pro v2.15.0 — PacketTab.cpp
+// IPView Pro v2.15.4 — PacketTab.cpp
 // C++26: structured bindings, noexcept, [[nodiscard]], std::ranges
 // Professional UI displaying live connections from PacketModule.
 // Features: protocol/state filtering, search, statistics, export, theme,

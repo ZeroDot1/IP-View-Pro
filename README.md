@@ -14,6 +14,8 @@
   <img src="https://img.shields.io/badge/Arch_Linux-1793D1?style=for-the-badge&logo=arch-linux&logoColor=white" alt="Arch Linux">
   <img src="https://img.shields.io/badge/license-Public_Domain-ff69b4?style=for-the-badge" alt="Public Domain">
   <br>
+  <img src="https://img.shields.io/github/v/release/ZeroDot1/IP-View-Pro?style=flat-square&label=release" alt="Latest Release">
+  <img src="https://img.shields.io/github/release-date/ZeroDot1/IP-View-Pro?style=flat-square" alt="Release Date">
   <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Passing">
   <img src="https://img.shields.io/badge/Werror-0_warnings-brightgreen?style=flat-square" alt="Zero Warnings">
   <img src="https://img.shields.io/badge/sanitizer-ASan%20%7C%20UBSan-blueviolet?style=flat-square" alt="Sanitizers">
@@ -136,11 +138,32 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
 - **Copy All:** One-click clipboard copy of all IP and geolocation data as formatted text.
 - **Export JSON:** Save IP data as a formatted JSON file via the system file dialog.
 
-###  System Tray
+###  System Tray (v2.15.4 — full tray view)
 
-- Close to tray; double-click to restore.
-- Context menu: Restore Window / Exit.
-- Informative tray tooltip with IP, country flag (Unicode), ISP, ASN, and timestamp.
+The tray icon is a complete control surface, not just a launcher:
+
+- **Live status header** — disabled top item that always shows the
+  current IP, country flag, country name, and ISP. Updated on
+  every data refresh.
+- **Refresh now** — triggers a data refresh from the same code
+  path as the dashboard button.
+- **Show / hide window** — toggles the main window state, not a
+  one-shot "show".
+- **Go to tab →** submenu with 12 entries, built from the central
+  `TabRegistry`. Adds a new tab in `MainWindow::setupUI()` and it
+  appears in the submenu automatically.
+- **Auto-refresh** — checkable, mirrors the dashboard checkbox.
+- **Quit** — terminates with `reallyQuit = true` so the close
+  event doesn't intercept.
+- **Middle-click** the tray icon = refresh. **Double-click** =
+  restore window.
+- **IP-change notification** — `QSystemTrayIcon::showMessage`
+  fires once per actual IP change (not on every refresh). The
+  call is guarded by `trayIcon->supportsMessages()` so it no-ops
+  on desktops without a notification daemon.
+- **Rich tooltip** — multi-line "IP View Pro / IP / Country / ISP
+  / Org" with a "last refreshed" timestamp and the current
+  Unicode country flag.
 
 ###  Active Connections Monitor (PacketModule + PacketTab)
 - **Background service:** Parses `/proc/net/tcp`, `/proc/net/tcp6`, `/proc/net/udp`, and `/proc/net/udp6` at configurable intervals (default 5s).
@@ -445,9 +468,9 @@ IPView queries the following external services. All connections are made with st
 
 | # | Service | Endpoint | Fields |
 |---|---------|----------|--------|
-| 1 | **IPWhois.is** | `http://ipwho.is/` | Full geolocation, ISP, ASN, security |
+| 1 | **IPWhois.is** | `https://ipwho.is/` | Full geolocation, ISP, ASN, security |
 | 2 | **FreeIPAPI** | `https://freeipapi.com/api/json/` | IP, city, region, country, timezone |
-| 3 | **IP-API (Detailed)** | `http://ip-api.com/json/` | 44 fields: geolocation, ISP, ASN, hosting |
+| 3 | **IP-API (Detailed)** | `https://ip-api.com/json/` | 44 fields: geolocation, ISP, ASN, hosting |
 | 4 | **IPAPI.co** | `https://ipapi.co/json/` | City, region, country, currency, timezone |
 | 5 | **IPInfo** | `https://ipinfo.io/json` | IP, hostname, city, region, country, org |
 | 6 | **IPWhois.app** | `https://ipwhois.app/json/` | Geolocation, ISP, ASN, currency |
@@ -463,10 +486,10 @@ IPv4 endpoints are prioritized by data richness. If an API returns sparse data, 
 
 | # | Service | Endpoint | Notes |
 |---|---------|----------|-------|
-| 12 | **IPWhois.is (IPv6)** | `http://ipwho.is/` | Full geolocation via IPv6 |
+| 12 | **IPWhois.is (IPv6)** | `https://ipwho.is/` | Full geolocation via IPv6 |
 | 13 | **IPify (IPv6)** | `https://api6.ipify.org?format=json` | IPv6 address detection |
 | 14 | **IPify64** | `https://api64.ipify.org?format=json` | Dual-stack (IPv4 + IPv6) detection |
-| 15 | **IP-API (IPv6)** | `http://ip-api.com/json/` | IPv6 geolocation with 44 fields |
+| 15 | **IP-API (IPv6)** | `https://ip-api.com/json/` | IPv6 geolocation with 44 fields |
 
 IPv6 mode must be toggled manually via the checkbox in the UI. The same sparse-data enrichment and failover logic applies.
 
@@ -475,8 +498,8 @@ IPv6 mode must be toggled manually via the checkbox in the UI. The same sparse-d
 | # | Service | Endpoint | Normalization |
 |---|---------|----------|---------------|
 | 16 | **RDAP (RIPE)** | `https://rdap.db.ripe.net/ip/{ip}` | Full RDAP: handle, CIDR, organization, abuse contact, events, links |
-| 17 | **IP-API (Whois)** | `http://ip-api.com/json/{ip}` | 44-field key-value normalization |
-| 18 | **IP-Whois.io** | `http://ipwho.is/{ip}` | Flat JSON normalization |
+| 17 | **IP-API (Whois)** | `https://ip-api.com/json/{ip}` | 44-field key-value normalization |
+| 18 | **IP-Whois.io** | `https://ipwho.is/{ip}` | Flat JSON normalization |
 
 The user selects the Whois provider via the UI combo box. Responses are normalized into a consistent key-value table.
 
@@ -484,7 +507,7 @@ The user selects the Whois provider via the UI combo box. Responses are normaliz
 
 | Service | Endpoint | Caching |
 |---------|----------|---------|
-| **Flagpedia.net** | `https://flagpedia.net/data/flags/w580/{cc}.png` | In-memory `QMap<QString, QPixmap>`; downloaded once per country code |
+| **flagcdn.com** | `https://flagcdn.com/w160/{cc}.png` | In-memory `QMap<QString, QPixmap>`; downloaded once per country code (v2.15.4 — was flagpedia.net) |
 
 ---
 
@@ -501,10 +524,31 @@ This ensures only one IPView window is open at any time.
 
 ---
 
+## Releases (auto-published on every CHANGELOG update)
+
+Since v2.15.4, releases are cut automatically:
+
+1. Bump `VERSION` in `CMakeLists.txt` (single source of truth).
+2. Add a `## [X.Y.Z] — YYYY-MM-DD` heading to the top of `CHANGELOG.md`.
+3. Push to `main`.
+
+The `.github/workflows/release-on-changelog.yml` workflow:
+
+- Parses the topmost version from `CHANGELOG.md`.
+- Cross-checks it against `CMakeLists.txt` (workflow fails on mismatch).
+- Compares it to the latest `v*.*.*` git tag using `sort -V` (so `2.15.10` > `2.15.9` works).
+- Creates and pushes the `vX.Y.Z` tag if the version is new and strictly higher.
+
+The existing `.github/workflows/release.yml` then triggers on the tag push, builds the binary on `ubuntu-22.04`, runs the unit tests + smoke test, assembles an `AppDir` (with bundled Qt 6 libraries so it runs on bare systems), wraps it with `appimagetool`, generates a `SHA-256SUMS` file, and creates a GitHub Release with both files attached. The release is marked as a pre-release automatically if the tag name contains `rc`, `beta`, or `alpha`.
+
+Manual override: the release workflow also supports `workflow_dispatch`, so a maintainer can re-cut an existing release without bumping the version.
+
+---
+
 ## Public Domain
 
 This project is released under **Public Domain**. It may be freely used, copied, modified, and distributed — without any restrictions, warranties, or license files. No license file is required and none is provided.
 
 ---
 
-*IPView Pro v2.15.0 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*
+*IPView Pro v2.15.4 — C++26 (ISO/IEC 14882:2026) & Qt 6.11 — Public Domain*

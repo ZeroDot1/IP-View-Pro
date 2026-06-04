@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.15.0 — tests/test_safetext.cpp
+//  IPView Pro v2.15.4 — tests/test_safetext.cpp
 //
 //  Validates the HTML and shell escaping helpers in SafeText.hpp.
 //
