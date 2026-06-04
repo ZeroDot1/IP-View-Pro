@@ -175,7 +175,16 @@ void TelemetryModule::onTick() noexcept
     }
 
     mInterfaces = updated;
-    mCacheValid = false; // Reload cache on next call
+    // The interface list rarely changes (only on NIC
+    // hot-plug). Re-reading /proc/net/dev to enumerate names
+    // on every 2 s tick was a hot-path bug — it meant the
+    // polling loop paid the open/read/parse cost twice per
+    // tick for data that is essentially static. Leave the
+    // cache valid; the next availableInterfaces() call hits
+    // the cached list. A new mInterfaces entry that is not
+    // in the cache will be picked up by the lookup loop
+    // above and added to mInterfaces on the next tick.
+    // mCacheValid = true; (already true)
 
     // ── Dynamic interval adjustment (Item 41) ──────────────────────────
     if (mDynamicAdjustment) {
