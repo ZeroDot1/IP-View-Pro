@@ -283,43 +283,52 @@ cmake --build build -j"$(nproc)"
 ### Build Options
 
 ```bash
-./build.sh              # Release build (default)
-./build.sh Debug        # Debug build with full symbols
+./build.sh              # Release + max compression + tests (v2.15.4 default)
+./build.sh Debug        # Debug build (MINSIZE auto-disabled)
 
 # With AddressSanitizer + UndefinedBehaviorSanitizer:
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DSANITIZE=ON
 cmake --build build -j"$(nproc)"
 ```
 
-### Binary Size Optimization (2.15.2+)
+### Binary Size Optimization (v2.15.2+, **v2.15.4: ON by default**)
 
 Three independent flags shrink the final ELF without changing
-runtime behaviour. They are **off by default** to keep the daily
-dev loop fast; turn them on for release archives.
+runtime behaviour. As of v2.15.4 they are **on by default** so
+the local build matches what gets shipped in the AppImage:
 
 | Flag        | Effect                                                  | Typical impact |
 |-------------|---------------------------------------------------------|---------------:|
 | `MINSIZE=on` | `-Os`, `--gc-sections`, `--as-needed`, `--build-id=none`, `-z,nodump`, forces LTO | −20 %          |
 | `STRIP=on`   | drops `.symtab` / `.strtab` / `.comment` / `.note` via `strip --strip-all` | −16 %          |
 | `COMPRESS=on`| wraps the binary with `upx --best` (transparent on exec)| −66 %          |
-| **all three**| end-to-end pipeline                                      | **−78 %**      |
+| **all three**| end-to-end pipeline (the v2.15.4 default)                 | **~ −78 %**    |
+
+A plain `./build.sh` produces a binary of **≈ 272 KiB** (UPX
+ratio 33.65 %) — down from ≈ 1.2 MiB. To opt out, pass the
+explicit `off` to the relevant positional argument:
 
 ```bash
-# Full pipeline — 1.18 MiB → 256 KiB
-./build.sh Release none on off off off on on on on
+# Maximum-compression Release (v2.15.4 default)
+./build.sh
+# → 272 KiB, 57/57 tests pass
 
-# Just the strip stage, no other changes
-./build.sh Release none on off off off on off on on
+# Plain Release (no size optimisation)
+./build.sh Release none on on off off off off off
+# → ~1.2 MiB, faster incremental builds
 
-# Combined with tests
-./build.sh Release none on on off off on on on on
+# Debug + ASan (MINSIZE auto-disabled)
+./build.sh Debug asan on on
 ```
 
 The three stages degrade gracefully: if `strip` or `upx` is not
-installed, a CMake `WARNING` is emitted and that stage is skipped
+installed, the `build.sh` script prints a `NOTE:` listing the
+missing tools and the corresponding pipeline stage is skipped
 without breaking the build. `MINSIZE=on` combined with any
-sanitizer is rejected early — sanitizers need `-O1 -g`, which is
-mutually exclusive with size optimization.
+sanitizer is **auto-disabled** at the top of the script (with a
+`NOTE:` printed) — sanitizers need `-O1 -g`, which is mutually
+exclusive with `-Os`. The same auto-disable fires for
+`PGO=generate` and `BUILD_TYPE=Debug`.
 
 Direct CMake equivalents:
 

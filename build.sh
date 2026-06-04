@@ -1,6 +1,6 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
-#  IPView Pro v2.15.0 — Build Script
+#  IPView Pro v2.15.4 — Build Script
 #  Qt 6.11 · C++26 (GCC 14+ / Clang 18+) · Arch Linux
 #  Public Domain — No License — No Restrictions
 # ═══════════════════════════════════════════════════════════════
@@ -11,22 +11,32 @@
 #    BUILD_TYPE  Release | Debug | RelWithDebInfo | MinSizeRel  (default: Release)
 #    SANITIZER   none | asan | ubsan | tsan                     (default: none)
 #    LTO         on  | off                                      (default: on)
-#    TESTS       on  | off                                      (default: off)
+#    TESTS       on  | off                                      (default: on)
 #    VERBOSE     on  | off                                      (default: off)
 #    PGO         generate | use | off                           (default: off)
-#    STRIP       on  | off   strip symbols (.symtab/.strtab)    (default: off)
-#    COMPRESS    on  | off   UPX-compress the final binary      (default: off)
-#    MINSIZE     on  | off   -Os + --gc-sections + as-needed    (default: off)
+#    STRIP       on  | off   strip symbols (.symtab/.strtab)    (default: ON)
+#    COMPRESS    on  | off   UPX-compress the final binary      (default: ON)
+#    MINSIZE     on  | off   -Os + --gc-sections + as-needed    (default: ON)
 #    REPORT      on  | off   print `du -b` snapshot of binary   (default: on)
 #
+#  v2.15.4: the three size-optimisation flags (MINSIZE / STRIP /
+#  COMPRESS) are now ON by default and tests are ON by default.
+#  This is what the GitHub release pipeline uses, and the local
+#  build should match what gets shipped. Pass the explicit "off"
+#  argument to any of them to opt out:
+#
+#    ./build.sh                                       # everything on (release)
+#    ./build.sh Release none on on off off off off off # plain Release (no size opts)
+#    ./build.sh Debug                                  # Debug + max-compress still
+#                                                      # applied (sanitizers force
+#                                                      # MINSIZE off — see below)
+#
 #  Examples:
-#    ./build.sh                                                   # plain Release
-#    ./build.sh Debug asan on on                                  # Debug + ASan + LTO + tests
-#    ./build.sh Release ubsan off off on                          # verbose Release + UBSan
-#    ./build.sh Release none on off off generate                  # PGO stage 1
-#    ./build.sh Release none on off off use                       # PGO stage 2
-#    ./build.sh Release none on off off off on on on              # MINSIZE + STRIP + COMPRESS
-#    ./build.sh MinSizeRel none on off off off on on on           # smallest possible
+#    ./build.sh                                          # maximum-compression Release
+#    ./build.sh Debug asan on on                         # Debug + ASan + tests
+#    ./build.sh Release none on on off off generate       # PGO stage 1
+#    ./build.sh Release none on on off off use            # PGO stage 2
+#    ./build.sh Release none on on off off off off off off # plain Release (no opts)
 #
 #  Size Optimization:
 #    The three flags STRIP / COMPRESS / MINSIZE are independent and
@@ -36,19 +46,27 @@
 #    GC; STRIP drops debug + symbol tables; COMPRESS wraps the ELF
 #    with UPX (decompresses transparently on first exec).
 #
+#  Auto-overrides (intelligent, not silent):
+#    - SANITIZER != none      → forces MINSIZE=off (sanitizers need -O1 + -g)
+#    - BUILD_TYPE  == Debug   → forces MINSIZE=off (Debug already implies -O0)
+#    - PGO         == generate→ forces MINSIZE=off (PGO needs real -O optim)
+#    Any of these is announced at the top of the build so the
+#    chosen flags are never surprising.
+#
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# ── Defaults (v2.15.4: max-compression pipeline always on) ─────
 BUILD_TYPE="${1:-Release}"
 SANITIZER="${2:-none}"
 LTO="${3:-on}"
-TESTS="${4:-off}"
+TESTS="${4:-on}"
 VERBOSE="${5:-off}"
 PGO="${6:-off}"
-STRIP="${7:-off}"
-COMPRESS="${8:-off}"
-MINSIZE="${9:-off}"
+STRIP="${7:-on}"        # was: off
+COMPRESS="${8:-on}"     # was: off
+MINSIZE="${9:-on}"      # was: off
 REPORT="${10:-on}"
 
 # Validate inputs
@@ -93,13 +111,27 @@ case "$REPORT" in
     *) echo "  ERROR: REPORT must be on or off"; exit 1 ;;
 esac
 
-# Sanitizer + MINSIZE combination is contradictory (sanitizers need
+# ── Sanitizer + MINSIZE combination is contradictory (sanitizers need
 # -O1 + debug info). Refuse early so the user does not get a surprise
 # build that links but explodes on first malloc.
 if [ "$SANITIZER" != "none" ] && [ "$MINSIZE" = "on" ]; then
-    echo "  ERROR: MINSIZE=on conflicts with SANITIZER=$SANITIZER."
-    echo "         Sanitizers need -O1 + -g; size optimization strips both."
-    exit 1
+    echo "  NOTE: SANITIZER=$SANITIZER requires -O1 + -g — auto-disabling MINSIZE."
+    MINSIZE="off"
+fi
+
+# PGO stage 1 (profile generation) needs real -O optim — auto-disable
+# MINSIZE so the compiler doesn't collapse the instrumentation.
+if [ "$PGO" = "generate" ] && [ "$MINSIZE" = "on" ]; then
+    echo "  NOTE: PGO=generate requires real -O — auto-disabling MINSIZE."
+    MINSIZE="off"
+fi
+
+# Debug builds are -O0 by definition, so MINSIZE would be a no-op
+# (and makes the build look "smaller" by accident). Disable it
+# explicitly to make the report below honest.
+if [ "$BUILD_TYPE" = "Debug" ] && [ "$MINSIZE" = "on" ]; then
+    echo "  NOTE: BUILD_TYPE=Debug is -O0 — auto-disabling MINSIZE."
+    MINSIZE="off"
 fi
 
 # STRIP + Debug is also a footgun: debug builds need symbols to be
@@ -109,12 +141,24 @@ if [ "$BUILD_TYPE" = "Debug" ] && [ "$STRIP" = "on" ]; then
     echo "  WARNING: STRIP=on with Debug build removes the symbols gdb needs."
 fi
 
+# ── Tool presence check (size-pipeline degrades gracefully) ────
+# MINSIZE / STRIP / COMPRESS are nice-to-have. CMake will warn and
+# continue if strip / upx are missing, so we just inform the user.
+MISSING_TOOLS=()
+command -v strip >/dev/null 2>&1 || MISSING_TOOLS+=("strip")
+command -v upx   >/dev/null 2>&1 || MISSING_TOOLS+=("upx")
+if [ "${#MISSING_TOOLS[@]}" -gt 0 ]; then
+    echo "  NOTE: missing tools: ${MISSING_TOOLS[*]}"
+    echo "        The corresponding size-pipeline stage will be skipped."
+    echo "        Install with: sudo pacman -S binutils upx"
+fi
+
 BUILD_DIR="$SCRIPT_DIR/build"
 BINARY="$BUILD_DIR/IPView"
 JOBS="$(nproc)"
 
 echo "╔═══════════════════════════════════════════════╗"
-echo "║      IPView Pro v2.15.0 — C++26 · Qt 6.11    ║"
+echo "║      IPView Pro v2.15.4 — C++26 · Qt 6.11    ║"
 echo "╚═══════════════════════════════════════════════╝"
 echo ""
 echo "  Build type : $BUILD_TYPE"
@@ -123,7 +167,7 @@ echo "  LTO        : $LTO"
 echo "  Tests      : $TESTS"
 echo "  Verbose    : $VERBOSE"
 echo "  PGO        : $PGO"
-echo "  ── Size optimization ──────────────────────"
+echo "  ── Size optimization (v2.15.4: ON by default) ──"
 echo "  MINSIZE    : $MINSIZE   (-Os + --gc-sections + as-needed)"
 echo "  STRIP      : $STRIP     (drop .symtab/.strtab/.comment)"
 echo "  COMPRESS   : $COMPRESS  (UPX --best wrapper)"
@@ -173,8 +217,9 @@ else
     EXTRA_FLAGS+=("-DBUILD_TESTING=OFF")
 fi
 
-# Size optimization flags (Phase 2.15.2). The CMake side validates
-# the toolchain (strip + upx) and degrades to a warning if missing.
+# Size optimization flags (Phase 2.15.2, v2.15.4 default-on).
+# The CMake side validates the toolchain (strip + upx) and
+# degrades to a warning if missing.
 if [ "$MINSIZE" = "on" ]; then
     EXTRA_FLAGS+=("-DIPVIEW_MINSIZE=ON")
 fi
