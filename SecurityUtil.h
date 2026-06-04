@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.7.0 — SecurityUtil.h
+//  IPView Pro v2.15.0 — SecurityUtil.h
 //  Core security functions: input validation, IP checking,
 //  SSL handling, command injection prevention.
 //
@@ -19,6 +19,67 @@
 #include <QStandardPaths>
 
 // ═══════════════════════════════════════════════════════════════════════════════
+//  Centralized regular expressions
+//
+//  All QRegularExpression instances for security-critical input validation
+//  live here so the patterns can be tuned in one place and the compiled
+//  regex objects are thread-safely shared (Qt caches them in the static
+//  initialiser). Module-local patterns (output-format parsers, log line
+//  matchers, etc.) are intentionally kept next to their caller.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+namespace IPView::Security {
+
+// ── Shell metacharacters blocked in any user-supplied network target ────
+//   ; | & ` $ ( ) { } < > ! # ' " \ plus any whitespace.
+[[nodiscard]]
+inline const QRegularExpression& shellMetacharRegex() noexcept
+{
+    static QRegularExpression const re(
+        QStringLiteral(R"([\s;|&`$(){}<>!#\'\"\\])"));
+    return re;
+}
+
+// ── RFC 1123 hostname (letters, digits, dots, hyphens, no leading/trailing hyphen)
+[[nodiscard]]
+inline const QRegularExpression& hostnameRegex() noexcept
+{
+    static QRegularExpression const re(
+        QStringLiteral(R"(^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)*$)"));
+    return re;
+}
+
+// ── Permitted character class for a single sanitized argument ───────────
+//  Hostname / IPv6 literal characters only.
+[[nodiscard]]
+inline const QRegularExpression& unsafeArgCharsRegex() noexcept
+{
+    static QRegularExpression const re(
+        QStringLiteral(R"([^a-zA-Z0-9\-._:\[\]])"));
+    return re;
+}
+
+// ── IPv4 dotted-quad (0–255 per octet) ────────────────────────────────────
+[[nodiscard]]
+inline const QRegularExpression& ipv4Regex() noexcept
+{
+    static QRegularExpression const re(
+        QStringLiteral(R"(^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$)"));
+    return re;
+}
+
+// ── IPv6 (full form + zero-compressed form, single embedded IPv4 accepted) ─
+[[nodiscard]]
+inline const QRegularExpression& ipv6Regex() noexcept
+{
+    static QRegularExpression const re(
+        QStringLiteral(R"(^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^([0-9a-fA-F]{1,4}:){0,7}:([0-9a-fA-F]{1,4}:){0,7}[0-9a-fA-F]{0,4}$)"));
+    return re;
+}
+
+} // namespace IPView::Security
+
+// ═══════════════════════════════════════════════════════════════════════════════
 //  COMMAND INJECTION PREVENTION
 //  Ensures that user input contains no shell metacharacters.
 //  Allowed: IPv4, IPv6, domain names (RFC 1035), empty input.
@@ -32,19 +93,45 @@ inline bool isValidNetworkTarget(const QString &input) noexcept
 {
     if (input.isEmpty()) return false;
 
-    // No whitespace or shell metacharacters allowed
-    static QRegularExpression const forbiddenRe(
-        QStringLiteral(R"([\s;|&`$(){}<>!#\'\"\\])"));
-    if (forbiddenRe.match(input).hasMatch()) return false;
+    if (IPView::Security::shellMetacharRegex().match(input).hasMatch()) return false;
 
     // IPv4 check via Qt
     QHostAddress addr;
     if (addr.setAddress(input)) return true;  // IPv4 or IPv6
 
-    // Hostname validation (RFC 1123): letters, digits, dots, hyphens
-    static QRegularExpression const hostnameRe(
-        QStringLiteral(R"(^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)*$)"));
-    return hostnameRe.match(input).hasMatch();
+    return IPView::Security::hostnameRegex().match(input).hasMatch();
+}
+
+// ── Is the input a dotted-quad IPv4 address? ─────────────────────────────
+[[nodiscard]]
+inline bool isValidIPv4(const QString &input) noexcept
+{
+    if (input.isEmpty()) return false;
+    // The regex is the strict form; QHostAddress additionally enforces
+    // the 0–255 octet range, so we use it as the final arbiter.
+    if (!IPView::Security::ipv4Regex().match(input).hasMatch()) return false;
+    QHostAddress addr;
+    return addr.setAddress(input) && addr.protocol() == QHostAddress::IPv4Protocol;
+}
+
+// ── Is the input a valid IPv6 literal? ──────────────────────────────────
+[[nodiscard]]
+inline bool isValidIPv6(const QString &input) noexcept
+{
+    if (input.isEmpty()) return false;
+    if (!IPView::Security::ipv6Regex().match(input).hasMatch()) return false;
+    QHostAddress addr;
+    return addr.setAddress(input) && addr.protocol() == QHostAddress::IPv6Protocol;
+}
+
+// ── Is the input a valid port number? (1–65535, decimal) ─────────────────
+[[nodiscard]]
+inline bool isValidPort(const QString &input) noexcept
+{
+    if (input.isEmpty()) return false;
+    bool ok = false;
+    int const port = input.toInt(&ok);
+    return ok && port >= 1 && port <= 65535;
 }
 
 // ── Safety measure: escape argument (not necessary for QProcess, but defense in depth) ──
@@ -54,8 +141,7 @@ inline bool isValidNetworkTarget(const QString &input) noexcept
 inline QString sanitizeArg(const QString &arg) noexcept
 {
     QString clean = arg;
-    // Remove all characters not found in a safe hostname/IP
-    clean.remove(QRegularExpression(QStringLiteral(R"([^a-zA-Z0-9\-._:\[\]])")));
+    clean.remove(IPView::Security::unsafeArgCharsRegex());
     return clean;
 }
 
