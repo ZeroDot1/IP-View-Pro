@@ -89,12 +89,28 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     endif()
 endif()
 
-# Mit Sanitizern bauen: cmake -DSANITIZE=ON ..
-option(SANITIZE "Build with AddressSanitizer + UBSan" OFF)
+# Mit Sanitizern bauen: cmake -DSANITIZE=ON -DSANITIZER_TYPE=address ..
+option(SANITIZE "Build with a sanitizer" OFF)
+set(SANITIZER_TYPE "address,undefined" CACHE STRING
+    "Sanitizer set to use when SANITIZE=ON (address, undefined, thread, or a comma list)")
 if(SANITIZE)
-    add_compile_options(-fsanitize=address,undefined -g -O1)
-    add_link_options(-fsanitize=address,undefined)
-    message(STATUS "Sanitizers ENABLED (Address + UndefinedBehavior)")
+    add_compile_options(-fsanitize=${SANITIZER_TYPE} -g -O1)
+    add_link_options(-fsanitize=${SANITIZER_TYPE})
+    message(STATUS "Sanitizers ENABLED: ${SANITIZER_TYPE}")
+endif()
+
+# LTO ist standardmäßig an, lässt sich per -DENABLE_LTO=OFF deaktivieren.
+option(ENABLE_LTO "Enable link-time optimization for Release builds" ON)
+if(ENABLE_LTO AND CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+    message(STATUS "LTO enabled for Release build")
+endif()
+
+# Test-Builds (Phase 5) sind standardmäßig aus.
+option(BUILD_TESTING "Build the unit / integration test targets" OFF)
+if(BUILD_TESTING)
+    enable_testing()
+    message(STATUS "Test target enabled")
 endif()
 
 # ── Qt 6.11 (latest release: March 2026) ──────────────────────
