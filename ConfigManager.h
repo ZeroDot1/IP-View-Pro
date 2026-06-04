@@ -87,6 +87,18 @@ public:
     static void saveTelemetryInterval(int ms) noexcept;
     [[nodiscard]] static int loadTelemetryInterval(int defaultMs = 2000) noexcept;
 
+    // ── Range-validated integer getter (Phase 4-B) ─────────────────────
+    // Read an integer QSettings value, clamping it into
+    // [lo, hi]. If the stored value is missing or unparseable
+    // (e.g. corrupt .ini file) the default is returned. If the
+    // stored value falls outside [lo, hi] it is clamped and the
+    // clamped result is written back so the corruption doesn't
+    // reappear on the next read.
+    [[nodiscard]] static int loadClampedInt(QLatin1StringView key,
+                                            int defaultValue,
+                                            int lo,
+                                            int hi) noexcept;
+
     static void saveTelemetryAutoStart(bool enabled) noexcept;
     [[nodiscard]] static bool loadTelemetryAutoStart(bool defaultEnabled = false) noexcept;
 

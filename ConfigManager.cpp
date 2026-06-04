@@ -11,6 +11,7 @@
 
 #include "ConfigManager.h"
 #include "Logger.h"
+#include "Timeouts.hpp"
 
 #include <QApplication>
 #include <QStandardPaths>
@@ -240,67 +241,39 @@ bool Manager::validateAll() noexcept
     bool valid = true;
 
     // Window/LastTab — must be within tab range (0..7)
-    {
-        int const tab = loadLastTab(-1);
-        if (tab < 0 || tab > 7) {
-            IPView::Logger::warn("ConfigManager: Clamping invalid lastTab={} to 0", tab);
-            saveLastTab(0);
-            valid = false;
-        }
+    if (loadClampedInt(QLatin1StringView(Key::LAST_TAB), 0, 0, 7) !=
+        loadLastTab()) {
+        valid = false;
     }
 
     // Network/SelectedApiIndex — max 4 APIs vorhanden
-    {
-        int const idx = loadApiIndex(-1);
-        if (idx < 0 || idx > 3) {
-            IPView::Logger::warn("ConfigManager: Clamping invalid apiIndex={} to 0", idx);
-            saveApiIndex(0);
-            valid = false;
-        }
+    if (loadClampedInt(QLatin1StringView(Key::API_INDEX), 0, 0, 3) !=
+        loadApiIndex()) {
+        valid = false;
     }
 
     // Telemetry/IntervalMs — mindestens 500 ms
-    {
-        int const interval = loadTelemetryInterval(0);
-        int const clamped  = std::clamp(interval, 500, 3600000);
-        if (interval != clamped) {
-            IPView::Logger::warn("ConfigManager: Clamping telemetryInterval={} to {}", interval, clamped);
-            saveTelemetryInterval(clamped);
-            valid = false;
-        }
+    if (loadClampedInt(QLatin1StringView(Key::TELEMETRY_INTERVAL),
+                       2000, 500, 3'600'000) != loadTelemetryInterval()) {
+        valid = false;
     }
 
     // Telemetry/AggregationWindowSec — mindestens 60 s
-    {
-        int const win = loadTelemetryWindowSize(0);
-        int const clamped = std::clamp(win, 60, 86400);
-        if (win != clamped) {
-            IPView::Logger::warn("ConfigManager: Clamping telemetryWindowSize={} to {}", win, clamped);
-            saveTelemetryWindowSize(clamped);
-            valid = false;
-        }
+    if (loadClampedInt(QLatin1StringView(Key::TELEMETRY_WINDOW_SIZE),
+                       60, 60, 86'400) != loadTelemetryWindowSize()) {
+        valid = false;
     }
 
     // Scanner/TimeoutMs — mindestens 50 ms
-    {
-        int const timeout = loadScanTimeout(0);
-        int const clamped = std::clamp(timeout, 50, 30000);
-        if (timeout != clamped) {
-            IPView::Logger::warn("ConfigManager: Clamping scanTimeout={} to {}", timeout, clamped);
-            saveScanTimeout(clamped);
-            valid = false;
-        }
+    if (loadClampedInt(QLatin1StringView(Key::SCAN_TIMEOUT),
+                       1000, 50, 30'000) != loadScanTimeout()) {
+        valid = false;
     }
 
     // Scanner/MaxConcurrent — 1..1000
-    {
-        int const conc = loadScanConcurrency(0);
-        int const clamped = std::clamp(conc, 1, 1000);
-        if (conc != clamped) {
-            IPView::Logger::warn("ConfigManager: Clamping scanConcurrency={} to {}", conc, clamped);
-            saveScanConcurrency(clamped);
-            valid = false;
-        }
+    if (loadClampedInt(QLatin1StringView(Key::SCAN_CONCURRENCY),
+                       100, 1, 1000) != loadScanConcurrency()) {
+        valid = false;
     }
 
     if (valid) {
@@ -321,6 +294,40 @@ void Manager::saveNetworkSettings(int apiIndex, bool ipv6, bool autoRefresh) noe
     saveIPv6Mode(ipv6);
     saveAutoRefresh(autoRefresh);
     sync();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Range-validated getter (Phase 4-B)
+//
+//  Reads a numeric setting, falling back to defaultValue if the
+//  key is missing or unparseable, and clamping the result into
+//  [lo, hi]. When the stored value lands outside the allowed
+//  range the clamped value is written back so the .ini file
+//  heals itself on the next sync() — useful after a code
+//  change that tightens a range (e.g. telemetry interval
+//  dropping from 2000 ms to 500 ms minimum).
+// ═══════════════════════════════════════════════════════════════════════════════
+
+int Manager::loadClampedInt(QLatin1StringView key,
+                            int defaultValue,
+                            int lo,
+                            int hi) noexcept
+{
+    const QVariant raw = settings().value(key);
+    if (!raw.isValid() || !raw.canConvert<int>()) {
+        return defaultValue;
+    }
+    const int stored = raw.toInt();
+    if (stored < lo || stored > hi) {
+        const int clamped = std::clamp(stored, lo, hi);
+        IPView::Logger::warn(
+            "ConfigManager: clamping {} from {} to {} (allowed [{}..{}])",
+            std::string_view(key.data(), static_cast<std::size_t>(key.size())),
+            stored, clamped, lo, hi);
+        settings().setValue(key, clamped);
+        return clamped;
+    }
+    return stored;
 }
 
 } // namespace IPView::Config
