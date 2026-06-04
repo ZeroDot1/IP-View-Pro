@@ -217,6 +217,7 @@ qt_add_executable(IPView
     AlertTab.cpp
     version.cpp
     Services.cpp
+    NetworkDiscovery.cpp
     resources.qrc
 )
 
