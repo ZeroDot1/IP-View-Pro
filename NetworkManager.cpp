@@ -163,6 +163,18 @@ void NetworkManager::tryNextIPv6API() noexcept
 
 void NetworkManager::doRequest(const QUrl &url) noexcept
 {
+    // HTTPS-only enforcement: every external IP-lookup API in
+    // kApis is HTTPS, and there is no product reason to ever
+    // downgrade. Refuse plaintext http:// requests at the call
+    // site so a future contributor adding a new entry to kApis
+    // cannot accidentally make us a credential / metadata
+    // exfiltration vector.
+    if (url.scheme() != QLatin1String("https")) {
+        IPView::Logger::warn("NetworkManager: refusing non-HTTPS URL: {}",
+                             url.toString().toStdString());
+        emit requestFailed(url, tr("Refusing non-HTTPS request"));
+        return;
+    }
 
     QNetworkRequest request(url);
     request.setRawHeader("User-Agent", QByteArrayLiteral("IPView/2.0"));

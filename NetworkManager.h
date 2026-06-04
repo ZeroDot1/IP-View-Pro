@@ -54,6 +54,7 @@ signals:
     // C++26: Signal declarations remain Qt-specific
     void dataReceived(const QJsonObject &data);
     void errorOccurred(const QString &error);
+    void requestFailed(const QUrl &url, const QString &reason);
 
 private slots:
     void onReplyFinished(QNetworkReply *reply);
