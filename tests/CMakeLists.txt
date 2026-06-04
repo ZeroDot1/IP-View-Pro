@@ -11,6 +11,9 @@ add_executable(IPViewTests
     test_concepts.cpp
     test_contracts.cpp
     test_timeouts.cpp
+    test_error.cpp
+    test_security.cpp
+    test_safeprocess.cpp
 )
 
 target_link_libraries(IPViewTests

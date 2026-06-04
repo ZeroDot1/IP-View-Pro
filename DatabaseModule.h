@@ -20,6 +20,7 @@
 #include <optional>   // C++17/26: std::optional
 #include <vector>
 #include <cstdint>
+#include <functional> // C++26: std::move_only_function
 #include <functional>  // C++26: Callback for status feedback (Item 5)
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -131,8 +132,11 @@ public:
     [[nodiscard]] static bool integrityCheck() noexcept;
 
     // ── Status-Callback (Item 5) ─────────────────────────────────────────
-    //  Enables UI feedback for DB background operations
-    using StatusCallback = std::function<void(const QString &)>;
+    //  Enables UI feedback for DB background operations.
+    //  std::move_only_function (C++26 stable) lets the callback
+    //  capture non-copyable state like std::unique_ptr or
+    //  QPointer<QObject>, which std::function could not.
+    using StatusCallback = std::move_only_function<void(const QString &)>;
     static void setStatusCallback(StatusCallback cb) noexcept;
     static void clearStatusCallback() noexcept;
 

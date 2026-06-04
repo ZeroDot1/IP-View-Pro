@@ -102,6 +102,49 @@ inline bool isValidNetworkTarget(const QString &input) noexcept
     return IPView::Security::hostnameRegex().match(input).hasMatch();
 }
 
+// ── Is the input a valid executable name / absolute path? ────────────────
+//  Allows POSIX paths, alphanumerics, dot, dash, underscore and slash.
+//  Anything containing a shell metacharacter is refused. The function
+//  does NOT touch the filesystem — callers still need to check that
+//  the file actually exists.
+[[nodiscard]]
+inline bool isValidCommand(const QString &input) noexcept
+{
+    if (input.isEmpty()) return false;
+    if (input.size() > 4096) return false;          // PATH_MAX sanity bound
+    if (IPView::Security::shellMetacharRegex().match(input).hasMatch()) return false;
+
+    // Restrict to a conservative character set: alnum, dot, dash,
+    // underscore, slash, plus, equals (for env-var style paths).
+    for (QChar c : input) {
+        bool const ok = c.isLetterOrNumber()
+                     || c == QLatin1Char('/')
+                     || c == QLatin1Char('.')
+                     || c == QLatin1Char('-')
+                     || c == QLatin1Char('_')
+                     || c == QLatin1Char('+')
+                     || c == QLatin1Char('=');
+        if (!ok) return false;
+    }
+    return true;
+}
+
+// ── Is the input safe to pass as a QProcess argument? ───────────────────
+//  This is a strictly weaker check than isValidNetworkTarget: it
+//  only verifies that the string contains no shell metacharacter
+//  and is not absurdly long. It allows command-line flags (-c,
+//  --verbose), integer values, environment-style paths, and of
+//  course hostnames and IPs. Use it to gate every argument to
+//  QProcess::start() that originates from user input.
+[[nodiscard]]
+inline bool isValidShellArgument(const QString &input) noexcept
+{
+    if (input.isEmpty()) return false;
+    if (input.size() > 4096) return false;
+    if (IPView::Security::shellMetacharRegex().match(input).hasMatch()) return false;
+    return true;
+}
+
 // ── Is the input a dotted-quad IPv4 address? ─────────────────────────────
 [[nodiscard]]
 inline bool isValidIPv4(const QString &input) noexcept
