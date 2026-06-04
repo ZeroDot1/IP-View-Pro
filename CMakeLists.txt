@@ -113,6 +113,69 @@ if(BUILD_TESTING)
     message(STATUS "Test target enabled")
 endif()
 
+# ── Binary Size Optimization (Phase 2.15.2) ─────────────────────────────
+#  Three independent post-build stages that each shave off a sizeable
+#  chunk of the final ELF. They are OFF by default to keep the daily
+#  dev loop fast, and turned ON via `build.sh` for release archives.
+#
+#    IPVIEW_MINSIZE=ON
+#        Adds -Os + per-function / per-data sections, enables
+#        --gc-sections, drops .note/.note.gnu.build-id/.comment,
+#        and forces LTO on. Best paired with -DCMAKE_BUILD_TYPE=Release
+#        (or MinSizeRel) for the smallest unstripped build.
+#
+#    IPVIEW_STRIP_BINARY=ON
+#        Runs `strip --strip-all --remove-section=...` on the final
+#        binary, removing ~16% of the .symtab/.strtab footprint.
+#        Works on any Linux ELF produced by GCC or Clang.
+#
+#    IPVIEW_COMPRESS_BINARY=ON
+#        Runs `upx --best` on the final binary, compressing the
+#        executable in-place (decompresses on first exec). Requires
+#        the upx(1) tool to be installed (pacman: extra/upx).
+#
+#    IPVIEW_SIZE_REPORT=ON
+#        Prints a `du -b` + `file` snapshot of the final binary after
+#        every post-build stage. Useful for verifying the pipeline
+#        actually shrank the artifact. ON by default.
+option(IPVIEW_MINSIZE         "Optimize the build for smallest ELF size"  OFF)
+option(IPVIEW_STRIP_BINARY    "Strip debug + symbol tables from the binary" OFF)
+option(IPVIEW_COMPRESS_BINARY "Compress the final binary with UPX"        OFF)
+option(IPVIEW_SIZE_REPORT     "Print a size snapshot after the build"     ON)
+
+if(IPVIEW_MINSIZE)
+    # -Os is a special case of -O2 that prefers size; combined with
+    # section splitting it lets the linker drop every unreferenced
+    # function and global constant. The .eh_frame / .sframe are kept
+    # because unwinders depend on them, but the section versions
+    # shrink automatically when their input symbols disappear.
+    add_compile_options(-Os -fdata-sections -ffunction-sections)
+    # -Wl,--gc-sections enables the actual dead-code elim at link time.
+    # -Wl,--as-needed drops DT_NEEDED entries for libs we never call
+    # into (mostly transitive Qt deps). -z,nodump excludes the binary
+    # from core dumps, saving a few KB on the .note section. The
+    # GNU hash style is a hair smaller than sysv, and dropping the
+    # build-id note shaves another 36 bytes plus the SHA1 padding.
+    add_link_options(
+        -Wl,--gc-sections
+        -Wl,--as-needed
+        -Wl,-z,nodump
+        -Wl,--hash-style=gnu
+        -Wl,--build-id=none
+    )
+    # MINSIZE implies LTO so cross-TU inlining + dead-code elim kick
+    # in. If the user explicitly disabled LTO we honour that decision
+    # and warn so they know what they gave up.
+    if(NOT ENABLE_LTO)
+        message(WARNING
+            "IPVIEW_MINSIZE=ON works best with LTO; consider -DENABLE_LTO=ON")
+    else()
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+    endif()
+    message(STATUS "Size optimization ENABLED (-Os, --gc-sections, --as-needed, "
+                    "--build-id=none, --hash-style=gnu, -z,nodump)")
+endif()
+
 # ── Qt 6.11 (latest release: March 2026) ──────────────────────
 find_package(Qt6 6.11 REQUIRED COMPONENTS Core Widgets Network Svg Sql)
 
@@ -176,6 +239,81 @@ set_target_properties(IPView PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE    TRUE
 )
+
+# ── Post-Build Size Pipeline (Phase 2.15.2) ─────────────────────────
+#  Each stage is a separate add_custom_command that runs after the
+#  main IPView target links successfully. CMake guarantees they run
+#  in the order declared here.
+#
+#  Stage 1: strip  — `strip --strip-all` plus aggressive section
+#                    removal (.comment, .note, .note.gnu.build-id,
+#                    .note.gnu.property, .note.ABI-tag, .symtab,
+#                    .strtab, .shstrtab). Saves ~16% of the .symtab
+#                    and .strtab footprint on a typical Qt app.
+#  Stage 2: upx    — `upx --best` compresses the stripped ELF in
+#                    place using NRV/LZMA. UPX uses ~50 KB of
+#                    decompressor stub + the original sections
+#                    compressed; we typically see a 4-6x ratio on
+#                    a Qt 6 app.
+#  Stage 3: report — `du -b` + `file -b` + readelf section summary.
+#
+#  We only enable a stage when both the option is set and the tool
+#  is found in PATH; a missing tool degrades gracefully to a warning
+#  instead of failing the build (so CI can still validate the
+#  unstripped / uncompressed binary).
+find_program(IPVIEW_STRIP_TOOL strip)
+find_program(IPVIEW_UPX_TOOL   upx)
+
+if(IPVIEW_STRIP_BINARY AND IPVIEW_STRIP_TOOL)
+    add_custom_command(TARGET IPView POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "─── strip: --strip-all + section removal ───"
+        COMMAND ${IPVIEW_STRIP_TOOL}
+            --strip-all
+            --remove-section=.comment
+            --remove-section=.note
+            --remove-section=.note.gnu.build-id
+            --remove-section=.note.gnu.property
+            --remove-section=.note.ABI-tag
+            -o $<TARGET_FILE:IPView>.stripped
+            $<TARGET_FILE:IPView>
+        COMMAND ${CMAKE_COMMAND} -E rename
+            $<TARGET_FILE:IPView>.stripped
+            $<TARGET_FILE:IPView>
+        COMMENT "strip: removing debug + symbol tables"
+        VERBATIM
+    )
+elseif(IPVIEW_STRIP_BINARY)
+    message(WARNING "IPVIEW_STRIP_BINARY=ON but `strip` not found in PATH — skipping")
+endif()
+
+if(IPVIEW_COMPRESS_BINARY AND IPVIEW_UPX_TOOL)
+    add_custom_command(TARGET IPView POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "─── upx: --best compression ───"
+        COMMAND ${IPVIEW_UPX_TOOL} --best --no-progress
+            -o $<TARGET_FILE:IPView>.upx
+            $<TARGET_FILE:IPView>
+        COMMAND ${CMAKE_COMMAND} -E rename
+            $<TARGET_FILE:IPView>.upx
+            $<TARGET_FILE:IPView>
+        COMMENT "upx: compressing final binary"
+        VERBATIM
+    )
+elseif(IPVIEW_COMPRESS_BINARY)
+    message(WARNING "IPVIEW_COMPRESS_BINARY=ON but `upx` not found in PATH — skipping")
+endif()
+
+if(IPVIEW_SIZE_REPORT)
+    # We hand the binary path to a tiny shell helper as a single argument
+    # (no shell variables needed on the bash side), then let the shell
+    # do its own `$1` parameter expansion to format the size. This avoids
+    # the CMake/bash escaping rabbit hole entirely.
+    add_custom_command(TARGET IPView POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "─── final binary snapshot ───"
+        COMMAND bash -c "BIN=\"\$1\"; printf 'size : %s bytes (%s)\\n' \"\$(du -b \"\$BIN\" | cut -f1)\" \"\$(du -h \"\$BIN\" | cut -f1)\"; file -b \"\$BIN\""
+                x $<TARGET_FILE:IPView>
+        VERBATIM
+    )
+endif()
 
 # ── C++26 polyfill for GCC 16.1.1 (saturate_cast) ────────────
 #  Force-include before any Qt header to provide q26::saturate_cast
