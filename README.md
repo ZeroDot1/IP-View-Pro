@@ -258,6 +258,7 @@ cmake --build build -j"$(nproc)"
 ```
 
 ### Build Options
+
 ```bash
 ./build.sh              # Release build (default)
 ./build.sh Debug        # Debug build with full symbols
@@ -265,6 +266,47 @@ cmake --build build -j"$(nproc)"
 # With AddressSanitizer + UndefinedBehaviorSanitizer:
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DSANITIZE=ON
 cmake --build build -j"$(nproc)"
+```
+
+### Binary Size Optimization (2.15.2+)
+
+Three independent flags shrink the final ELF without changing
+runtime behaviour. They are **off by default** to keep the daily
+dev loop fast; turn them on for release archives.
+
+| Flag        | Effect                                                  | Typical impact |
+|-------------|---------------------------------------------------------|---------------:|
+| `MINSIZE=on` | `-Os`, `--gc-sections`, `--as-needed`, `--build-id=none`, `-z,nodump`, forces LTO | −20 %          |
+| `STRIP=on`   | drops `.symtab` / `.strtab` / `.comment` / `.note` via `strip --strip-all` | −16 %          |
+| `COMPRESS=on`| wraps the binary with `upx --best` (transparent on exec)| −66 %          |
+| **all three**| end-to-end pipeline                                      | **−78 %**      |
+
+```bash
+# Full pipeline — 1.18 MiB → 256 KiB
+./build.sh Release none on off off off on on on on
+
+# Just the strip stage, no other changes
+./build.sh Release none on off off off on off on on
+
+# Combined with tests
+./build.sh Release none on on off off on on on on
+```
+
+The three stages degrade gracefully: if `strip` or `upx` is not
+installed, a CMake `WARNING` is emitted and that stage is skipped
+without breaking the build. `MINSIZE=on` combined with any
+sanitizer is rejected early — sanitizers need `-O1 -g`, which is
+mutually exclusive with size optimization.
+
+Direct CMake equivalents:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+      -DIPVIEW_MINSIZE=ON \
+      -DIPVIEW_STRIP_BINARY=ON \
+      -DIPVIEW_COMPRESS_BINARY=ON
+cmake --build build -j"$(nproc)"
+# → build/IPView ≈ 256 KiB
 ```
 
 ---

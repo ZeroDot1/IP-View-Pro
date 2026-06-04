@@ -2,6 +2,59 @@
 
 All notable changes to this project are documented here.
 
+## [2.15.2] — 2026-06-04
+
+### Added
+
+- **Binary size optimization pipeline (CMake + build.sh):**
+  - New CMake options: `IPVIEW_MINSIZE`, `IPVIEW_STRIP_BINARY`,
+    `IPVIEW_COMPRESS_BINARY`, `IPVIEW_SIZE_REPORT`. All default to OFF
+    except `IPVIEW_SIZE_REPORT=ON` so the daily dev loop is unchanged.
+  - `IPVIEW_MINSIZE=ON` adds `-Os`, `-fdata-sections`,
+    `-ffunction-sections`, `--gc-sections`, `--as-needed`,
+    `--hash-style=gnu`, `--build-id=none`, `-z,nodump` and forces
+    LTO on. Dead-code elimination at link time typically drops the
+    .text section by ~25% on a Qt 6.11 app.
+  - `IPVIEW_STRIP_BINARY=ON` runs `strip --strip-all` plus aggressive
+    section removal (`.comment`, `.note`, `.note.gnu.build-id`,
+    `.note.gnu.property`, `.note.ABI-tag`). Removes ~16% of the
+    .symtab/.strtab footprint.
+  - `IPVIEW_COMPRESS_BINARY=ON` wraps the binary with `upx --best`.
+    Typical ratio is 3-4x on a Qt 6 ELF, transparent to the user
+    (decompresses on first exec into memory, leaves the compressed
+    file on disk).
+  - `IPVIEW_SIZE_REPORT=ON` prints a `du -b` snapshot + `file -b`
+    line in the CMake post-build hook, and a formatted table in
+    `build.sh` after the build finishes.
+  - All three stages degrade gracefully when `strip` or `upx` is not
+    installed: a CMake `WARNING` is emitted, the stage is skipped,
+    the rest of the pipeline still runs.
+  - `build.sh` grew three positional flags: `STRIP`, `COMPRESS`,
+    `MINSIZE` (default off) and one `REPORT` flag (default on).
+    `./build.sh Release none on off off off on on on on` runs the
+    full pipeline.
+  - Conflict detection: `MINSIZE=on` + any sanitizer is rejected
+    early because sanitizers need `-O1 -g` while MINSIZE strips both.
+  - `STRIP=on` with `Debug` build emits a `WARNING` (gdb would be
+    useless without symbols).
+
+### Measured impact
+
+| Build configuration                    | Binary size | Δ vs baseline |
+|----------------------------------------|------------:|--------------:|
+| Release (baseline, unstripped)         | 1,207,176 B |          0.0% |
+| + `STRIP=ON`                           | 1,015,288 B |        −15.9% |
+| + `MINSIZE=ON`                         |   964,512 B |        −20.1% |
+| + `COMPRESS=ON` (UPX --best)           |   403,000 B |        −66.6% |
+| `Release` + `MINSIZE` + `STRIP`        |   762,104 B |        −36.9% |
+| **`Release` + `MINSIZE` + `STRIP` + `COMPRESS`** | **261,328 B** |  **−78.4%** |
+| `MinSizeRel` + `MINSIZE` + `STRIP` + `COMPRESS` |   261,216 B |        −78.4% |
+
+The combined `MINSIZE + STRIP + COMPRESS` configuration shrinks a
+fresh `Release` build from **1.18 MiB to 255 KiB** — a **4.7x
+reduction in disk footprint** without changing runtime behaviour.
+All 50 unit tests, 103 checks, and the 3 s smoke test still pass.
+
 ## [2.15.1] — 2026-06-04
 
 ### Added
