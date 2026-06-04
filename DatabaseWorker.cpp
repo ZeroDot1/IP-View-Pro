@@ -51,6 +51,11 @@ void DatabaseWorker::run()
 {
     IPView::Logger::info("DatabaseWorker: Thread started");
 
+    // Run loop now checks both the legacy mRunning flag (flipped
+    // by shutdown()) and the std::stop_token (set externally via
+    // setStopToken()). The QWaitCondition timeout keeps the
+    // loop responsive when the queue is empty so the stop
+    // request is picked up within DB_WORKER_TICK milliseconds.
     while (mRunning) {
         WriteJob job;
 
@@ -68,6 +73,15 @@ void DatabaseWorker::run()
 
         processJob(job);
         mPending.fetch_sub(1);
+
+        // Re-check cooperative shutdown between jobs. We do not
+        // check inside processJob() because a single SQLite
+        // write is not interruptible mid-transaction; checking
+        // between jobs is the right granularity.
+        if (mStopToken.stop_requested()) {
+            IPView::Logger::info("DatabaseWorker: stop_token requested — exiting");
+            mRunning = false;
+        }
     }
 
     IPView::Logger::info("DatabaseWorker: Thread stopped");

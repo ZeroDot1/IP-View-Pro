@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.9.4 — DatabaseWorker.h
+//  IPView Pro v2.15.0 — DatabaseWorker.h
 //  C++26: std::jthread, std::stop_token, std::queue
 //  Async DB worker: write operations are queued
 //  and processed sequentially in a background thread (Item 14).
@@ -21,6 +21,7 @@
 #include <functional>
 #include <atomic>
 #include <optional>
+#include <stop_token>
 
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Storage {
@@ -67,6 +68,15 @@ public:
     /// Clear the queue and stop the worker.
     void shutdown() noexcept;
 
+    /// Wire the worker to a std::stop_source so the run loop
+    /// can short-circuit when a higher-level service requests
+    /// cooperative shutdown. Calling shutdown() and requesting
+    /// the stop token are equivalent for the worker loop —
+    /// both flip mRunning to false — but the stop-token path
+    /// composes with the std::jthread / Services container
+    /// shutdown model introduced in Phase 3-A.
+    void setStopToken(std::stop_token token) noexcept { mStopToken = token; }
+
     /// Anzahl wartender Jobs.
     [[nodiscard]] int pendingJobs() const noexcept { return mPending.load(); }
 
@@ -86,6 +96,7 @@ private:
     std::queue<WriteJob>   mQueue;
     std::atomic<bool>      mRunning{true};
     std::atomic<int>       mPending{0};
+    std::stop_token        mStopToken{};   // cooperative shutdown signal
 };
 
 } // namespace IPView::Storage
