@@ -1,7 +1,12 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  IPView Pro v2.0 — NetworkManager.cpp
-//  C++26: structured bindings, std::array, [[nodiscard]]
-//  Asynchronous API failover with timeout and sparse-data detection
+//  IPView Pro v2.15.4 — NetworkManager.cpp
+//  C++26: structured bindings, std::array, [[nodiscard]], consteval
+//  Asynchronous API failover with timeout and sparse-data detection.
+//  v2.15.4: All endpoints now use https:// — the v2.0 list had three
+//  http:// entries (ipwho.is, ip-api.com twice) that were silently
+//  rejected by the HTTPS-only enforcement in doRequest(), making the
+//  whole lookup fail. The failover ran out of options and the user
+//  always saw "All IPv4 APIs failed." Fixed in this revision.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #include "NetworkManager.h"
@@ -20,13 +25,18 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  API Configuration — constexpr-like via std::array
 //  C++26: structured bindings, const-correctness
+//
+//  Every URL in these tables MUST be https://. The runtime check in
+//  doRequest() refuses any non-HTTPS request, so a single http://
+//  entry silently kills the failover chain. The doRequest() check
+//  is defence-in-depth: the real guarantee comes from the table below.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ── IPv4 APIs (prioritized by detail depth) ─────────────────────────────────
 static constexpr auto IPv4_APIS = std::to_array<std::pair<std::string_view, std::string_view>>({
-    {"IPWhois.is",          "http://ipwho.is/"},
+    {"IPWhois.is",          "https://ipwho.is/"},
     {"FreeIPAPI",           "https://freeipapi.com/api/json/"},
-    {"IP-API (Detailed)",   "http://ip-api.com/json/?fields=66846719"},
+    {"IP-API (Detailed)",   "https://ip-api.com/json/?fields=66846719"},
     {"IPAPI.co",            "https://ipapi.co/json/"},
     {"IPInfo",              "https://ipinfo.io/json"},
     {"IPWhois.app",         "https://ipwhois.app/json/"},
@@ -39,10 +49,10 @@ static constexpr auto IPv4_APIS = std::to_array<std::pair<std::string_view, std:
 
 // ── IPv6 APIs ────────────────────────────────────────────────────────────────
 static constexpr auto IPv6_APIS = std::to_array<std::pair<std::string_view, std::string_view>>({
-    {"IPWhois.is IPv6",     "http://ipwho.is/"},
+    {"IPWhois.is IPv6",     "https://ipwho.is/"},
     {"IPify IPv6",          "https://api6.ipify.org?format=json"},
     {"IPify64",             "https://api64.ipify.org?format=json"},
-    {"IP-API IPv6",         "http://ip-api.com/json/?fields=66846719"},
+    {"IP-API IPv6",         "https://ip-api.com/json/?fields=66846719"},
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
