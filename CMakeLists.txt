@@ -185,3 +185,11 @@ target_compile_options(IPView PRIVATE
 
 # ── Install rule (Linux: /usr/local/bin) ──────────────────────
 install(TARGETS IPView RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# ── Tests (Phase 5-A) ──────────────────────────────────────────
+#  Unit tests are built and registered with ctest when
+#  BUILD_TESTING is ON (the default for `cmake -S . -B build`).
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

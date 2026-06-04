@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  IPView Pro v2.15.0 — Contracts.hpp
+//
 //  C++26 contracts (P2900) compatibility shim.
 //
 //  GCC 16.1.1 does not yet implement P2900 (C++26 contracts). The
@@ -7,8 +8,12 @@
 //  header detects whether the compiler supports them and provides
 //  IPVIEW_PRE / IPVIEW_POST / IPVIEW_ASSERT macros that:
 //    * resolve to real contracts when the feature is available, and
-//    * fall back to runtime checks that throw std::invalid_argument
-//      (for pre/post) or std::logic_error (for assert) otherwise.
+//    * fall back to a conditional throw of std::logic_error otherwise.
+//
+//  The fallback form is a single expression (no do-while) so it can
+//  be embedded inside other expression contexts, e.g. CHECK macros
+//  or the condition of an if-statement, without surprising the
+//  preprocessor.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #ifndef IPVIEW_CONTRACTS_HPP
@@ -17,6 +22,7 @@
 #include <stdexcept>
 #include <source_location>
 #include <string>
+#include <utility>
 
 #if defined(__cpp_contracts) && __cpp_contracts >= 202600L
 #  define IPVIEW_HAS_CONTRACTS 1
@@ -34,31 +40,27 @@ inline void contractViolation(const char* kind,
     std::string const message = std::string{loc.function_name()}
                               + " @ " + loc.file_name() + ":" + std::to_string(loc.line())
                               + " — " + kind + "(" + expr + ") failed";
-    throw std::logic_error(message);  // pre/post + assert all use the logic family
-}
-
-template <typename Expr>
-constexpr bool check(Expr&& e) noexcept(noexcept(static_cast<bool>(std::forward<Expr>(e))))
-{
-    return static_cast<bool>(std::forward<Expr>(e));
+    throw std::logic_error(message);
 }
 
 } // namespace IPView::Contracts
 
 #if IPVIEW_HAS_CONTRACTS
-#  define IPVIEW_PRE(cond)   pre(cond)
-#  define IPVIEW_POST(cond)  post(cond)
+#  define IPVIEW_PRE(cond)    pre(cond)
+#  define IPVIEW_POST(cond)   post(cond)
 #  define IPVIEW_ASSERT(cond) assert(cond)
 #else
+// Expression form: (cond) ? void(0) : throw-via-helper.
+// Both branches are valid in expression context.
 #  define IPVIEW_PRE(cond) \
-       do { if (!::IPView::Contracts::check(cond)) \
-            ::IPView::Contracts::contractViolation("pre",   #cond); } while (0)
+       ((cond) ? void(0) \
+               : ::IPView::Contracts::contractViolation("pre", #cond, std::source_location::current()))
 #  define IPVIEW_POST(cond) \
-       do { if (!::IPView::Contracts::check(cond)) \
-            ::IPView::Contracts::contractViolation("post",  #cond); } while (0)
+       ((cond) ? void(0) \
+               : ::IPView::Contracts::contractViolation("post", #cond, std::source_location::current()))
 #  define IPVIEW_ASSERT(cond) \
-       do { if (!::IPView::Contracts::check(cond)) \
-            ::IPView::Contracts::contractViolation("assert", #cond); } while (0)
+       ((cond) ? void(0) \
+               : ::IPView::Contracts::contractViolation("assert", #cond, std::source_location::current()))
 #endif
 
 #endif // IPVIEW_CONTRACTS_HPP
