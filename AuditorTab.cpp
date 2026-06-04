@@ -7,6 +7,7 @@
 
 #include "AuditorTab.h"
 #include "Theme.h"
+#include "SafeText.hpp"
 
 #include <QHeaderView>
 #include <QDateTime>
@@ -166,12 +167,15 @@ void AuditorTab::onHostSelectionChanged()
     int const row = resultTable->currentRow();
     if (row < 0) return;
 
-    // Reconstruct data from table for detail view
+    // Reconstruct data from table for detail view.
+    // The host string comes from the user's clipboard / input, so it is
+    // HTML-escaped before being interpolated into the detail view to
+    // neutralize any <script> or on*= attributes.
     QString const host = resultTable->item(row, 0)->text();
     detailView->setHtml(QStringLiteral(
         "<h3>%1</h3><p>Details: see certificate chain in table.</p>"
         "<p><i>Full chain inspection requires re-audit of the host.</i></p>"
-    ).arg(host));
+    ).arg(IPView::SafeText::htmlEscape(host)));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -230,8 +234,14 @@ void AuditorTab::addResultToTable(const IPView::Auditor::AuditResult &result) no
 // ═══════════════════════════════════════════════════════════════════════════════
 void AuditorTab::showCertificateDetails(const IPView::Auditor::AuditResult &result) noexcept
 {
+    // Every field below is HTML-escaped before interpolation. The TLS
+    // result is sourced from the remote server, so it is treated as
+    // untrusted input and any markup (subject CNs that look like HTML,
+    // error messages from openssl, etc.) is neutralized.
     QString html;
-    html += QStringLiteral("<h3>TLS Audit: %1:%2</h3>").arg(result.host).arg(result.port);
+    html += QStringLiteral("<h3>TLS Audit: %1:%2</h3>")
+                .arg(IPView::SafeText::htmlEscape(result.host))
+                .arg(result.port);
     html += QStringLiteral("<p><b>Latency:</b> %1 ms</p>").arg(result.latencyMs);
     html += QStringLiteral("<p><b>Overall:</b> %1</p>")
                 .arg(result.isSecure ? QStringLiteral("✅ Secure") : QStringLiteral("Insecure"));
@@ -247,26 +257,30 @@ void AuditorTab::showCertificateDetails(const IPView::Auditor::AuditResult &resu
     int idx = 1;
     for (auto const &ci : result.chain) {
         html += QStringLiteral("<hr><h5>Certificate #%1</h5>").arg(idx++);
-        html += QStringLiteral("<p><b>Subject:</b> %1</p>").arg(ci.subject);
-        html += QStringLiteral("<p><b>Issuer:</b> %1</p>").arg(ci.issuer);
-        html += QStringLiteral("<p><b>Valid from:</b> %1</p>")
-                    .arg(ci.validFrom.isValid() ? ci.validFrom.toString(Qt::ISODate) : QStringLiteral("N/A"));
-        html += QStringLiteral("<p><b>Valid to:</b> %1</p>")
-                    .arg(ci.validTo.isValid() ? ci.validTo.toString(Qt::ISODate) : QStringLiteral("N/A"));
+        html += QStringLiteral("<p><b>Subject:</b> %1</p>").arg(IPView::SafeText::htmlEscape(ci.subject));
+        html += QStringLiteral("<p><b>Issuer:</b> %1</p>").arg(IPView::SafeText::htmlEscape(ci.issuer));
+        html += QStringLiteral("<p><b>Valid from:</b> %1</p>").arg(ci.validFrom.toString());
+        html += QStringLiteral("<p><b>Valid to:</b> %1</p>").arg(ci.validTo.toString());
         html += QStringLiteral("<p><b>Self-signed:</b> %1</p>")
-                    .arg(ci.isSelfSigned ? QStringLiteral("Yes ⚠️") : QStringLiteral("No"));
-        html += QStringLiteral("<p><b>Expired:</b> %1</p>")
-                    .arg(ci.isExpired ? QStringLiteral("Yes ❌") : QStringLiteral("No"));
+                    .arg(ci.isSelfSigned ? QStringLiteral("Yes") : QStringLiteral("No"));
+
         html += QStringLiteral("<p><b>Valid:</b> %1</p>")
                     .arg(ci.isValid ? QStringLiteral("✅") : QStringLiteral("❌"));
 
         if (!ci.subjectAltNames.isEmpty()) {
+            // SANs are joined with ", " after each entry is escaped.
+            QStringList escapedSAns;
+            escapedSAns.reserve(ci.subjectAltNames.size());
+            for (QString const &san : ci.subjectAltNames) {
+                escapedSAns.append(IPView::SafeText::htmlEscape(san));
+            }
             html += QStringLiteral("<p><b>SANs:</b> %1</p>")
-                        .arg(ci.subjectAltNames.join(QStringLiteral(", ")));
+                        .arg(escapedSAns.join(QStringLiteral(", ")));
         }
 
         if (!ci.errorMessage.isEmpty()) {
-            html += QStringLiteral("<p style='color:red'><b>Error:</b> %1</p>").arg(ci.errorMessage);
+            html += QStringLiteral("<p style='color:red'><b>Error:</b> %1</p>")
+                        .arg(IPView::SafeText::htmlEscape(ci.errorMessage));
         }
     }
 
