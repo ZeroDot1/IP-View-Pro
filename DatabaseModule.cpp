@@ -92,7 +92,18 @@ void DatabaseModule::shutdown() noexcept
 
     if (!sInitialized) return;
 
+    // 1. Stop background worker thread first
+    stopWorker();
+
+    // 2. Close connection
     sDb.close();
+
+    // 3. Reset the static QSqlDatabase connection object to release references
+    sDb = QSqlDatabase();
+
+    // 4. Remove database connection from Qt's internal registry
+    QSqlDatabase::removeDatabase(QStringLiteral("ipview_main"));
+
     sInitialized = false;
     IPView::Logger::info("DatabaseModule: Shutdown complete");
 }

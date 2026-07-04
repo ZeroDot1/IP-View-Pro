@@ -7,6 +7,7 @@
 
 #include "SpeedtestTab.h"
 #include "Theme.h"
+#include "SafeProcess.hpp"
 #include "Timeouts.hpp"
 
 #include <QApplication>
@@ -370,8 +371,21 @@ void SpeedtestTab::startProcess(const QStringList &args) noexcept
         process->kill();
         process->waitForFinished(static_cast<int>(IPView::Timeouts::PROCESS_QUIT.count()));
     }
+
+    QString const program = findSpeedtest();
+    if (program.isEmpty()) return;
+
+    auto procResult = IPView::SafeProcess::start(program, args);
+    if (!procResult.has_value()) {
+        logArea->append(QString::fromStdString(procResult.error().message));
+        setControlsEnabled(true);
+        return;
+    }
+
     process->setProcessChannelMode(QProcess::MergedChannels);
-    process->start(findSpeedtest(), args);
+    process->setProgram(procResult.value()->program());
+    process->setArguments(procResult.value()->arguments());
+    process->start();
 }
 
 void SpeedtestTab::onStartClicked()
@@ -495,11 +509,21 @@ void SpeedtestTab::onMultiTestClicked()
         if (secureCheck->isChecked())     args << QStringLiteral("--secure");
         if (singleConnCheck->isChecked()) args << QStringLiteral("--single");
 
+        // Use SafeProcess to validate before launching
+        auto procResult = IPView::SafeProcess::start(program, args);
+        if (!procResult.has_value()) {
+            logArea->append(QStringLiteral("  [%1] %2").arg(i + 1)
+                .arg(QString::fromStdString(procResult.error().message)));
+            continue;
+        }
+
         logArea->append(QStringLiteral("  [%1] Server #%2 (%3, %4)")
                             .arg(i + 1).arg(srv.id).arg(srv.sponsor, srv.location));
 
         auto *p = new QProcess(this);
         p->setProcessChannelMode(QProcess::MergedChannels);
+        p->setProgram(procResult.value()->program());
+        p->setArguments(procResult.value()->arguments());
 
         connect(p, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
                 this, [this, i](int exitCode, QProcess::ExitStatus) {
@@ -507,7 +531,7 @@ void SpeedtestTab::onMultiTestClicked()
         });
 
         mMultiProcesses.append(p);
-        p->start(program, args);
+        p->start();
     }
 }
 

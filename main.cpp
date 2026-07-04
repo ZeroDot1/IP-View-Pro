@@ -161,5 +161,9 @@ int main(int argc, char* argv[])
     window.show();
 
     int const exitCode = app.exec();
+
+    // Gracefully shut down database connection and stop worker thread
+    IPView::Storage::DatabaseModule::shutdown();
+
     return exitCode;
 }

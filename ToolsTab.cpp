@@ -12,6 +12,7 @@
 #include "ToolsTab.h"
 #include "Theme.h"
 #include "SecurityUtil.h"
+#include "SafeProcess.hpp"
 #include "Logger.h"
 #include "Timeouts.hpp"
 #include "Iperf3Window.h"
@@ -258,11 +259,24 @@ void ToolsTab::onPingClicked()
     pingButton->setEnabled(false);
     stopPingButton->setEnabled(true);
     outputArea->append(QStringLiteral("\n── Pinging %1 ──").arg(target));
-    pingProcess->start(pingPath, {
+
+    // Use SafeProcess to validate and configure the process
+    QStringList const pingArgs = {
         QStringLiteral("-c"), QStringLiteral("4"),
         QStringLiteral("-W"), QStringLiteral("2"),
         target
-    });
+    };
+    auto procResult = IPView::SafeProcess::start(pingPath, pingArgs);
+    if (!procResult.has_value()) {
+        outputArea->append(QString::fromStdString(procResult.error().message));
+        pingButton->setEnabled(true);
+        stopPingButton->setEnabled(false);
+        return;
+    }
+
+    pingProcess->setProgram(procResult.value()->program());
+    pingProcess->setArguments(procResult.value()->arguments());
+    pingProcess->start();
 }
 
 void ToolsTab::onStopPingClicked()

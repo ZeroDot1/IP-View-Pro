@@ -7,6 +7,7 @@
 #include "TracerouteTab.h"
 #include "Theme.h"
 #include "SecurityUtil.h"
+#include "SafeProcess.hpp"
 #include "Timeouts.hpp"
 #include <QDateTime>
 #include <QStandardPaths>
@@ -120,7 +121,16 @@ void TracerouteTab::onTraceClicked()
     args << QStringLiteral("-n") << target;   // -n: no DNS resolution
 #endif
 
-    process->start(program, args);
+    // Use SafeProcess to validate and configure the process
+    auto procResult = IPView::SafeProcess::start(program, args);
+    if (!procResult.has_value()) {
+        outputArea->append(QString::fromStdString(procResult.error().message));
+        return;
+    }
+
+    process->setProgram(procResult.value()->program());
+    process->setArguments(procResult.value()->arguments());
+    process->start();
     traceButton->setEnabled(false);
     stopButton->setEnabled(true);
 }

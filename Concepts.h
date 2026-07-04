@@ -30,9 +30,9 @@ concept NetworkTarget = std::convertible_to<T, std::string_view>
                         };
 
 // ── NumericPort ──────────────────────────────────────────────────────────
-//  Integer types small enough to hold a 0–65535 port number.
+//  Integer types that can hold a 0–65535 port number.
 template <typename T>
-concept NumericPort = std::integral<T> && (sizeof(T) <= 2);
+concept NumericPort = std::integral<T>;
 
 // ── BufferData ───────────────────────────────────────────────────────────
 //  Any container that exposes contiguous raw bytes (QByteArray, std::string,
@@ -61,15 +61,19 @@ concept TimePoint = std::is_same_v<T, std::chrono::system_clock::time_point>
                  || std::is_same_v<T, std::chrono::steady_clock::time_point>
                  || std::is_same_v<T, std::chrono::high_resolution_clock::time_point>;
 
+namespace detail {
+    template <typename T>
+    struct is_duration : std::false_type {};
+
+    template <typename Rep, typename Period>
+    struct is_duration<std::chrono::duration<Rep, Period>> : std::true_type {};
+}
+
 // ── Duration ─────────────────────────────────────────────────────────────
 //  Any std::chrono duration — used to gate functions that take
 //  timeout parameters generically.
 template <typename T>
-concept Duration = requires {
-    typename T::rep;
-    typename T::period;
-    requires std::chrono::__is_duration_v<T>;
-};
+concept Duration = detail::is_duration<T>::value;
 
 // ── Result ───────────────────────────────────────────────────────────────
 //  A type that follows the std::expected<T, E> interface, so the

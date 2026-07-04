@@ -51,6 +51,8 @@ void DatabaseWorker::run()
 {
     IPView::Logger::info("DatabaseWorker: Thread started");
 
+    bool wasActive = false;
+
     // Run loop now checks both the legacy mRunning flag (flipped
     // by shutdown()) and the std::stop_token (set externally via
     // setStopToken()). The QWaitCondition timeout keeps the
@@ -62,13 +64,17 @@ void DatabaseWorker::run()
         {
             QMutexLocker lock(&mMutex);
             if (mQueue.empty()) {
-                emit allJobsCompleted();
+                if (wasActive) {
+                    emit allJobsCompleted();
+                    wasActive = false;
+                }
                 mCond.wait(&mMutex,
                            static_cast<unsigned long>(IPView::Timeouts::DB_WORKER_TICK.count()));
                 if (mQueue.empty()) continue;
             }
             job = mQueue.front();
             mQueue.pop();
+            wasActive = true;
         }
 
         processJob(job);

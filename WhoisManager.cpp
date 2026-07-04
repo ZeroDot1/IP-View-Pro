@@ -40,9 +40,17 @@ void WhoisManager::lookup(const QString &ip, const QString &apiName) noexcept
     if (apiName == QStringLiteral("RDAP (Standard)")) {
         url = QUrl(QStringLiteral("https://rdap.db.ripe.net/ip/%1").arg(ip));
     } else if (apiName == QStringLiteral("IP-API (Detailed)")) {
-        url = QUrl(QStringLiteral("http://ip-api.com/json/%1?fields=66846719").arg(ip));
+        url = QUrl(QStringLiteral("https://ip-api.com/json/%1?fields=66846719").arg(ip));
     } else {
-        url = QUrl(QStringLiteral("http://ipwho.is/%1").arg(ip));
+        url = QUrl(QStringLiteral("https://ipwho.is/%1").arg(ip));
+    }
+
+    // HTTPS Scheme Enforcement
+    if (url.scheme() != QLatin1String("https")) {
+        IPView::Logger::warn("WhoisManager: refusing non-HTTPS URL: {}",
+                             url.toString().toStdString());
+        emit errorOccurred(tr("Refusing non-HTTPS request"));
+        return;
     }
 
     QNetworkRequest request(url);

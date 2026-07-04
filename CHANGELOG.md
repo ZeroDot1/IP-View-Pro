@@ -2,6 +2,42 @@
 
 All notable changes to this project are documented here.
 
+## [2.15.6] — 2026-07-04
+
+### Fixed
+
+- **Memory leak in unit tests (ASan).** `writeTempFile()` allocated a
+  `QTemporaryFile` on the heap with `new` but never deleted it, causing
+  AddressSanitizer failures. Replaced with a stack-allocated `TempFile`
+  helper struct that automatically destroys the `QTemporaryFile` when
+  it goes out of scope at the end of each test case.
+- **Event-loop signal spam in DatabaseWorker.** `allJobsCompleted()` was
+  emitted on every tick of the thread wait-condition timeout (every second)
+  when the queue was empty, flooding the main thread's Qt event loop.
+  Added a `wasActive` boolean flag so the signal is emitted only once when
+  the worker transitions from busy (processed at least one job) to idle.
+- **Database lifecycle crash on shutdown.** `DatabaseModule::shutdown()`
+  closed the SQLite connection but did not stop or delete the background
+  `DatabaseWorker` thread, causing segmentation faults during application
+  exit. `shutdown()` now stops the worker, resets the connection object,
+  and removes it from Qt's internal registry. `main.cpp` now calls
+  `DatabaseModule::shutdown()` before `return exitCode`.
+- **Security: unencrypted HTTP calls in WhoisManager.** Two WHOIS API
+  endpoints (`ip-api.com` and `ipwho.is`) were using `http://` URLs,
+  exposing lookup targets to MITM attacks. All endpoints now use `https://`,
+  and an HTTPS scheme validation check rejects any non-HTTPS URL before
+  the request is made.
+- **Non-standard C++ concepts in Concepts.h.** The `Duration` concept used
+  the private compiler-specific internal macro `std::chrono::__is_duration_v`,
+  breaking portability to MSVC or Apple Clang. Replaced with a portable
+  template specialization trait `detail::is_duration`. The `NumericPort`
+  concept enforced `sizeof(T) <= 2`, rejecting standard `int` types used
+  by socket and Qt network libraries; relaxed to `std::integral<T>` only.
+- **SafeProcess wrapper integration.** `TracerouteTab`, `ToolsTab` (ping),
+  and `SpeedtestTab` now route their `QProcess` launches through
+  `IPView::SafeProcess::start()` for project-wide command path validation,
+  argument injection prevention, and consistent timeout configuration.
+
 ## [2.15.5] — 2026-06-04
 
 ### Fixed
