@@ -7,6 +7,7 @@
 #include "WhoisManager.h"
 #include "SecurityUtil.h"
 #include "Timeouts.hpp"
+#include "Logger.h"
 #include <QUrl>
 #include <QNetworkRequest>
 #include <QJsonArray>

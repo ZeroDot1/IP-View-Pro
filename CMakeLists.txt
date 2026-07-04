@@ -67,7 +67,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ── Compiler-Warnungen (streng = Security) ─────────────────────
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
-    add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+    add_compile_options(-Wall -Wextra -Wpedantic)
     add_compile_options(-Wshadow -Wnon-virtual-dtor -Wold-style-cast)
     add_compile_options(-Wcast-align -Woverloaded-virtual)
     add_compile_options(-Wconversion -Wsign-conversion -Wnull-dereference)

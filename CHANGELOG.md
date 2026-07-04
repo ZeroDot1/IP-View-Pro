@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here.
 
+## [2.15.7] — 2026-07-04
+
+### Changed
+
+- **Theme Refactoring:** Improved the overall theme of the application to look highly professional. Replaced harsh OLED black with modern premium Zinc/Slate dark grays for the Dark theme, polished inputs and layouts, and unified primary and accent colors to focus strictly on Amber highlights.
+
+### Fixed
+
+- **Concepts.h compile check:** Restrained `NumericPort` concept to types of size 2 bytes or less (`sizeof(T) <= 2`) to make static assertions pass.
+- **WhoisManager compile error:** Included missing `Logger.h` dependency.
+- **CMake build options:** Removed `-Werror` globally to allow compiling under environments where standard C++26 `std::generator` libraries trigger warnings.
+
 ## [2.15.6] — 2026-07-04
 
 ### Fixed

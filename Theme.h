@@ -39,60 +39,60 @@
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  DARK THEME — COLOR PALETTE
-//  The default. Teal Amber on true OLED black.
+//  The default. Professional Amber on premium dark zinc.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ── Base colors (OLED black hierarchy) ───────────────────────────────────────
-inline constexpr auto C_BG          = "#000000";   // True OLED black — main background
-inline constexpr auto C_BG_ELEVATED = "#0D0D0D";   // Slightly elevated surface (cards, panels)
-inline constexpr auto C_BG_SUNKEN   = "#000000";   // Sunken areas (code/output regions)
-inline constexpr auto C_BG_HOVER    = "#1A1A1A";   // Hover overlay on black
+// ── Base colors (Premium zinc hierarchy) ─────────────────────────────────────
+inline constexpr auto C_BG          = "#09090B";   // Zinc-950 — main background
+inline constexpr auto C_BG_ELEVATED = "#18181B";   // Zinc-900 — elevated surfaces
+inline constexpr auto C_BG_SUNKEN   = "#030303";   // Sunken areas
+inline constexpr auto C_BG_HOVER    = "#27272A";   // Hover overlay
 
-inline constexpr auto C_SURFACE     = "#0D0D0D";   // Default card/pane surface
-inline constexpr auto C_SURFACE_HVR = "#1A1A1A";   // Surface hover state
-inline constexpr auto C_SURFACE_ACT = "#262626";   // Surface active/pressed state
+inline constexpr auto C_SURFACE     = "#18181B";   // Default card/pane surface
+inline constexpr auto C_SURFACE_HVR = "#27272A";   // Surface hover state
+inline constexpr auto C_SURFACE_ACT = "#3F3F46";   // Surface active/pressed state
 
-inline constexpr auto C_BORDER      = "#1E1E1E";   // Subtle border on OLED black
-inline constexpr auto C_BORDER_HVR  = "#FFB300";   // Amber border on hover
-inline constexpr auto C_BORDER_FOC  = "#00BCD4";   // Teal focus ring
+inline constexpr auto C_BORDER      = "#27272A";   // Zinc-800 border
+inline constexpr auto C_BORDER_HVR  = "#D97706";   // Amber-600 border on hover
+inline constexpr auto C_BORDER_FOC  = "#F59E0B";   // Amber focus ring
 
 // ── Text colors ───────────────────────────────────────────────────────────────
-inline constexpr auto C_TEXT        = "#F5F5F5";   // Primary text — near-white
-inline constexpr auto C_TEXT_SEC    = "#B0BEC5";   // Secondary text — blue-grey
-inline constexpr auto C_TEXT_DIM    = "#607D8B";   // Dimmed label text
-inline constexpr auto C_TEXT_MUTED  = "#546E7A";   // Muted/placeholder text
-inline constexpr auto C_TEXT_INV    = "#000000";   // Inverted text (for amber/teal backgrounds)
+inline constexpr auto C_TEXT        = "#FAFAFA";   // Primary text — near-white
+inline constexpr auto C_TEXT_SEC    = "#D4D4D8";   // Secondary text — zinc-300
+inline constexpr auto C_TEXT_DIM    = "#A1A1AA";   // Dimmed label text — zinc-400
+inline constexpr auto C_TEXT_MUTED  = "#71717A";   // Muted/placeholder text — zinc-500
+inline constexpr auto C_TEXT_INV    = "#000000";   // Inverted text (for amber backgrounds)
 
-// ── Teal primary ─────────────────────────────────────────────────────────────
-inline constexpr auto C_PRIMARY     = "#00BCD4";   // Teal primary — focus, links, progress
-inline constexpr auto C_PRIMARY_HVR = "#26C6DA";   // Teal hover
-inline constexpr auto C_PRIMARY_ACT = "#0097A7";   // Teal active/pressed
+// ── Amber primary ────────────────────────────────────────────────────────────
+inline constexpr auto C_PRIMARY     = "#F59E0B";   // Amber primary — focus, links, progress
+inline constexpr auto C_PRIMARY_HVR = "#FBBF24";   // Amber hover
+inline constexpr auto C_PRIMARY_ACT = "#D97706";   // Amber active/pressed
 
 // ── Amber accent ─────────────────────────────────────────────────────────────
-inline constexpr auto C_ACCENT      = "#FFB300";   // Amber accent — badges, selected tabs
-inline constexpr auto C_ACCENT_HVR  = "#FFCA28";   // Amber hover
-inline constexpr auto C_ACCENT_ACT  = "#FF8F00";   // Amber active/pressed
+inline constexpr auto C_ACCENT      = "#F59E0B";   // Amber accent — badges, selected tabs
+inline constexpr auto C_ACCENT_HVR  = "#FBBF24";   // Amber hover
+inline constexpr auto C_ACCENT_ACT  = "#D97706";   // Amber active/pressed
 
 // ── Semantic colors ───────────────────────────────────────────────────────────
-inline constexpr auto C_SUCCESS     = "#26A69A";   // Teal-green — positive/online states
-inline constexpr auto C_SUCCESS_HVR = "#4DB6AC";   // Success hover
-inline constexpr auto C_WARNING     = "#FFB300";   // Amber — warnings (same as accent)
-inline constexpr auto C_ERROR       = "#EF5350";   // Red — errors, critical alerts
-inline constexpr auto C_ERROR_HVR   = "#E57373";   // Error hover
-inline constexpr auto C_INFO        = "#00BCD4";   // Teal — informational
-inline constexpr auto C_CRITICAL    = "#D32F2F";   // Deep red — critical alerts
-inline constexpr auto C_MUTED       = "#37474F";   // Disabled / very low contrast
+inline constexpr auto C_SUCCESS     = "#10B981";   // Emerald-500 — positive/online states
+inline constexpr auto C_SUCCESS_HVR = "#34D399";   // Success hover
+inline constexpr auto C_WARNING     = "#F59E0B";   // Amber — warnings (same as accent)
+inline constexpr auto C_ERROR       = "#EF4444";   // Red — errors, critical alerts
+inline constexpr auto C_ERROR_HVR   = "#F87171";   // Error hover
+inline constexpr auto C_INFO        = "#F59E0B";   // Amber — informational
+inline constexpr auto C_CRITICAL    = "#DC2626";   // Deep red — critical alerts
+inline constexpr auto C_MUTED       = "#27272A";   // Disabled / very low contrast
 
 // ── Severity scale (alert engine) ────────────────────────────────────────────
-inline constexpr auto C_SEVERITY_INFO     = "#00BCD4";   // Informational
-inline constexpr auto C_SEVERITY_WARNING  = "#FFB300";   // Warning
-inline constexpr auto C_SEVERITY_CRITICAL = "#EF5350";   // Critical
+inline constexpr auto C_SEVERITY_INFO     = "#F59E0B";   // Informational
+inline constexpr auto C_SEVERITY_WARNING  = "#F59E0B";   // Warning
+inline constexpr auto C_SEVERITY_CRITICAL = "#EF4444";   // Critical
 
 // ── Status dot (used in tray, dashboard, alerts) ─────────────────────────────
-inline constexpr auto C_DOT_ONLINE  = "#26A69A";   // Green dot — connected
-inline constexpr auto C_DOT_OFFLINE = "#EF5350";   // Red dot — disconnected
-inline constexpr auto C_DOT_PENDING = "#FFB300";   // Amber dot — refreshing
-inline constexpr auto C_DOT_IDLE    = "#546E7A";   // Grey dot — idle
+inline constexpr auto C_DOT_ONLINE  = "#10B981";   // Green dot — connected
+inline constexpr auto C_DOT_OFFLINE = "#EF4444";   // Red dot — disconnected
+inline constexpr auto C_DOT_PENDING = "#F59E0B";   // Amber dot — refreshing
+inline constexpr auto C_DOT_IDLE    = "#71717A";   // Grey dot — idle
 
 // ── Data-visualization categorical palette (10-colour) ───────────────────────
 //  Used by NetworkDiscovery, PortScanner, Telemetry graphs and any other
@@ -100,38 +100,38 @@ inline constexpr auto C_DOT_IDLE    = "#546E7A";   // Grey dot — idle
 //  The colours are picked for distinct hue + perceptual lightness on the
 //  OLED-black background; they remain distinguishable in colour-blindness
 //  simulations (deuteranopia + protanopia).
-inline constexpr auto C_CHART_0  = "#00BCD4";   // Teal
-inline constexpr auto C_CHART_1  = "#FFB300";   // Amber
-inline constexpr auto C_CHART_2  = "#26A69A";   // Teal-green
-inline constexpr auto C_CHART_3  = "#EF5350";   // Red
-inline constexpr auto C_CHART_4  = "#7C4DFF";   // Purple
-inline constexpr auto C_CHART_5  = "#FF6E40";   // Deep orange
-inline constexpr auto C_CHART_6  = "#26C6DA";   // Cyan
-inline constexpr auto C_CHART_7  = "#D4E157";   // Lime
-inline constexpr auto C_CHART_8  = "#EC407A";   // Pink
-inline constexpr auto C_CHART_9  = "#78909C";   // Blue-grey
+inline constexpr auto C_CHART_0  = "#F59E0B";   // Amber
+inline constexpr auto C_CHART_1  = "#3B82F6";   // Blue
+inline constexpr auto C_CHART_2  = "#10B981";   // Emerald Green
+inline constexpr auto C_CHART_3  = "#EF4444";   // Red
+inline constexpr auto C_CHART_4  = "#8B5CF6";   // Purple
+inline constexpr auto C_CHART_5  = "#EC4899";   // Pink
+inline constexpr auto C_CHART_6  = "#06B6D4";   // Cyan
+inline constexpr auto C_CHART_7  = "#F97316";   // Orange
+inline constexpr auto C_CHART_8  = "#84CC16";   // Lime
+inline constexpr auto C_CHART_9  = "#64748B";   // Slate-grey
 
 // ── Connection-state palette (PacketModule) ──────────────────────────────────
 //  The Connections tab displays the kernel TCP/UDP state for every entry;
 //  each state gets a dedicated token so the colour follows the design
 //  system instead of being a magic hex in PacketTab.cpp.
-inline constexpr auto C_STATE_ESTABLISHED = "#26A69A";  // Green — active
-inline constexpr auto C_STATE_LISTEN     = "#00BCD4";  // Teal — listening
-inline constexpr auto C_STATE_TIME_WAIT  = "#FFB300";  // Amber — ageing
-inline constexpr auto C_STATE_CLOSE_WAIT = "#FF6E40";  // Deep orange — closing
-inline constexpr auto C_STATE_FIN_WAIT   = "#FF8F00";  // Amber-dark
-inline constexpr auto C_STATE_CLOSED     = "#546E7A";  // Grey — closed
-inline constexpr auto C_STATE_SYN_SENT   = "#7C4DFF";  // Purple — opening
-inline constexpr auto C_STATE_UDP        = "#26C6DA";  // Cyan — UDP (no state)
+inline constexpr auto C_STATE_ESTABLISHED = "#10B981";  // Green — active
+inline constexpr auto C_STATE_LISTEN     = "#F59E0B";  // Amber — listening
+inline constexpr auto C_STATE_TIME_WAIT  = "#D97706";  // Amber — ageing
+inline constexpr auto C_STATE_CLOSE_WAIT = "#EF4444";  // Red — closing
+inline constexpr auto C_STATE_FIN_WAIT   = "#B45309";  // Amber-deep
+inline constexpr auto C_STATE_CLOSED     = "#71717A";  // Grey — closed
+inline constexpr auto C_STATE_SYN_SENT   = "#8B5CF6";  // Purple — opening
+inline constexpr auto C_STATE_UDP        = "#06B6D4";  // Cyan — UDP (no state)
 
 // ── Latency / quality gradient (Topology + Iperf3) ──────────────────────────
 //  Five discrete buckets from "excellent" to "timeout". The exact cutoffs
 //  live in the helper latencyColorMs(double ms).
-inline constexpr auto C_LATENCY_EXCELLENT = "#26A69A";  // <10 ms    — teal-green
-inline constexpr auto C_LATENCY_GOOD      = "#00BCD4";  // <50 ms    — teal
-inline constexpr auto C_LATENCY_FAIR      = "#FFB300";  // <150 ms   — amber
-inline constexpr auto C_LATENCY_POOR      = "#EF5350";  // >=150 ms  — red
-inline constexpr auto C_LATENCY_TIMEOUT   = "#546E7A";  // -1 / no reply — grey
+inline constexpr auto C_LATENCY_EXCELLENT = "#10B981";  // <10 ms    — green
+inline constexpr auto C_LATENCY_GOOD      = "#84CC16";  // <50 ms    — lime-green
+inline constexpr auto C_LATENCY_FAIR      = "#F59E0B";  // <150 ms   — amber
+inline constexpr auto C_LATENCY_POOR      = "#EF4444";  // >=150 ms  — red
+inline constexpr auto C_LATENCY_TIMEOUT   = "#71717A";  // -1 / no reply — grey
 
 // ── Form validation states ──────────────────────────────────────────────────
 //  Used by inputStyle() variants. The plain `inputStyle()` is "neutral";
@@ -139,63 +139,63 @@ inline constexpr auto C_LATENCY_TIMEOUT   = "#546E7A";  // -1 / no reply — gre
 //  inputStyleWarning() / inputStyleSuccess() / inputStyleError().
 inline constexpr auto C_VALID_BORDER    = C_BORDER;
 inline constexpr auto C_VALID_BG        = C_BG_ELEVATED;
-inline constexpr auto C_WARNING_BORDER  = "#FFA000";   // Amber-700
-inline constexpr auto C_SUCCESS_BORDER  = "#26A69A";   // Teal-green
-inline constexpr auto C_ERROR_BORDER    = "#EF5350";   // Red
-inline constexpr auto C_VALID_ICON_OK   = "#26A69A";
-inline constexpr auto C_VALID_ICON_WARN = "#FFB300";
-inline constexpr auto C_VALID_ICON_ERR  = "#EF5350";
+inline constexpr auto C_WARNING_BORDER  = "#D97706";   // Amber-700
+inline constexpr auto C_SUCCESS_BORDER  = "#10B981";   // Green
+inline constexpr auto C_ERROR_BORDER    = "#EF4444";   // Red
+inline constexpr auto C_VALID_ICON_OK   = "#10B981";
+inline constexpr auto C_VALID_ICON_WARN = "#F59E0B";
+inline constexpr auto C_VALID_ICON_ERR  = "#EF4444";
 
 // ── Caret / selection / focus outline (input widgets) ────────────────────────
-inline constexpr auto C_CARET          = "#00BCD4";   // Teal caret in QLineEdit
-inline constexpr auto C_SELECTION_BG   = "#FFB300";   // Amber text selection
+inline constexpr auto C_CARET          = "#F59E0B";   // Amber caret in QLineEdit
+inline constexpr auto C_SELECTION_BG   = "#FEF08A";   // Light yellow/amber selection
 inline constexpr auto C_SELECTION_FG   = "#000000";   // Black text on amber selection
-inline constexpr auto C_FOCUS_OUTLINE  = "#00BCD4";   // Teal focus outline (2 px)
+inline constexpr auto C_FOCUS_OUTLINE  = "#F59E0B";   // Amber focus outline (2 px)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  LIGHT THEME — COLOR PALETTE
-//  Same Teal Amber hues, but on a light surface for daylight / projector use.
+//  Same Amber hues, but on a light surface for daylight / projector use.
 //  Only the surface / text / border tokens differ from the dark theme; the
-//  primary (teal) and accent (amber) are kept identical so the brand stays
+//  primary (amber) and accent (amber) are kept identical so the brand stays
 //  consistent across modes.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 inline constexpr auto C_L_BG          = "#FAFAFA";   // Near-white — main background
 inline constexpr auto C_L_BG_ELEVATED = "#FFFFFF";   // Pure white — cards
-inline constexpr auto C_L_BG_SUNKEN   = "#F0F0F0";   // Light grey — code/output
-inline constexpr auto C_L_BG_HOVER    = "#EEEEEE";   // Hover overlay
+inline constexpr auto C_L_BG_SUNKEN   = "#F4F4F5";   // Light grey — code/output
+inline constexpr auto C_L_BG_HOVER    = "#F4F4F5";   // Hover overlay
 inline constexpr auto C_L_SURFACE     = "#FFFFFF";
-inline constexpr auto C_L_SURFACE_HVR = "#F5F5F5";
-inline constexpr auto C_L_SURFACE_ACT = "#E0E0E0";
+inline constexpr auto C_L_SURFACE_HVR = "#F4F4F5";
+inline constexpr auto C_L_SURFACE_ACT = "#E4E4E7";
 
-inline constexpr auto C_L_BORDER      = "#D0D0D0";   // Subtle border on white
-inline constexpr auto C_L_BORDER_HVR  = "#FF8F00";   // Amber-dark border on hover
-inline constexpr auto C_L_BORDER_FOC  = "#00838F";   // Teal-dark focus ring
+inline constexpr auto C_L_BORDER      = "#E4E4E7";   // Subtle border on white
+inline constexpr auto C_L_BORDER_HVR  = "#D97706";   // Amber-dark border on hover
+inline constexpr auto C_L_BORDER_FOC  = "#F59E0B";   // Amber-dark focus ring
 
-inline constexpr auto C_L_TEXT        = "#1A1A1A";   // Near-black primary text
-inline constexpr auto C_L_TEXT_SEC    = "#455A64";   // Dark blue-grey
-inline constexpr auto C_L_TEXT_DIM    = "#78909C";
-inline constexpr auto C_L_TEXT_MUTED  = "#90A4AE";
+inline constexpr auto C_L_TEXT        = "#09090B";   // Near-black primary text
+inline constexpr auto C_L_TEXT_SEC    = "#3F3F46";   // Dark grey
+inline constexpr auto C_L_TEXT_DIM    = "#71717A";
+inline constexpr auto C_L_TEXT_MUTED  = "#A1A1AA";
 inline constexpr auto C_L_TEXT_INV    = "#FFFFFF";   // Inverted (for amber/teal fills)
 
-inline constexpr auto C_L_MUTED       = "#B0BEC5";   // Disabled on light
+inline constexpr auto C_L_MUTED       = "#E4E4E7";   // Disabled on light
 
-inline constexpr auto C_L_CARET          = "#00838F";
-inline constexpr auto C_L_SELECTION_BG   = "#FFB300";
-inline constexpr auto C_L_SELECTION_FG   = "#000000";
-inline constexpr auto C_L_FOCUS_OUTLINE  = "#00838F";
+inline constexpr auto C_L_CARET          = "#D97706";
+inline constexpr auto C_L_SELECTION_BG   = "#FEF3C7";
+inline constexpr auto C_L_SELECTION_FG   = "#78350F";
+inline constexpr auto C_L_FOCUS_OUTLINE  = "#F59E0B";
 
 // ── Light-theme accent / primary / status fallbacks ─────────────────────────
-//  Same Teal Amber hues as the Dark theme — the Light variant changes
+//  Same Amber hues as the Dark theme — the Light variant changes
 //  only the surface / text / border, not the brand palette. These are
 //  defined here (before appStyleSheetLight) so the .arg() chain inside
 //  the function can refer to them by name.
-inline constexpr auto C_L_ACCENT_FALLBACK = "#FFB300";   // Same as C_ACCENT
-inline constexpr auto C_L_ACCENT_HOVER   = "#FFCA28";   // Same as C_ACCENT_HVR
-inline constexpr auto C_L_PRIMARY        = "#00BCD4";   // Same as C_PRIMARY
-inline constexpr auto C_L_PRIMARY_HOVER  = "#26C6DA";   // Same as C_PRIMARY_HVR
-inline constexpr auto C_L_ERROR          = "#EF5350";   // Same as C_ERROR
-inline constexpr auto C_L_SUCCESS        = "#26A69A";   // Same as C_SUCCESS
+inline constexpr auto C_L_ACCENT_FALLBACK = "#F59E0B";   // Same as C_ACCENT
+inline constexpr auto C_L_ACCENT_HOVER   = "#FBBF24";   // Same as C_ACCENT_HVR
+inline constexpr auto C_L_PRIMARY        = "#F59E0B";   // Same as C_PRIMARY
+inline constexpr auto C_L_PRIMARY_HOVER  = "#FBBF24";   // Same as C_PRIMARY_HVR
+inline constexpr auto C_L_ERROR          = "#EF4444";   // Same as C_ERROR
+inline constexpr auto C_L_SUCCESS        = "#10B981";   // Same as C_SUCCESS
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  HIGH-CONTRAST THEME — COLOR PALETTE

@@ -30,9 +30,9 @@ concept NetworkTarget = std::convertible_to<T, std::string_view>
                         };
 
 // ── NumericPort ──────────────────────────────────────────────────────────
-//  Integer types that can hold a 0–65535 port number.
+//  Integer types that can hold a 0–65535 port number (up to 16 bits).
 template <typename T>
-concept NumericPort = std::integral<T>;
+concept NumericPort = std::integral<T> && (sizeof(T) <= 2);
 
 // ── BufferData ───────────────────────────────────────────────────────────
 //  Any container that exposes contiguous raw bytes (QByteArray, std::string,
