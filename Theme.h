@@ -4,18 +4,17 @@
 //  All colors, spacings, radii, shadows, animations, borders, carets,
 //  data-viz palettes, typography, elevation, and opacity live here.
 //
-//  Palette: Teal Amber OLED (default), Teal Amber Light, High Contrast
-//    Primary (Teal):  #00BCD4 — cool, professional, high-contrast on OLED black
-//    Accent  (Amber): #FFB300 — warm highlight, badges, interactive focus
-//    Base:            #000000 — true OLED black (zero power on OLED displays)
+//  Palette: Cyber Azure (default), warm light, High Contrast
+//    Primary: #2563EB / #60A5FA — Azure
+//    Base:    #0A0E17 — Cyber canvas
 //
 //  Three theme modes (selected at startup or via the View menu in v2.15.5):
 //    1. Dark           — the original OLED-optimised Teal Amber
 //    2. Light          — same Teal Amber hues on a light surface
 //    3. High Contrast  — pure black/white, AAA accessibility (WCAG 2.1)
 //
-//  OLED Support: All Dark-mode backgrounds use pure black (#000000)
-//  wherever possible. Light mode is intended for daylight / projector
+//  Dark mode uses layered navy surfaces and blue accents.
+//  Light mode is intended for daylight / projector
 //  use; High Contrast is intended for low-vision / accessibility use.
 //
 //  C++26 inline constexpr — resolved at compile time.
@@ -38,48 +37,47 @@
 #include <string_view>      // std::string_view for constexpr token tables
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  DARK THEME — COLOR PALETTE
-//  The default. Professional Amber on premium dark zinc.
+//  DARK THEME — CYBER AZURE PALETTE
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ── Base colors (Premium zinc hierarchy) ─────────────────────────────────────
-inline constexpr auto C_BG          = "#09090B";   // Zinc-950 — main background
-inline constexpr auto C_BG_ELEVATED = "#18181B";   // Zinc-900 — elevated surfaces
-inline constexpr auto C_BG_SUNKEN   = "#030303";   // Sunken areas
-inline constexpr auto C_BG_HOVER    = "#27272A";   // Hover overlay
+inline constexpr auto C_BG          = "#0A0E17";   // Cyber canvas
+inline constexpr auto C_BG_ELEVATED = "#0F1523";   // Surface 1
+inline constexpr auto C_BG_SUNKEN   = "#090D16";   // Recessed canvas
+inline constexpr auto C_BG_HOVER    = "#1A253C";   // Hover surface
 
-inline constexpr auto C_SURFACE     = "#18181B";   // Default card/pane surface
-inline constexpr auto C_SURFACE_HVR = "#27272A";   // Surface hover state
-inline constexpr auto C_SURFACE_ACT = "#3F3F46";   // Surface active/pressed state
+inline constexpr auto C_SURFACE     = "#141C2E";   // Surface 2
+inline constexpr auto C_SURFACE_HVR = "#1A253C";   // Surface hover state
+inline constexpr auto C_SURFACE_ACT = "#1E2B46";   // Surface active/pressed state
 
-inline constexpr auto C_BORDER      = "#27272A";   // Zinc-800 border
-inline constexpr auto C_BORDER_HVR  = "#D97706";   // Amber-600 border on hover
-inline constexpr auto C_BORDER_FOC  = "#F59E0B";   // Amber focus ring
+inline constexpr auto C_BORDER      = "#2A3B52";   // Border
+inline constexpr auto C_BORDER_HVR  = "#38BDF8";   // Azure hover
+inline constexpr auto C_BORDER_FOC  = "#38BDF8";   // Azure focus ring
 
 // ── Text colors ───────────────────────────────────────────────────────────────
-inline constexpr auto C_TEXT        = "#FAFAFA";   // Primary text — near-white
-inline constexpr auto C_TEXT_SEC    = "#D4D4D8";   // Secondary text — zinc-300
-inline constexpr auto C_TEXT_DIM    = "#A1A1AA";   // Dimmed label text — zinc-400
-inline constexpr auto C_TEXT_MUTED  = "#71717A";   // Muted/placeholder text — zinc-500
+inline constexpr auto C_TEXT        = "#F8FAFC";   // Primary text
+inline constexpr auto C_TEXT_SEC    = "#CBD5E1";   // Secondary text
+inline constexpr auto C_TEXT_DIM    = "#94A3B8";   // Muted text
+inline constexpr auto C_TEXT_MUTED  = "#64748B";   // Subdued text
 inline constexpr auto C_TEXT_INV    = "#000000";   // Inverted text (for amber backgrounds)
 
 // ── Amber primary ────────────────────────────────────────────────────────────
-inline constexpr auto C_PRIMARY     = "#F59E0B";   // Amber primary — focus, links, progress
-inline constexpr auto C_PRIMARY_HVR = "#FBBF24";   // Amber hover
-inline constexpr auto C_PRIMARY_ACT = "#D97706";   // Amber active/pressed
+inline constexpr auto C_PRIMARY     = "#2563EB";   // Azure
+inline constexpr auto C_PRIMARY_HVR = "#60A5FA";   // Azure hover
+inline constexpr auto C_PRIMARY_ACT = "#1D4ED8";   // Azure active/pressed
 
 // ── Amber accent ─────────────────────────────────────────────────────────────
-inline constexpr auto C_ACCENT      = "#F59E0B";   // Amber accent — badges, selected tabs
-inline constexpr auto C_ACCENT_HVR  = "#FBBF24";   // Amber hover
-inline constexpr auto C_ACCENT_ACT  = "#D97706";   // Amber active/pressed
+inline constexpr auto C_ACCENT      = "#38BDF8";   // Cyan accent
+inline constexpr auto C_ACCENT_HVR  = "#7DD3FC";   // Cyan hover
+inline constexpr auto C_ACCENT_ACT  = "#0891B2";   // Cyan active/pressed
 
 // ── Semantic colors ───────────────────────────────────────────────────────────
 inline constexpr auto C_SUCCESS     = "#10B981";   // Emerald-500 — positive/online states
 inline constexpr auto C_SUCCESS_HVR = "#34D399";   // Success hover
-inline constexpr auto C_WARNING     = "#F59E0B";   // Amber — warnings (same as accent)
+inline constexpr auto C_WARNING     = "#F59E0B";   // Warning amber
 inline constexpr auto C_ERROR       = "#EF4444";   // Red — errors, critical alerts
 inline constexpr auto C_ERROR_HVR   = "#F87171";   // Error hover
-inline constexpr auto C_INFO        = "#F59E0B";   // Amber — informational
+inline constexpr auto C_INFO        = "#38BDF8";   // Azure — informational
 inline constexpr auto C_CRITICAL    = "#DC2626";   // Deep red — critical alerts
 inline constexpr auto C_MUTED       = "#27272A";   // Disabled / very low contrast
 
@@ -160,22 +158,22 @@ inline constexpr auto C_FOCUS_OUTLINE  = "#F59E0B";   // Amber focus outline (2 
 //  consistent across modes.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-inline constexpr auto C_L_BG          = "#FAFAFA";   // Near-white — main background
-inline constexpr auto C_L_BG_ELEVATED = "#FFFFFF";   // Pure white — cards
-inline constexpr auto C_L_BG_SUNKEN   = "#F4F4F5";   // Light grey — code/output
-inline constexpr auto C_L_BG_HOVER    = "#F4F4F5";   // Hover overlay
-inline constexpr auto C_L_SURFACE     = "#FFFFFF";
-inline constexpr auto C_L_SURFACE_HVR = "#F4F4F5";
-inline constexpr auto C_L_SURFACE_ACT = "#E4E4E7";
+inline constexpr auto C_L_BG          = "#F5EFE0";   // Warm paper
+inline constexpr auto C_L_BG_ELEVATED = "#FAF5E6";   // Elevated paper
+inline constexpr auto C_L_BG_SUNKEN   = "#ECE2C6";   // Recessed surface
+inline constexpr auto C_L_BG_HOVER    = "#ECE2C6";   // Hover overlay
+inline constexpr auto C_L_SURFACE     = "#FFFDF4";
+inline constexpr auto C_L_SURFACE_HVR = "#ECE2C6";
+inline constexpr auto C_L_SURFACE_ACT = "#D8C9A3";
 
-inline constexpr auto C_L_BORDER      = "#E4E4E7";   // Subtle border on white
-inline constexpr auto C_L_BORDER_HVR  = "#D97706";   // Amber-dark border on hover
-inline constexpr auto C_L_BORDER_FOC  = "#F59E0B";   // Amber-dark focus ring
+inline constexpr auto C_L_BORDER      = "#D8C9A3";   // Warm border
+inline constexpr auto C_L_BORDER_HVR  = "#2563EB";   // Azure border on hover
+inline constexpr auto C_L_BORDER_FOC  = "#2563EB";   // Azure focus ring
 
-inline constexpr auto C_L_TEXT        = "#09090B";   // Near-black primary text
-inline constexpr auto C_L_TEXT_SEC    = "#3F3F46";   // Dark grey
-inline constexpr auto C_L_TEXT_DIM    = "#71717A";
-inline constexpr auto C_L_TEXT_MUTED  = "#A1A1AA";
+inline constexpr auto C_L_TEXT        = "#1C1917";   // Primary text
+inline constexpr auto C_L_TEXT_SEC    = "#44403C";   // Secondary text
+inline constexpr auto C_L_TEXT_DIM    = "#6B6259";
+inline constexpr auto C_L_TEXT_MUTED  = "#8A8177";
 inline constexpr auto C_L_TEXT_INV    = "#FFFFFF";   // Inverted (for amber/teal fills)
 
 inline constexpr auto C_L_MUTED       = "#E4E4E7";   // Disabled on light
@@ -190,10 +188,10 @@ inline constexpr auto C_L_FOCUS_OUTLINE  = "#F59E0B";
 //  only the surface / text / border, not the brand palette. These are
 //  defined here (before appStyleSheetLight) so the .arg() chain inside
 //  the function can refer to them by name.
-inline constexpr auto C_L_ACCENT_FALLBACK = "#F59E0B";   // Same as C_ACCENT
-inline constexpr auto C_L_ACCENT_HOVER   = "#FBBF24";   // Same as C_ACCENT_HVR
-inline constexpr auto C_L_PRIMARY        = "#F59E0B";   // Same as C_PRIMARY
-inline constexpr auto C_L_PRIMARY_HOVER  = "#FBBF24";   // Same as C_PRIMARY_HVR
+inline constexpr auto C_L_ACCENT_FALLBACK = "#2563EB";   // Azure
+inline constexpr auto C_L_ACCENT_HOVER   = "#1D4ED8";   // Azure hover
+inline constexpr auto C_L_PRIMARY        = "#2563EB";   // Azure
+inline constexpr auto C_L_PRIMARY_HOVER  = "#1D4ED8";   // Azure hover
 inline constexpr auto C_L_ERROR          = "#EF4444";   // Same as C_ERROR
 inline constexpr auto C_L_SUCCESS        = "#10B981";   // Same as C_SUCCESS
 

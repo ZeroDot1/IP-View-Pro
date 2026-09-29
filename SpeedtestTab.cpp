@@ -514,6 +514,7 @@ void SpeedtestTab::onMultiTestClicked()
         if (!procResult.has_value()) {
             logArea->append(QStringLiteral("  [%1] %2").arg(i + 1)
                 .arg(QString::fromStdString(procResult.error().message)));
+            ++mMultiCompleted;
             continue;
         }
 
@@ -531,7 +532,19 @@ void SpeedtestTab::onMultiTestClicked()
         });
 
         mMultiProcesses.append(p);
+        connect(p, &QProcess::errorOccurred, this, [this, i](QProcess::ProcessError error) {
+            if (error == QProcess::FailedToStart) {
+                logArea->append(QStringLiteral("  [Server %1] Failed to start speedtest-cli.").arg(i + 1));
+                onMultiProcessFinished(i, -1);
+            }
+        });
         p->start();
+    }
+    if (mMultiCompleted >= mMultiTotal) {
+        mMultiTimer->stop();
+        mMultiMode = false;
+        aggregateMultiResults();
+        setControlsEnabled(true);
     }
 }
 
@@ -553,6 +566,9 @@ void SpeedtestTab::onMultiProcessFinished(int index, int exitCode)
 
     QProcess *p = mMultiProcesses.value(index);
     if (!p) return;
+
+    if (p->property("multiCompleted").toBool()) return;
+    p->setProperty("multiCompleted", true);
 
     QByteArray const output = p->readAll();
 

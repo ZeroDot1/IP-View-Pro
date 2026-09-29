@@ -113,6 +113,7 @@ QStringList NetworkManager::getApiNames() const noexcept
 
 void NetworkManager::fetchIPData() noexcept
 {
+    ++mRequestGeneration;
     isIPv6 = false;
     currentApiIndex = 0;
     tryNextAPI();
@@ -120,6 +121,7 @@ void NetworkManager::fetchIPData() noexcept
 
 void NetworkManager::fetchIPv6Data() noexcept
 {
+    ++mRequestGeneration;
     isIPv6 = true;
     currentIPv6ApiIndex = 0;
     tryNextIPv6API();
@@ -191,6 +193,9 @@ void NetworkManager::doRequest(const QUrl &url) noexcept
     request.setTransferTimeout(timeoutMs);
 
     QNetworkReply * const reply = manager->get(request);
+    reply->setProperty("ipview_ipv6", isIPv6);
+    reply->setProperty("ipview_api_index", isIPv6 ? currentIPv6ApiIndex : currentApiIndex);
+    reply->setProperty("ipview_generation", QVariant::fromValue<qulonglong>(mRequestGeneration));
 
     // ── Security: Strict SSL validation (prevents MITM) ──────────────
     enforceStrictSsl(reply);
@@ -248,6 +253,16 @@ QJsonObject NetworkManager::getLastData() const noexcept
 
 void NetworkManager::onReplyFinished(QNetworkReply *reply)
 {
+    // A newer refresh or address-family switch can supersede this request.
+    // Ignore its result so it cannot advance or overwrite the active chain.
+    const bool requestIsCurrent = reply->property("ipview_generation").toULongLong() == mRequestGeneration
+        && reply->property("ipview_ipv6").toBool() == isIPv6
+        && reply->property("ipview_api_index").toInt()
+            == (isIPv6 ? currentIPv6ApiIndex : currentApiIndex);
+    if (!requestIsCurrent) {
+        reply->deleteLater();
+        return;
+    }
 
     if (reply->error() != QNetworkReply::NoError) {
         QString const errorMsg = QStringLiteral("API failed: %1").arg(reply->errorString());

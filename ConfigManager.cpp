@@ -17,6 +17,7 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QFileInfo>
+#include <QVariant>
 
 #include <algorithm>
 
@@ -115,6 +116,18 @@ void Manager::saveLastTab(int index) noexcept
 int Manager::loadLastTab(int defaultIndex) noexcept
 {
     return settings().value(QLatin1StringView(Key::LAST_TAB), defaultIndex).toInt();
+}
+
+void Manager::saveThemeMode(int mode) noexcept
+{
+    settings().setValue(QLatin1StringView(Key::THEME_MODE), mode);
+}
+
+int Manager::loadThemeMode(int defaultMode) noexcept
+{
+    bool ok = false;
+    const int mode = settings().value(QLatin1StringView(Key::THEME_MODE), defaultMode).toInt(&ok);
+    return ok ? mode : defaultMode;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

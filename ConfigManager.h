@@ -36,6 +36,7 @@ namespace Key {
     inline constexpr auto WINDOW_GEOMETRY   = "Window/Geometry";
     inline constexpr auto WINDOW_STATE      = "Window/State";
     inline constexpr auto LAST_TAB          = "Window/LastTab";
+    inline constexpr auto THEME_MODE       = "Appearance/ThemeMode";
 
     inline constexpr auto API_INDEX         = "Network/SelectedApiIndex";
     inline constexpr auto IPV6_MODE         = "Network/IPv6Mode";
@@ -68,6 +69,9 @@ public:
 
     static void saveLastTab(int index) noexcept;
     [[nodiscard]] static int loadLastTab(int defaultIndex = 0) noexcept;
+
+    static void saveThemeMode(int mode) noexcept;
+    [[nodiscard]] static int loadThemeMode(int defaultMode = 0) noexcept;
 
     // ── Network ────────────────────────────────────────────────────────────
     static void saveApiIndex(int index) noexcept;

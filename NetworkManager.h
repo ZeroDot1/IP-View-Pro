@@ -93,6 +93,7 @@ private:
     int         timeoutMs{static_cast<int>(IPView::Timeouts::HTTP_DEFAULT.count())};
     QJsonObject lastData;
     bool        isIPv6{false};
+    quint64     mRequestGeneration{0};
 
     // ── Network ──────────────────────────────────────────────────────────
     QNetworkAccessManager *manager{nullptr};

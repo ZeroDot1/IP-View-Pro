@@ -23,14 +23,50 @@ IPVIEW_TEST_CASE(parseSubnet_accepts_a_b_c,
 )
 
 IPVIEW_TEST_CASE(parseSubnet_accepts_cidr,
-    // The 4-octet form is the "scan exactly this host" variant:
-    // firstHost == lastHost == last octet, so buildCandidateIps()
-    // generates a single host. The 3-octet form returns [1, 254].
-    auto r = NetworkDiscovery::parseSubnet(QStringLiteral("10.0.0.0/24"));
+    auto r = NetworkDiscovery::parseSubnet(QStringLiteral("10.0.0.42/24"));
     IPVIEW_REQUIRE(r.has_value());
     IPVIEW_REQUIRE(r->base      == QStringLiteral("10.0.0"));
+    IPVIEW_REQUIRE(r->firstHost == 1);
+    IPVIEW_REQUIRE(r->lastHost  == 254);
+)
+
+IPVIEW_TEST_CASE(parseSubnet_cidr_uses_the_network_address_not_the_input_host,
+    auto r = NetworkDiscovery::parseSubnet(QStringLiteral("192.168.1.42/24"));
+    IPVIEW_REQUIRE(r.has_value());
+    IPVIEW_REQUIRE(r->base == QStringLiteral("192.168.1"));
+    IPVIEW_REQUIRE(r->firstHost == 1);
+    IPVIEW_REQUIRE(r->lastHost == 254);
+)
+
+IPVIEW_TEST_CASE(parseSubnet_rejects_network_and_broadcast_as_single_hosts,
+    IPVIEW_REQUIRE(!NetworkDiscovery::parseSubnet(QStringLiteral("10.0.0.0")).has_value());
+    IPVIEW_REQUIRE(!NetworkDiscovery::parseSubnet(QStringLiteral("10.0.0.255")).has_value());
+)
+
+IPVIEW_TEST_CASE(parseSubnet_cidr_network_ending_in_zero_is_not_a_single_host,
+    auto r = NetworkDiscovery::parseSubnet(QStringLiteral("10.0.0.42/24"));
+    IPVIEW_REQUIRE(r.has_value());
+    IPVIEW_REQUIRE(r->firstHost == 1);
+    IPVIEW_REQUIRE(r->lastHost == 254);
+)
+
+IPVIEW_TEST_CASE(parseSubnet_accepts_narrow_cidr,
+    auto r = NetworkDiscovery::parseSubnet(QStringLiteral("192.168.1.5/30"));
+    IPVIEW_REQUIRE(r.has_value());
+    IPVIEW_REQUIRE(r->base == QStringLiteral("192.168.1"));
+    IPVIEW_REQUIRE(r->firstHost == 5);
+    IPVIEW_REQUIRE(r->lastHost == 6);
+)
+
+IPVIEW_TEST_CASE(parseSubnet_rejects_empty_octets,
+    IPVIEW_REQUIRE(!NetworkDiscovery::parseSubnet(QStringLiteral("10..0.2")).has_value());
+)
+
+IPVIEW_TEST_CASE(parseSubnet_accepts_point_to_point_cidr,
+    auto r = NetworkDiscovery::parseSubnet(QStringLiteral("10.0.0.0/31"));
+    IPVIEW_REQUIRE(r.has_value());
     IPVIEW_REQUIRE(r->firstHost == 0);
-    IPVIEW_REQUIRE(r->lastHost  == 0);
+    IPVIEW_REQUIRE(r->lastHost == 1);
 )
 
 IPVIEW_TEST_CASE(parseSubnet_4octet_specific_host,

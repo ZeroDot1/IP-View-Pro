@@ -11,6 +11,7 @@
 #include <QHostAddress>
 #include <QNetworkInterface>
 #include <QRegularExpression>
+#include <QStandardPaths>
 #include <QTextStream>
 #include <QTimer>
 
@@ -704,11 +705,13 @@ QStringList NetworkDiscovery::detectLocalSubnets() noexcept
             quint32 const hostBits = (prefix >= 32) ? 0u : ((1u << (32 - prefix)) - 1u);
             quint32 const base     = ip & ~hostBits;
 
+            if (prefix < 24) continue; // Discovery currently scans /24s or smaller only.
+            const quint32 network24 = base & 0xFFFFFF00u;
             QString const baseStr = QString::asprintf(
                 "%u.%u.%u",
-                (base >> 24) & 0xFFu,
-                (base >> 16) & 0xFFu,
-                (base >>  8) & 0xFFu);
+                (network24 >> 24) & 0xFFu,
+                (network24 >> 16) & 0xFFu,
+                (network24 >>  8) & 0xFFu);
             if (!result.contains(baseStr)) {
                 result.append(baseStr);
             }
@@ -725,36 +728,52 @@ NetworkDiscovery::parseSubnet(const QString &subnet) noexcept
     if (s.isEmpty()) return std::nullopt;
 
     int prefix = 24;
-    if (s.contains(QLatin1Char('/'))) {
-        QStringList const parts = s.split(QLatin1Char('/'));
-        if (parts.size() != 2) return std::nullopt;
-        s = parts.first();
+    const qsizetype slash = s.indexOf(QLatin1Char('/'));
+    const bool hasPrefix = slash >= 0;
+    if (hasPrefix) {
+        if (s.indexOf(QLatin1Char('/'), slash + 1) >= 0) return std::nullopt;
         bool ok = false;
-        prefix = parts.last().toInt(&ok);
-        if (!ok || prefix < 16 || prefix > 32) return std::nullopt;
+        prefix = s.sliced(slash + 1).toInt(&ok);
+        if (!ok || prefix < 1 || prefix > 32) return std::nullopt;
+        s.truncate(slash);
     }
 
-    QStringList const octets = s.split(QLatin1Char('.'));
-    if (octets.size() == 3) {
+    QStringList const octets = s.split(QLatin1Char('.'), Qt::KeepEmptyParts);
+    if (octets.size() == 3 && (!hasPrefix || prefix == 24)) {
         for (QString const &o : std::as_const(octets)) {
             bool ok = false;
-            int const v = o.toInt(&ok);
-            if (!ok || v < 0 || v > 255) return std::nullopt;
+            const int value = o.toInt(&ok);
+            if (!ok || value < 0 || value > 255 || o.isEmpty()) return std::nullopt;
         }
         return SubnetRange{s, 1, 254};
     }
     if (octets.size() == 4) {
+        quint32 address = 0;
         for (QString const &o : std::as_const(octets)) {
             bool ok = false;
             int const v = o.toInt(&ok);
-            if (!ok || v < 0 || v > 255) return std::nullopt;
+            if (!ok || v < 0 || v > 255 || o.isEmpty()) return std::nullopt;
+            address = (address << 8) | static_cast<quint32>(v);
         }
-        QString const base = QString::asprintf("%s.%s.%s",
-            qUtf8Printable(octets[0]),
-            qUtf8Printable(octets[1]),
-            qUtf8Printable(octets[2]));
-        int const last = octets[3].toInt();
-        return SubnetRange{base, last, last};
+        const quint32 mask = hasPrefix ? (0xFFFFFFFFu << (32 - prefix)) : 0xFFFFFF00u;
+        const quint32 network = address & mask;
+        const quint32 broadcast = network | ~mask;
+        if (!hasPrefix) {
+            if (address == network || address == broadcast) return std::nullopt;
+            const QString base = QString::asprintf("%s.%s.%s",
+                qUtf8Printable(octets[0]), qUtf8Printable(octets[1]), qUtf8Printable(octets[2]));
+            const int host = static_cast<int>(address & 0xFFu);
+            return SubnetRange{base, host, host};
+        }
+        if (prefix < 31 && (address == network || address == broadcast)) return std::nullopt;
+        const QString base = QString::asprintf("%u.%u.%u",
+            (network >> 24) & 0xFFu, (network >> 16) & 0xFFu, (network >> 8) & 0xFFu);
+        const int first = prefix < 31 ? static_cast<int>((network & 0xFFu) + 1u)
+                                      : static_cast<int>(network & 0xFFu);
+        const int last = prefix < 31 ? static_cast<int>((broadcast & 0xFFu) - 1u)
+                                     : static_cast<int>(broadcast & 0xFFu);
+        if ((network >> 8) != (broadcast >> 8)) return std::nullopt;
+        return SubnetRange{base, first, last};
     }
     return std::nullopt;
 }
@@ -774,6 +793,7 @@ QStringList NetworkDiscovery::buildCandidateIps(
 // ═══════════════════════════════════════════════════════════════════════════════
 QString NetworkDiscovery::lookupMac(const QString &ip) noexcept
 {
+#ifdef Q_OS_LINUX
     QFile f(QStringLiteral("/proc/net/arp"));
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) return {};
 
@@ -789,6 +809,9 @@ QString NetworkDiscovery::lookupMac(const QString &ip) noexcept
         if (!mac.contains(QLatin1Char(':')))            return {};
         return mac.toLower();
     }
+#else
+    Q_UNUSED(ip);
+#endif
     return {};
 }
 
@@ -837,6 +860,14 @@ void NetworkDiscovery::startDiscovery(const QString &subnet) noexcept
         return;
     }
     SubnetRange const range = *parsed;
+
+#ifndef Q_OS_WIN
+    const QString pingExecutable = QStandardPaths::findExecutable(QStringLiteral("ping"));
+    if (pingExecutable.isEmpty()) {
+        emit error(QStringLiteral("The ping utility is not available in PATH."));
+        return;
+    }
+#endif
 
     mPendingIps    = buildCandidateIps(range);
     mScannedCount  = 0;
@@ -898,10 +929,16 @@ bool NetworkDiscovery::dispatchNext() noexcept
         });
 
     mActiveWorkers.append(w);
+#ifdef Q_OS_WIN
     proc->start(QStringLiteral("ping"),
+                { QStringLiteral("-n"), QStringLiteral("1"),
+                  QStringLiteral("-w"), QString::number(PING_TIMEOUT_MS), ip });
+#else
+    proc->start(QStandardPaths::findExecutable(QStringLiteral("ping")),
                 { QStringLiteral("-c"), QStringLiteral("1"),
                   QStringLiteral("-W"), QStringLiteral("1"),
                   ip });
+#endif
     return true;
 }
 

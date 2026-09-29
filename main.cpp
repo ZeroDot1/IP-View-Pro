@@ -83,12 +83,21 @@ int main(int argc, char* argv[])
 
     // ── Fusion theme + global stylesheet ──────────────────────────────
     app.setStyle(QStyleFactory::create("Fusion"));
-    app.setStyleSheet(appStyleSheet() + QLatin1Char('\n') + tooltipStyleSheet());
-
     // ════════════════════════════════════════════════════════════════════
     //  CONFIG MANAGER (per-user, XDG-compliant: ~/.config/IPView/IPView.conf)
     // ════════════════════════════════════════════════════════════════════
     IPView::Config::Manager::initialize();
+
+    // Use the selected application appearance by default while keeping the
+    // user's explicit appearance choice persistent across launches.
+    int themeMode = IPView::Config::Manager::loadThemeMode(
+        static_cast<int>(ThemeMode::Dark));
+    if (themeMode < static_cast<int>(ThemeMode::Dark) ||
+        themeMode > static_cast<int>(ThemeMode::HighContrast)) {
+        themeMode = static_cast<int>(ThemeMode::Dark);
+    }
+    IPView::Theme::applyTheme(app, static_cast<ThemeMode>(themeMode));
+    app.setStyleSheet(app.styleSheet() + QLatin1Char('\n') + tooltipStyleSheet());
 
     // ════════════════════════════════════════════════════════════════════
     //  SINGLE INSTANCE CHECK
