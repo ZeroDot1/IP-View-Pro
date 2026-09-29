@@ -16,6 +16,14 @@
 #include <array>
 #include <charconv>
 #include <system_error>
+#include <vector>
+
+#ifdef Q_OS_WIN
+#  include <winsock2.h>
+#  include <ws2tcpip.h>
+#  include <windows.h>
+#  include <iphlpapi.h>
+#endif
 
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Packet {
@@ -43,6 +51,13 @@ ConnectionSnapshot PacketModule::pollNow() noexcept
     ConnectionSnapshot snap;
     snap.timestamp = QDateTime::currentDateTime();
 
+#ifdef Q_OS_WIN
+    // QTcpSocket/QTcpServer APIs are endpoint-scoped; IP Helper's TCP/UDP
+    // tables are exposed by Windows and avoid shelling out to netstat.
+    // Windows support is implemented in the platform source below.
+    snap.tcpConnections = readWindowsConnections(true);
+    snap.udpConnections = readWindowsConnections(false);
+#else
     snap.tcpConnections  = parseProcNet(QString::fromLatin1(PROC_TCP), true);
     snap.udpConnections  = parseProcNet(QString::fromLatin1(PROC_UDP), false);
 
@@ -51,12 +66,119 @@ ConnectionSnapshot PacketModule::pollNow() noexcept
     auto udp6 = parseProcNet(QString::fromLatin1(PROC_UDP6), false);
     snap.tcpConnections.append(tcp6);
     snap.udpConnections.append(udp6);
+#endif
 
     mLastTCP = snap.tcpConnections;
     mLastUDP = snap.udpConnections;
 
     return snap;
 }
+
+#ifdef Q_OS_WIN
+QList<ConnectionEntry> PacketModule::readWindowsConnections(bool tcp) noexcept
+{
+    QList<ConnectionEntry> result;
+    auto appendTable = [&result, tcp](ADDRESS_FAMILY family) {
+        ULONG size = 0;
+        ULONG status = tcp
+            ? GetExtendedTcpTable(nullptr, &size, FALSE, family, TCP_TABLE_OWNER_PID_ALL, 0)
+            : GetExtendedUdpTable(nullptr, &size, FALSE, family, UDP_TABLE_OWNER_PID, 0);
+        if (status != ERROR_INSUFFICIENT_BUFFER || size == 0) return;
+
+        std::vector<unsigned char> buffer(size);
+        status = tcp
+            ? GetExtendedTcpTable(buffer.data(), &size, FALSE, family, TCP_TABLE_OWNER_PID_ALL, 0)
+            : GetExtendedUdpTable(buffer.data(), &size, FALSE, family, UDP_TABLE_OWNER_PID, 0);
+        if (status != NO_ERROR) return;
+
+        auto address = [](const void *bytes, int familyValue) {
+            char text[INET6_ADDRSTRLEN]{};
+            if (!inet_ntop(familyValue, bytes, text, sizeof(text)))
+                return QString{};
+            return QString::fromLatin1(text);
+        };
+        auto port = [](DWORD networkPort) {
+            return static_cast<uint16_t>(ntohs(static_cast<u_short>(networkPort)));
+        };
+        auto state = [](DWORD s) {
+            switch (s) {
+                case MIB_TCP_STATE_ESTAB: return ConnectionState::Established;
+                case MIB_TCP_STATE_SYN_SENT: return ConnectionState::SynSent;
+                case MIB_TCP_STATE_SYN_RCVD: return ConnectionState::SynReceived;
+                case MIB_TCP_STATE_FIN_WAIT1: return ConnectionState::FinWait1;
+                case MIB_TCP_STATE_FIN_WAIT2: return ConnectionState::FinWait2;
+                case MIB_TCP_STATE_TIME_WAIT: return ConnectionState::TimeWait;
+                case MIB_TCP_STATE_CLOSED: return ConnectionState::Close;
+                case MIB_TCP_STATE_CLOSE_WAIT: return ConnectionState::CloseWait;
+                case MIB_TCP_STATE_LAST_ACK: return ConnectionState::LastAck;
+                case MIB_TCP_STATE_LISTEN: return ConnectionState::Listen;
+                case MIB_TCP_STATE_CLOSING: return ConnectionState::Closing;
+                default: return ConnectionState::Unknown;
+            }
+        };
+
+        if (tcp && family == AF_INET) {
+            const auto *table = reinterpret_cast<const MIB_TCPTABLE_OWNER_PID *>(buffer.data());
+            for (DWORD i = 0; i < table->dwNumEntries; ++i) {
+                const auto &row = table->table[i];
+                ConnectionEntry entry;
+                entry.slot = static_cast<int>(result.size());
+                entry.localAddress = address(&row.dwLocalAddr, AF_INET);
+                entry.localPort = port(row.dwLocalPort);
+                entry.remoteAddress = address(&row.dwRemoteAddr, AF_INET);
+                entry.remotePort = port(row.dwRemotePort);
+                entry.state = state(row.dwState);
+                entry.uid = row.dwOwningPid;
+                result.append(std::move(entry));
+            }
+        } else if (tcp) {
+            const auto *table = reinterpret_cast<const MIB_TCP6TABLE_OWNER_PID *>(buffer.data());
+            for (DWORD i = 0; i < table->dwNumEntries; ++i) {
+                const auto &row = table->table[i];
+                ConnectionEntry entry;
+                entry.slot = static_cast<int>(result.size());
+                entry.localAddress = address(row.ucLocalAddr, AF_INET6);
+                entry.localPort = port(row.dwLocalPort);
+                entry.remoteAddress = address(row.ucRemoteAddr, AF_INET6);
+                entry.remotePort = port(row.dwRemotePort);
+                entry.state = state(row.State);
+                entry.uid = row.dwOwningPid;
+                result.append(std::move(entry));
+            }
+        } else if (family == AF_INET) {
+            const auto *table = reinterpret_cast<const MIB_UDPTABLE_OWNER_PID *>(buffer.data());
+            for (DWORD i = 0; i < table->dwNumEntries; ++i) {
+                const auto &row = table->table[i];
+                ConnectionEntry entry;
+                entry.slot = static_cast<int>(result.size());
+                entry.localAddress = address(&row.dwLocalAddr, AF_INET);
+                entry.localPort = port(row.dwLocalPort);
+                entry.state = ConnectionState::Established;
+                entry.uid = row.dwOwningPid;
+                entry.isTCP = false;
+                result.append(std::move(entry));
+            }
+        } else {
+            const auto *table = reinterpret_cast<const MIB_UDP6TABLE_OWNER_PID *>(buffer.data());
+            for (DWORD i = 0; i < table->dwNumEntries; ++i) {
+                const auto &row = table->table[i];
+                ConnectionEntry entry;
+                entry.slot = static_cast<int>(result.size());
+                entry.localAddress = address(row.ucLocalAddr, AF_INET6);
+                entry.localPort = port(row.dwLocalPort);
+                entry.state = ConnectionState::Established;
+                entry.uid = row.dwOwningPid;
+                entry.isTCP = false;
+                result.append(std::move(entry));
+            }
+        }
+    };
+
+    appendTable(AF_INET);
+    appendTable(AF_INET6);
+    return result;
+}
+#endif
 
 // ═══════════════════════════════════════════════════════════════════════════════
 void PacketModule::startPolling(int intervalMs) noexcept

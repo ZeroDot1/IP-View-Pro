@@ -12,6 +12,11 @@
 #include <QRegularExpression>
 #include <QStandardPaths>
 #include <QDir>
+#include <QCoreApplication>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QFileInfo>
 
 #include <charconv>
 #include <system_error>
@@ -42,7 +47,14 @@ ServerSelectionModule::getAvailableServers(int timeoutMs) noexcept
 
     QProcess listProc;
     listProc.setProcessChannelMode(QProcess::MergedChannels);
-    listProc.start(program, QStringList{QStringLiteral("--list")});
+    const bool ookla = QFileInfo(program).fileName().startsWith(
+        QStringLiteral("speedtest"), Qt::CaseInsensitive)
+        && !QFileInfo(program).fileName().startsWith(
+            QStringLiteral("speedtest-cli"), Qt::CaseInsensitive);
+    listProc.start(program, ookla
+        ? QStringList{QStringLiteral("--servers"), QStringLiteral("--format=json"),
+                      QStringLiteral("--accept-license"), QStringLiteral("--accept-gdpr")}
+        : QStringList{QStringLiteral("--list")});
 
     if (!listProc.waitForFinished(timeoutMs)) {
         listProc.kill();
@@ -65,7 +77,38 @@ ServerSelectionModule::getAvailableServers(int timeoutMs) noexcept
     QByteArray const raw = listProc.readAll();
     QString const text = QString::fromUtf8(raw);
 
-    std::vector<ServerInfo> servers = parseServerList(text);
+    std::vector<ServerInfo> servers;
+    if (ookla) {
+        QJsonParseError parseError{};
+        const QJsonDocument document = QJsonDocument::fromJson(raw, &parseError);
+        QJsonArray rows;
+        if (document.isArray()) rows = document.array();
+        else if (document.isObject()) {
+            const QJsonObject object = document.object();
+            rows = object.value(QStringLiteral("servers")).toArray();
+            if (rows.isEmpty() && object.value(QStringLiteral("server")).isArray())
+                rows = object.value(QStringLiteral("server")).toArray();
+        }
+        servers.reserve(static_cast<std::size_t>(rows.size()));
+        for (const QJsonValue &value : rows) {
+            const QJsonObject item = value.toObject();
+            bool ok = false;
+            int id = item.value(QStringLiteral("id")).toString().toInt(&ok);
+            if (!ok) id = item.value(QStringLiteral("id")).toInt();
+            if (id <= 0) continue;
+            ServerInfo server;
+            server.id = id;
+            server.sponsor = item.value(QStringLiteral("sponsor")).toString(
+                item.value(QStringLiteral("name")).toString());
+            server.location = item.value(QStringLiteral("location")).toString();
+            server.distanceKm = item.value(QStringLiteral("distance")).toDouble();
+            servers.push_back(std::move(server));
+        }
+        if (parseError.error != QJsonParseError::NoError || rows.isEmpty())
+            servers = parseServerList(text);
+    } else {
+        servers = parseServerList(text);
+    }
 
     emit serverFetchFinished(servers);
     return servers;
@@ -243,11 +286,46 @@ ServerSelectionModule::findServerById(const std::vector<ServerInfo> &servers,
 
 QString ServerSelectionModule::findSpeedtestBinary() noexcept
 {
-    QString p = QStandardPaths::findExecutable(QStringLiteral("speedtest-cli"));
-    if (p.isEmpty()) {
-        p = QStandardPaths::findExecutable(QStringLiteral("speedtest"));
+    // Prefer the pure-Python speedtest-cli package on every platform.
+    // Its Windows pip entry point is normally speedtest.exe or
+    // speedtest-cli.exe; Qt resolves PATHEXT on Windows.
+    const QStringList names{
+        QStringLiteral("speedtest-cli"),
+        QStringLiteral("speedtest")
+    };
+    for (const QString &name : names) {
+        const QString p = QStandardPaths::findExecutable(name);
+        if (!p.isEmpty()) return p;
     }
-    return p;
+
+#ifdef Q_OS_WIN
+    // Python installers commonly put console entry points in their Scripts
+    // folders, which are not always added to PATH. Probe the current user's
+    // standard roaming/local Python locations without invoking a shell.
+    const QString appData = qEnvironmentVariable("APPDATA");
+    const QString localAppData = qEnvironmentVariable("LOCALAPPDATA");
+    const QStringList roots{
+        QDir::homePath() + QStringLiteral("/AppData/Roaming/Python"),
+        QDir::homePath() + QStringLiteral("/AppData/Local/Programs/Python"),
+        appData,
+        localAppData
+    };
+    for (const QString &root : roots) {
+        if (root.isEmpty()) continue;
+        QDir dir(root);
+        const QStringList scripts = dir.entryList(
+            {QStringLiteral("Python*")}, QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QString &version : scripts) {
+            const QString base = dir.filePath(version + QStringLiteral("/Scripts"));
+            for (const QString &name : {QStringLiteral("speedtest-cli.exe"),
+                                         QStringLiteral("speedtest.exe")}) {
+                const QString candidate = QDir(base).filePath(name);
+                if (QFileInfo::isExecutable(candidate)) return candidate;
+            }
+        }
+    }
+#endif
+    return {};
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

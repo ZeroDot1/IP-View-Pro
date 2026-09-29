@@ -94,6 +94,9 @@ signals:
     void connectionsUpdated(const IPView::Packet::ConnectionSnapshot &snapshot);
 
 private:
+#ifdef Q_OS_WIN
+    [[nodiscard]] static QList<ConnectionEntry> readWindowsConnections(bool tcp) noexcept;
+#endif
 
     QTimer      *mTimer{nullptr};
     QList<ConnectionEntry> mLastTCP;

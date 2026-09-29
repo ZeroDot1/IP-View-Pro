@@ -15,6 +15,7 @@
 #include <QDebug>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QFileInfo>
 #include <QFont>
 #include <QHeaderView>
 #include <QLineEdit>
@@ -404,16 +405,25 @@ void SpeedtestTab::onStartClicked()
 
     resetDisplay();
 
-    // Args: --json is required for structured output
-    QStringList args = {QStringLiteral("--json")};
-    if (secureCheck->isChecked())     args << QStringLiteral("--secure");
-    if (singleConnCheck->isChecked()) args << QStringLiteral("--single");
-    if (shareCheck->isChecked())      args << QStringLiteral("--share");
+    // Python speedtest-cli and Ookla Speedtest CLI use different command
+    // line formats and JSON schemas. Select the dialect from the executable.
+    const bool ookla = QFileInfo(program).fileName().startsWith(
+        QStringLiteral("speedtest"), Qt::CaseInsensitive)
+        && !QFileInfo(program).fileName().startsWith(
+            QStringLiteral("speedtest-cli"), Qt::CaseInsensitive);
+    QStringList args = ookla
+        ? QStringList{QStringLiteral("--format=json"), QStringLiteral("--accept-license"),
+                      QStringLiteral("--accept-gdpr")}
+        : QStringList{QStringLiteral("--json")};
+    if (!ookla && secureCheck->isChecked())     args << QStringLiteral("--secure");
+    if (!ookla && singleConnCheck->isChecked()) args << QStringLiteral("--single");
+    if (!ookla && shareCheck->isChecked())      args << QStringLiteral("--share");
 
     // Server selection from combo box
     int const serverId = serverCombo->currentData().toInt();
     if (serverId > 0) {
-        args << QStringLiteral("--server") << QString::number(serverId);
+        if (ookla) args << QStringLiteral("--server-id=%1").arg(serverId);
+        else args << QStringLiteral("--server") << QString::number(serverId);
         serverLabel->setText(QStringLiteral("Server #%1 selected").arg(serverId));
     } else {
         serverLabel->setText(QStringLiteral("Auto-select (fastest server)"));
@@ -505,9 +515,17 @@ void SpeedtestTab::onMultiTestClicked()
     for (int i = 0; i < count; ++i) {
         auto const &srv = sorted[static_cast<std::size_t>(i)];
 
-        QStringList args = {QStringLiteral("--json"), QStringLiteral("--server"), QString::number(srv.id)};
-        if (secureCheck->isChecked())     args << QStringLiteral("--secure");
-        if (singleConnCheck->isChecked()) args << QStringLiteral("--single");
+        const bool ookla = QFileInfo(program).fileName().startsWith(
+            QStringLiteral("speedtest"), Qt::CaseInsensitive)
+            && !QFileInfo(program).fileName().startsWith(
+                QStringLiteral("speedtest-cli"), Qt::CaseInsensitive);
+        QStringList args = ookla
+            ? QStringList{QStringLiteral("--format=json"), QStringLiteral("--accept-license"),
+                          QStringLiteral("--accept-gdpr"),
+                          QStringLiteral("--server-id=%1").arg(srv.id)}
+            : QStringList{QStringLiteral("--json"), QStringLiteral("--server"), QString::number(srv.id)};
+        if (!ookla && secureCheck->isChecked())     args << QStringLiteral("--secure");
+        if (!ookla && singleConnCheck->isChecked()) args << QStringLiteral("--single");
 
         // Use SafeProcess to validate before launching
         auto procResult = IPView::SafeProcess::start(program, args);
@@ -959,24 +977,42 @@ void SpeedtestTab::onSpeedtestFinished(int exitCode, QProcess::ExitStatus exitSt
 
 void SpeedtestTab::updateDisplayFromJson(const QJsonObject &obj) noexcept
 {
-    // Ping
-    double const ping = obj[QStringLiteral("ping")].toDouble();
+    // Ookla reports throughput as bytes/s and latency under ping.latency;
+    // Python speedtest-cli reports ping in milliseconds and bit/s flat.
+    const QJsonObject pingObj = obj.value(QStringLiteral("ping")).toObject();
+    double const ping = pingObj.isEmpty()
+        ? obj.value(QStringLiteral("ping")).toDouble()
+        : pingObj.value(QStringLiteral("latency")).toDouble();
     pingLabel->setText(QString::number(ping, 'f', 1));
 
-    // Download / Upload (bits/s to Mbit/s)
-    double const dl = obj[QStringLiteral("download")].toDouble() / 1.0e6;
-    double const ul = obj[QStringLiteral("upload")].toDouble()   / 1.0e6;
+    const QJsonObject downloadObj = obj.value(QStringLiteral("download")).toObject();
+    const QJsonObject uploadObj = obj.value(QStringLiteral("upload")).toObject();
+    const double downloadRaw = downloadObj.isEmpty()
+        ? obj.value(QStringLiteral("download")).toDouble()
+        : downloadObj.value(QStringLiteral("bandwidth")).toDouble() * 8.0;
+    const double uploadRaw = uploadObj.isEmpty()
+        ? obj.value(QStringLiteral("upload")).toDouble()
+        : uploadObj.value(QStringLiteral("bandwidth")).toDouble() * 8.0;
+    double const dl = downloadRaw / 1.0e6;
+    double const ul = uploadRaw / 1.0e6;
     downloadLabel->setText(QString::number(dl, 'f', 1));
     uploadLabel->setText(QString::number(ul, 'f', 1));
 
     // Server details
     if (obj.contains(QStringLiteral("server"))) {
         QJsonObject const s = obj[QStringLiteral("server")].toObject();
-        QString const sponsor = s[QStringLiteral("sponsor")].toString();
-        QString const name    = s[QStringLiteral("name")].toString();
-        QString const cc      = s[QStringLiteral("cc")].toString();
-        int const sid         = s[QStringLiteral("id")].toString().toInt();
-        double const lat      = s[QStringLiteral("latency")].toDouble();
+        QString const sponsor = s.value(QStringLiteral("sponsor")).toString(
+            s.value(QStringLiteral("name")).toString());
+        QString const name    = s.value(QStringLiteral("name")).toString(
+            s.value(QStringLiteral("location")).toString());
+        QString const cc      = s.value(QStringLiteral("cc")).toString(
+            s.value(QStringLiteral("country")).toString());
+        const QJsonValue idValue = s.value(QStringLiteral("id"));
+        int const sid = idValue.isString() ? idValue.toString().toInt() : idValue.toInt();
+        const QJsonObject latencyObject = s.value(QStringLiteral("latency")).toObject();
+        double const lat = latencyObject.isEmpty()
+            ? s.value(QStringLiteral("latency")).toDouble()
+            : latencyObject.value(QStringLiteral("latency")).toDouble();
 
         serverLabel->setText(QStringLiteral("Server: %1 (%2) \u00B7 %3 \u00B7 ID %4 \u00B7 latency %5 ms")
                                  .arg(sponsor, name, cc)
@@ -992,10 +1028,17 @@ void SpeedtestTab::updateDisplayFromJson(const QJsonObject &obj) noexcept
             ispLabel->setText(QStringLiteral("ISP: ") + isp);
         }
     }
+    if (ispLabel->text() == QStringLiteral("ISP: —")) {
+        const QString isp = obj.value(QStringLiteral("isp")).toString();
+        if (!isp.isEmpty()) ispLabel->setText(QStringLiteral("ISP: ") + isp);
+    }
 
     // Share link
-    if (obj.contains(QStringLiteral("share")) && !obj[QStringLiteral("share")].isNull()) {
-        QString const url = obj[QStringLiteral("share")].toString();
+    QString shareUrl = obj.value(QStringLiteral("share")).toString();
+    if (shareUrl.isEmpty()) shareUrl = obj.value(QStringLiteral("result")).toObject()
+        .value(QStringLiteral("url")).toString();
+    if (!shareUrl.isEmpty()) {
+        QString const url = shareUrl;
         if (!url.isEmpty()) {
             shareLinkLabel->setText(
                 QStringLiteral("<a href='%1' style='color: %2; text-decoration: none; "

@@ -32,6 +32,10 @@ target_link_libraries(IPViewTests
         Qt6::Widgets
 )
 
+if(WIN32)
+    target_link_libraries(IPViewTests PRIVATE Iphlpapi Ws2_32)
+endif()
+
 target_include_directories(IPViewTests
     PRIVATE
         ${CMAKE_SOURCE_DIR}

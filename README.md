@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  A professional, high-performance Qt 6 application for monitoring and analyzing public IP addresses, geolocation data, and network performance on <strong>Arch Linux</strong>.
+  A professional, high-performance Qt 6 application for monitoring and analyzing public IP addresses, geolocation data, and network performance on <strong>Linux and Windows</strong>.
 </p>
 
 <p align="center">
@@ -75,6 +75,7 @@ Tab icons are rendered from SVG files located in the [`svgs/`](svgs/) directory 
 - **Ping:** 4 ICMP packets with real-time output, **Cancel button**, 60-second auto-timeout.
 - **iPerf3:** Client/server mode with real-time speed visualization and color-coded progress bar (green ≥ 100 Mbps, cyan ≥ 50, orange ≥ 10, red < 10). Progress bar updates automatically with each speed measurement.
 - **Traceroute:** Cross-platform support (Linux: `traceroute`/`tracepath`, Windows: `tracert`) with Cancel button.
+- **Windows-native telemetry and connections:** Interface counters and live TCP/UDP tables use the Windows IP Helper API; ping and traceroute use Windows command-line tools.
 - **Network scan — local-network device discovery:** Enter a `/24` subnet prefix (e.g. `192.168.1`, `10.0.0`) or leave the field empty to auto-detect the local subnet, click **Discover** and every reachable host appears in the table with IP, hostname (reverse-DNS), MAC (from `/proc/net/arp`), vendor (OUI lookup against ~400 prefixes) and round-trip latency. A per-row **Port scan** button delegates to the Port Scanner tab and starts a 28-port quick scan against that host in one click. Parallel ping sweep (20 workers, 50 ms dispatch tick) typically finishes a `/24` in ~1.3 s on a 1 Gbps LAN.
 
 ###  IP Change History
@@ -265,6 +266,18 @@ sudo pacman -S speedtest-cli iperf3 traceroute
 ---
 
 ## Build & Run
+
+### Windows
+
+Install Visual Studio 2022 (C++ desktop workload), CMake 3.28+, Ninja, and Qt 6.8+ for `win64_msvc2022_64`, then run from a Developer PowerShell:
+
+```powershell
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+windeployqt --release build/IPView.exe
+```
+
+Windows Speedtest uses the Python `speedtest-cli` package (`py -m pip install speedtest-cli`); add its Python `Scripts` directory to `PATH` if the app cannot discover it. The speedtest tab also recognizes Ookla's `speedtest.exe`. Server browsing and single/multi-server runs select the matching CLI format automatically. iPerf3 remains an optional external dependency (`iperf3.exe` on `PATH`).
 
 ```bash
 # Clone or navigate to the project directory

@@ -6,6 +6,7 @@
 
 #include "NetworkDiscovery.h"
 #include "Logger.h"
+#include "SecurityUtil.h"
 
 #include <QFile>
 #include <QHostAddress>
@@ -19,6 +20,12 @@
 #include <array>
 #include <ranges>
 #include <string_view>
+
+#ifdef Q_OS_WIN
+#  include <winsock2.h>
+#  include <ws2tcpip.h>
+#  include <iphlpapi.h>
+#endif
 
 namespace IPView::Scanner {
 
@@ -809,6 +816,26 @@ QString NetworkDiscovery::lookupMac(const QString &ip) noexcept
         if (!mac.contains(QLatin1Char(':')))            return {};
         return mac.toLower();
     }
+#elif defined(Q_OS_WIN)
+    QHostAddress target(ip);
+    if (target.protocol() != QAbstractSocket::IPv4Protocol) return {};
+    MIB_IPNET_TABLE2 *table = nullptr;
+    if (GetIpNetTable2(AF_INET, &table) != NO_ERROR || !table) return {};
+    QString result;
+    for (ULONG i = 0; i < table->NumEntries; ++i) {
+        const MIB_IPNET_ROW2 &row = table->Table[i];
+        char addressText[INET_ADDRSTRLEN]{};
+        if (!inet_ntop(AF_INET, &row.Address.Ipv4.sin_addr, addressText, sizeof(addressText))) continue;
+        if (target.toString() != QString::fromLatin1(addressText)) continue;
+        if (row.PhysicalAddressLength == 0 || row.PhysicalAddressLength > 32) break;
+        QStringList octets;
+        for (ULONG byte = 0; byte < row.PhysicalAddressLength; ++byte)
+            octets.append(QStringLiteral("%1").arg(row.PhysicalAddress[byte], 2, 16, QLatin1Char('0')));
+        result = octets.join(QLatin1Char(':')).toLower();
+        break;
+    }
+    FreeMibTable(table);
+    return result;
 #else
     Q_UNUSED(ip);
 #endif
@@ -861,13 +888,15 @@ void NetworkDiscovery::startDiscovery(const QString &subnet) noexcept
     }
     SubnetRange const range = *parsed;
 
-#ifndef Q_OS_WIN
+#ifdef Q_OS_WIN
+    const QString pingExecutable = findSystemTool(QStringLiteral("ping"));
+#else
     const QString pingExecutable = QStandardPaths::findExecutable(QStringLiteral("ping"));
+#endif
     if (pingExecutable.isEmpty()) {
         emit error(QStringLiteral("The ping utility is not available in PATH."));
         return;
     }
-#endif
 
     mPendingIps    = buildCandidateIps(range);
     mScannedCount  = 0;
@@ -930,7 +959,7 @@ bool NetworkDiscovery::dispatchNext() noexcept
 
     mActiveWorkers.append(w);
 #ifdef Q_OS_WIN
-    proc->start(QStringLiteral("ping"),
+    proc->start(pingExecutable,
                 { QStringLiteral("-n"), QStringLiteral("1"),
                   QStringLiteral("-w"), QString::number(PING_TIMEOUT_MS), ip });
 #else

@@ -1,5 +1,5 @@
 # IPView — Professional IP Monitoring & Network Analysis Tool
-# Requires: Qt 6.5+, CMake 3.28+, C++26 compiler (GCC 14+ / Clang 18+)
+# Requires: Qt 6.5+, CMake 3.28+, C++26 compiler (GCC 16+ / Clang 19+ / MSVC 19.4+)
 #
 # ════════════════════════════════════════════════════════════════
 #  C++26 (ISO/IEC 14882:2026) | Qt 6.5+ | CMake 3.28+
@@ -96,6 +96,9 @@ option(SANITIZE "Build with a sanitizer" OFF)
 set(SANITIZER_TYPE "address,undefined" CACHE STRING
     "Sanitizer set to use when SANITIZE=ON (address, undefined, thread, or a comma list)")
 if(SANITIZE)
+    if(MSVC)
+        message(FATAL_ERROR "SANITIZE is not supported with MSVC; use Clang/GCC builds for sanitizers.")
+    endif()
     add_compile_options(-fsanitize=${SANITIZER_TYPE} -g -O1)
     add_link_options(-fsanitize=${SANITIZER_TYPE})
     message(STATUS "Sanitizers ENABLED: ${SANITIZER_TYPE}")
@@ -145,26 +148,40 @@ option(IPVIEW_STRIP_BINARY    "Strip debug + symbol tables from the binary" OFF)
 option(IPVIEW_COMPRESS_BINARY "Compress the final binary with UPX"        OFF)
 option(IPVIEW_SIZE_REPORT     "Print a size snapshot after the build"     ON)
 
+if(WIN32)
+    set(IPVIEW_STRIP_BINARY OFF CACHE BOOL "Strip debug + symbol tables from the binary" FORCE)
+    set(IPVIEW_COMPRESS_BINARY OFF CACHE BOOL "Compress the final binary with UPX" FORCE)
+    set(IPVIEW_SIZE_REPORT OFF CACHE BOOL "Print a size snapshot after the build" FORCE)
+endif()
+
 if(IPVIEW_MINSIZE)
     # -Os is a special case of -O2 that prefers size; combined with
     # section splitting it lets the linker drop every unreferenced
     # function and global constant. The .eh_frame / .sframe are kept
     # because unwinders depend on them, but the section versions
     # shrink automatically when their input symbols disappear.
-    add_compile_options(-Os -fdata-sections -ffunction-sections)
+    if(MSVC)
+        add_compile_options(/O1 /Gy /Gw)
+    else()
+        add_compile_options(-Os -fdata-sections -ffunction-sections)
+    endif()
     # -Wl,--gc-sections enables the actual dead-code elim at link time.
     # -Wl,--as-needed drops DT_NEEDED entries for libs we never call
     # into (mostly transitive Qt deps). -z,nodump excludes the binary
     # from core dumps, saving a few KB on the .note section. The
     # GNU hash style is a hair smaller than sysv, and dropping the
     # build-id note shaves another 36 bytes plus the SHA1 padding.
-    add_link_options(
-        -Wl,--gc-sections
-        -Wl,--as-needed
-        -Wl,-z,nodump
-        -Wl,--hash-style=gnu
-        -Wl,--build-id=none
-    )
+    if(MSVC)
+        add_link_options(/OPT:REF /OPT:ICF)
+    else()
+        add_link_options(
+            -Wl,--gc-sections
+            -Wl,--as-needed
+            -Wl,-z,nodump
+            -Wl,--hash-style=gnu
+            -Wl,--build-id=none
+        )
+    endif()
     # MINSIZE implies LTO so cross-TU inlining + dead-code elim kick
     # in. If the user explicitly disabled LTO we honour that decision
     # and warn so they know what they gave up.
@@ -242,6 +259,10 @@ target_link_libraries(IPView
         Qt6::Sql
 )
 
+if(WIN32)
+    target_link_libraries(IPView PRIVATE Iphlpapi Ws2_32)
+endif()
+
 # ── Target properties ────────────────────────────────────────
 set_target_properties(IPView PROPERTIES
     WIN32_EXECUTABLE TRUE
@@ -310,7 +331,7 @@ elseif(IPVIEW_COMPRESS_BINARY)
     message(WARNING "IPVIEW_COMPRESS_BINARY=ON but `upx` not found in PATH — skipping")
 endif()
 
-if(IPVIEW_SIZE_REPORT)
+if(IPVIEW_SIZE_REPORT AND NOT WIN32)
     # We hand the binary path to a tiny shell helper as a single argument
     # (no shell variables needed on the bash side), then let the shell
     # do its own `$1` parameter expansion to format the size. This avoids
@@ -325,10 +346,12 @@ endif()
 
 # ── C++26 polyfill for GCC 16.1.1 (saturate_cast) ────────────
 #  Force-include before any Qt header to provide q26::saturate_cast
-target_compile_options(IPView PRIVATE
-    $<$<COMPILE_LANGUAGE:CXX>:-include>
-    $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/saturate_fix.h>
-)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+    target_compile_options(IPView PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:-include>
+        $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/saturate_fix.h>
+    )
+endif()
 
 # ── Install rule (Linux: /usr/local/bin) ──────────────────────
 install(TARGETS IPView RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

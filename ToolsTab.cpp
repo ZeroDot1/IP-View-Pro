@@ -231,7 +231,7 @@ void ToolsTab::onPingClicked()
     }
 
     // Resolve absolute path via QStandardPaths (PATH-hijack safe).
-    QString const pingPath = QStandardPaths::findExecutable(QStringLiteral("ping"));
+    QString const pingPath = findSystemTool(QStringLiteral("ping"));
     if (pingPath.isEmpty()) {
         outputArea->append(QStringLiteral("ping: command not found in PATH."));
         return;
@@ -261,11 +261,17 @@ void ToolsTab::onPingClicked()
     outputArea->append(QStringLiteral("\n── Pinging %1 ──").arg(target));
 
     // Use SafeProcess to validate and configure the process
-    QStringList const pingArgs = {
+    QStringList pingArgs;
+#ifdef Q_OS_WIN
+    pingArgs = {QStringLiteral("-n"), QStringLiteral("4"),
+                QStringLiteral("-w"), QStringLiteral("3000"), target};
+#else
+    pingArgs = {
         QStringLiteral("-c"), QStringLiteral("4"),
         QStringLiteral("-W"), QStringLiteral("2"),
         target
     };
+#endif
     auto procResult = IPView::SafeProcess::start(pingPath, pingArgs);
     if (!procResult.has_value()) {
         outputArea->append(QString::fromStdString(procResult.error().message));

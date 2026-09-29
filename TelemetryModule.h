@@ -17,6 +17,7 @@
 #include <string>
 #include <cstdint>
 #include <chrono>
+#include <QNetworkInterface>
 
 #include "Timeouts.hpp"
 #include "Error.hpp"
@@ -82,6 +83,7 @@ private slots:
     void onTick() noexcept;
 
 private:
+    [[nodiscard]] IPView::Result<Stats> fetchSystemStats(QStringView interface) const noexcept;
     [[nodiscard]] Stats parseProcNetDev(std::string_view buf, std::string_view interface) noexcept;
     [[nodiscard]] bool  isValidInterface(std::string_view name) const noexcept;
 

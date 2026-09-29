@@ -114,11 +114,14 @@ inline bool isValidCommand(const QString &input) noexcept
     if (input.size() > 4096) return false;          // PATH_MAX sanity bound
     if (IPView::Security::shellMetacharRegex().match(input).hasMatch()) return false;
 
-    // Restrict to a conservative character set: alnum, dot, dash,
-    // underscore, slash, plus, equals (for env-var style paths).
+    // Restrict to conservative executable path characters. Windows drive
+    // paths need a colon and backslashes; those are safe here because QProcess
+    // receives a program path directly and never invokes a shell.
     for (QChar c : input) {
         bool const ok = c.isLetterOrNumber()
                      || c == QLatin1Char('/')
+                     || c == QLatin1Char('\\')
+                     || c == QLatin1Char(':')
                      || c == QLatin1Char('.')
                      || c == QLatin1Char('-')
                      || c == QLatin1Char('_')
@@ -223,7 +226,9 @@ inline QString findSystemTool(const QString &toolName) noexcept
     // Use QStandardPaths for absolute path resolution
     QString const path = QStandardPaths::findExecutable(toolName);
     if (path.isEmpty()) {
-        // Fallback: direct path on Linux
+        // Fallback to standard Unix locations only on Linux. On Windows,
+        // QStandardPaths already applies PATHEXT and the active environment.
+#ifdef Q_OS_LINUX
         QStringList const candidates = {
             QStringLiteral("/usr/bin/%1").arg(toolName),
             QStringLiteral("/bin/%1").arg(toolName),
@@ -232,6 +237,7 @@ inline QString findSystemTool(const QString &toolName) noexcept
         for (QString const &c : candidates) {
             if (QFileInfo::exists(c)) return c;
         }
+#endif
     }
     return path;
 }

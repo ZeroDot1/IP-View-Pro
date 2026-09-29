@@ -16,6 +16,31 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
+  windows:
+    name: Windows / MSVC / Release
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: Install Qt 6.8.3
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          cache: true
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Deploy Qt runtime
+        run: windeployqt --release build/IPView.exe
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
   build:
     name: ${{ matrix.os }} / ${{ matrix.compiler }} / ${{ matrix.build_type }} / ${{ matrix.sanitizer }}
     strategy:

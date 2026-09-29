@@ -260,21 +260,30 @@ void TopologyTab::onTraceClicked()
     statusLabel->setText(QStringLiteral("Tracing route to %1 ...").arg(mTargetHost));
     traceButton->setEnabled(false);
 
-    // Find traceroute binary
+    // Use the native Windows route tracer where Unix traceroute is absent.
+#ifdef Q_OS_WIN
+    QString const traceroute = findSystemTool(QStringLiteral("tracert"));
+#else
     QString const traceroute = findSystemTool(QStringLiteral("traceroute"));
+#endif
     if (traceroute.isEmpty()) {
         statusLabel->setText(QStringLiteral("Error: traceroute not found. Install with: sudo pacman -S traceroute"));
         traceButton->setEnabled(true);
         return;
     }
 
-    mProcess->start(traceroute, {
-        QStringLiteral("-n"),        // numeric output (no DNS lookups — faster)
-        QStringLiteral("-q"), QStringLiteral("1"),  // single query per hop
-        QStringLiteral("-w"), QStringLiteral("3"),  // 3 second timeout
-        QStringLiteral("-m"), QStringLiteral("30"), // max 30 hops
-        mTargetHost
-    });
+    QStringList traceArgs;
+#ifdef Q_OS_WIN
+    traceArgs << QStringLiteral("-d") << QStringLiteral("-h")
+              << QStringLiteral("30") << QStringLiteral("-w")
+              << QStringLiteral("3000") << mTargetHost;
+#else
+    traceArgs << QStringLiteral("-n")        // Numeric output (no reverse DNS)
+              << QStringLiteral("-q") << QStringLiteral("1")
+              << QStringLiteral("-w") << QStringLiteral("3")
+              << QStringLiteral("-m") << QStringLiteral("30") << mTargetHost;
+#endif
+    mProcess->start(traceroute, traceArgs);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

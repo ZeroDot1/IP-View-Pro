@@ -24,6 +24,10 @@
 #include <map>
 #include <system_error>
 
+#ifdef Q_OS_WIN
+#  include <iphlpapi.h>
+#endif
+
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Telemetry {
 
@@ -232,6 +236,13 @@ void TelemetryPersistenceModule::onAggregationTick() noexcept
 QStringList TelemetryPersistenceModule::listPhysicalInterfaces() noexcept
 {
     QStringList result;
+#ifdef Q_OS_WIN
+    for (const auto &iface : QNetworkInterface::allInterfaces()) {
+        if (iface.isValid() && !(iface.flags() & QNetworkInterface::IsLoopBack))
+            result.append(iface.name());
+    }
+    return result;
+#else
     QFile file(QStringLiteral("/proc/net/dev"));
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return result;
@@ -263,11 +274,29 @@ QStringList TelemetryPersistenceModule::listPhysicalInterfaces() noexcept
 
     file.close();
     return result;
+#endif
 }
 
 std::optional<std::pair<quint64, quint64>>
 TelemetryPersistenceModule::fetchInterfaceBytes(const QString &interfaceName) noexcept
 {
+#ifdef Q_OS_WIN
+    const auto iface = QNetworkInterface::interfaceFromName(interfaceName);
+    if (!iface.isValid()) return std::nullopt;
+    MIB_IF_TABLE2 *table = nullptr;
+    if (GetIfTable2(&table) != NO_ERROR || !table) return std::nullopt;
+    std::optional<std::pair<quint64, quint64>> result;
+    for (ULONG i = 0; i < table->NumEntries; ++i) {
+        const MIB_IF_ROW2 &row = table->Table[i];
+        if (row.InterfaceIndex == iface.index()) {
+            result = std::make_pair(static_cast<quint64>(row.InOctets),
+                                    static_cast<quint64>(row.OutOctets));
+            break;
+        }
+    }
+    FreeMibTable(table);
+    return result;
+#else
     QFile file(QStringLiteral("/proc/net/dev"));
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return std::nullopt;
@@ -306,6 +335,7 @@ TelemetryPersistenceModule::fetchInterfaceBytes(const QString &interfaceName) no
     }
 
     return std::nullopt;
+#endif
 }
 
 } // namespace IPView::Telemetry

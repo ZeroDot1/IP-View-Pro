@@ -60,6 +60,8 @@ NetworkManager::NetworkManager(QObject *parent)
     : QObject(parent)
     , manager(new QNetworkAccessManager(this))
 {
+    apiList.reserve(IPv4_APIS.size());
+    ipv6ApiList.reserve(IPv6_APIS.size());
     // C++26 structured bindings for constexpr array unpacking
     // Copy compile-time APIs into runtime containers
     for (auto const& [name, url] : IPv4_APIS) {

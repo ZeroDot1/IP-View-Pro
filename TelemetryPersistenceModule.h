@@ -19,6 +19,7 @@
 #include <vector>
 #include <map>
 #include <cstdint>
+#include <QNetworkInterface>
 
 #include "DatabaseModule.h"
 

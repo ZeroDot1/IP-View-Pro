@@ -16,6 +16,11 @@
 #include <charconv>     // C++26: std::from_chars
 #include <system_error>
 
+#ifdef Q_OS_WIN
+#  include <iphlpapi.h>
+#  include <netioapi.h>
+#endif
+
 // ═══════════════════════════════════════════════════════════════════════════════
 namespace IPView::Telemetry {
 
@@ -34,6 +39,9 @@ TelemetryModule::TelemetryModule(QObject *parent)
 IPView::Result<Stats>
 TelemetryModule::fetchStats(std::string_view interface) noexcept
 {
+#ifdef Q_OS_WIN
+    return fetchSystemStats(QString::fromUtf8(interface.data(), static_cast<qsizetype>(interface.size())));
+#else
     QFile file(QStringLiteral("/proc/net/dev"));
     if (!file.open(QIODevice::ReadOnly)) {
         return IPView::unexpected(IPView::Error::FileReadError,
@@ -46,6 +54,39 @@ TelemetryModule::fetchStats(std::string_view interface) noexcept
     std::string_view const buf(raw.constData(),
                                static_cast<std::size_t>(raw.size()));
     return parseProcNetDev(buf, interface);
+#endif
+}
+
+IPView::Result<Stats> TelemetryModule::fetchSystemStats(QStringView interface) const noexcept
+{
+#ifdef Q_OS_WIN
+    const auto ni = QNetworkInterface::interfaceFromName(interface.toString());
+    if (!ni.isValid()) return IPView::unexpected(IPView::Error::NotFound,
+        std::string{"Network interface not found"});
+    Stats result;
+    MIB_IF_TABLE2 *table = nullptr;
+    if (GetIfTable2(&table) != NO_ERROR || !table)
+        return IPView::unexpected(IPView::Error::CommandFailed, std::string{"Cannot read Windows interface counters"});
+    bool found = false;
+    for (ULONG i = 0; i < table->NumEntries; ++i) {
+        const MIB_IF_ROW2 &row = table->Table[i];
+        if (row.InterfaceIndex != ni.index()) continue;
+        result.rxBytes = row.InOctets;
+        result.txBytes = row.OutOctets;
+        result.rxPackets = row.InUcastPkts + row.InNUcastPkts;
+        result.txPackets = row.OutUcastPkts + row.OutNUcastPkts;
+        result.rxErrors = row.InErrors;
+        result.txErrors = row.OutErrors;
+        found = true;
+        break;
+    }
+    FreeMibTable(table);
+    if (!found) return IPView::unexpected(IPView::Error::NotFound, std::string{"Network interface counters not found"});
+    return result;
+#else
+    Q_UNUSED(interface);
+    return IPView::unexpected(IPView::Error::Unknown, std::string{"System interface counters are unavailable"});
+#endif
 }
 
 QStringList TelemetryModule::availableInterfaces() const noexcept
@@ -55,6 +96,15 @@ QStringList TelemetryModule::availableInterfaces() const noexcept
     }
 
     QStringList result;
+#ifdef Q_OS_WIN
+    for (const auto &iface : QNetworkInterface::allInterfaces()) {
+        if (!(iface.flags() & QNetworkInterface::IsLoopBack) && iface.isValid())
+            result.append(iface.name());
+    }
+    mCachedInterfaces = result;
+    mCacheValid = true;
+    return result;
+#else
     QFile file(QStringLiteral("/proc/net/dev"));
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return result;
@@ -84,6 +134,7 @@ QStringList TelemetryModule::availableInterfaces() const noexcept
     mCachedInterfaces = result;
     mCacheValid = true;
     return result;
+#endif
 }
 
 void TelemetryModule::startMonitoring(int intervalMs) noexcept
@@ -119,6 +170,30 @@ QList<InterfaceInfo> TelemetryModule::getAllInterfaces() const noexcept
 
 void TelemetryModule::onTick() noexcept
 {
+#ifdef Q_OS_WIN
+    const QStringList interfaces = availableInterfaces();
+    QList<InterfaceInfo> updated;
+    for (const QString &name : interfaces) {
+        const auto fetched = fetchSystemStats(name);
+        if (!fetched) continue;
+        auto it = std::ranges::find_if(mInterfaces, [&](const InterfaceInfo &i) { return i.name == name; });
+        InterfaceInfo info;
+        info.name = name;
+        info.current = *fetched;
+        if (it != mInterfaces.end()) {
+            const double factor = 1000.0 / static_cast<double>(mTimer->interval());
+            info.previous = it->current;
+            info.rxSpeedBps = info.current.rxBytes >= it->current.rxBytes
+                ? static_cast<double>(info.current.rxBytes - it->current.rxBytes) * factor : 0.0;
+            info.txSpeedBps = info.current.txBytes >= it->current.txBytes
+                ? static_cast<double>(info.current.txBytes - it->current.txBytes) * factor : 0.0;
+        }
+        updated.append(info);
+    }
+    mInterfaces = updated;
+    emit telemetryUpdated(mInterfaces);
+    return;
+#else
     QFile file(QStringLiteral("/proc/net/dev"));
     if (!file.open(QIODevice::ReadOnly)) {   // ← binary mode, no QTextStream
         emit errorOccurred(QStringLiteral("Cannot open /proc/net/dev"));
@@ -196,6 +271,7 @@ void TelemetryModule::onTick() noexcept
     }
 
     emit telemetryUpdated(mInterfaces);
+#endif
 }
 
 void TelemetryModule::adjustIntervalDynamically(double totalActivity) noexcept
